@@ -146,6 +146,24 @@ export class AuthService {
     return this.usersService.getCurrentUser(userId);
   }
 
+  async getOptionalJwtPayloadFromAuthHeader(
+    authorization?: string,
+  ): Promise<JwtPayload | null> {
+    if (!authorization?.startsWith('Bearer ')) {
+      return null;
+    }
+
+    const token = authorization.replace('Bearer ', '').trim();
+
+    try {
+      return await this.jwtService.verifyAsync<JwtPayload>(token, {
+        secret: this.configService.getOrThrow<string>('JWT_SECRET'),
+      });
+    } catch {
+      return null;
+    }
+  }
+
   private async createSession(user: SessionUser) {
     const payload: JwtPayload = {
       sub: user.id,

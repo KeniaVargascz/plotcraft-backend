@@ -1,7 +1,8 @@
-import { Body, Controller, Get, Param, Patch } from '@nestjs/common';
+import { Body, Controller, Get, Headers, Param, Patch } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Public } from '../../common/decorators/public.decorator';
+import { AuthService } from '../auth/auth.service';
 import type { JwtPayload } from '../auth/strategies/jwt.strategy';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { ProfilesService } from './profiles.service';
@@ -9,13 +10,21 @@ import { ProfilesService } from './profiles.service';
 @ApiTags('profiles')
 @Controller('profiles')
 export class ProfilesController {
-  constructor(private readonly profilesService: ProfilesService) {}
+  constructor(
+    private readonly profilesService: ProfilesService,
+    private readonly authService: AuthService,
+  ) {}
 
   @Public()
   @Get(':username')
   @ApiOperation({ summary: 'Ver perfil publico por username' })
-  getPublicProfile(@Param('username') username: string) {
-    return this.profilesService.getPublicProfile(username);
+  async getPublicProfile(
+    @Param('username') username: string,
+    @Headers('authorization') authorization?: string,
+  ) {
+    const viewer =
+      await this.authService.getOptionalJwtPayloadFromAuthHeader(authorization);
+    return this.profilesService.getPublicProfile(username, viewer?.sub ?? null);
   }
 
   @ApiBearerAuth()

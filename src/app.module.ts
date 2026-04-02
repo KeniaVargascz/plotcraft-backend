@@ -2,7 +2,12 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_FILTER, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
 import { AuthModule } from './modules/auth/auth.module';
+import { CommentsModule } from './modules/comments/comments.module';
+import { FeedModule } from './modules/feed/feed.module';
+import { FollowsModule } from './modules/follows/follows.module';
+import { PostsModule } from './modules/posts/posts.module';
 import { ProfilesModule } from './modules/profiles/profiles.module';
+import { ReactionsModule } from './modules/reactions/reactions.module';
 import { UsersModule } from './modules/users/users.module';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
@@ -19,6 +24,11 @@ import { PrismaModule } from './prisma/prisma.module';
     AuthModule,
     UsersModule,
     ProfilesModule,
+    FollowsModule,
+    PostsModule,
+    CommentsModule,
+    ReactionsModule,
+    FeedModule,
   ],
   providers: [
     { provide: APP_PIPE, useClass: ValidationPipe },

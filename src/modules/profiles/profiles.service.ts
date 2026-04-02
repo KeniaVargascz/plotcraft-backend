@@ -6,14 +6,24 @@ import { UpdateProfileDto } from './dto/update-profile.dto';
 export class ProfilesService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async getPublicProfile(username: string) {
+  async getPublicProfile(username: string, viewerId?: string | null) {
     const profile = await this.prisma.profile.findFirst({
       where: {
         isPublic: true,
         user: { username },
       },
       include: {
-        user: true,
+        user: {
+          include: {
+            _count: {
+              select: {
+                followers: true,
+                following: true,
+                posts: true,
+              },
+            },
+          },
+        },
       },
     });
 
@@ -33,6 +43,14 @@ export class ProfilesService {
       updatedAt: profile.updatedAt,
       username: profile.user.username,
       joinedAt: profile.user.createdAt,
+      followersCount: profile.user._count.followers,
+      followingCount: profile.user._count.following,
+      postsCount: profile.user._count.posts,
+      viewerContext: {
+        isFollowing: viewerId
+          ? await this.isViewerFollowing(viewerId, profile.user.id)
+          : null,
+      },
     };
   }
 
@@ -56,5 +74,18 @@ export class ProfilesService {
         ...(dto.isPublic !== undefined ? { isPublic: dto.isPublic } : {}),
       },
     });
+  }
+
+  private async isViewerFollowing(viewerId: string, targetUserId: string) {
+    const follow = await this.prisma.follow.findUnique({
+      where: {
+        followerId_followingId: {
+          followerId: viewerId,
+          followingId: targetUserId,
+        },
+      },
+    });
+
+    return Boolean(follow);
   }
 }
