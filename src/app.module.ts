@@ -2,9 +2,12 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_FILTER, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
 import { AuthModule } from './modules/auth/auth.module';
+import { ChaptersModule } from './modules/chapters/chapters.module';
 import { CommentsModule } from './modules/comments/comments.module';
 import { FeedModule } from './modules/feed/feed.module';
 import { FollowsModule } from './modules/follows/follows.module';
+import { GenresModule } from './modules/genres/genres.module';
+import { NovelsModule } from './modules/novels/novels.module';
 import { PostsModule } from './modules/posts/posts.module';
 import { ProfilesModule } from './modules/profiles/profiles.module';
 import { ReactionsModule } from './modules/reactions/reactions.module';
@@ -29,6 +32,9 @@ import { PrismaModule } from './prisma/prisma.module';
     CommentsModule,
     ReactionsModule,
     FeedModule,
+    GenresModule,
+    NovelsModule,
+    ChaptersModule,
   ],
   providers: [
     { provide: APP_PIPE, useClass: ValidationPipe },

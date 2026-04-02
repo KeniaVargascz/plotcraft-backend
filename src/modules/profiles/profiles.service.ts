@@ -50,6 +50,7 @@ export class ProfilesService {
         isFollowing: viewerId
           ? await this.isViewerFollowing(viewerId, profile.user.id)
           : null,
+        isSelf: viewerId ? viewerId === profile.user.id : false,
       },
     };
   }
