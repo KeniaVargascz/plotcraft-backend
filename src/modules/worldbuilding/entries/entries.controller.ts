@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  Headers,
   Param,
   Patch,
   Post,
@@ -12,6 +13,7 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import { Public } from '../../../common/decorators/public.decorator';
 import type { JwtPayload } from '../../auth/strategies/jwt.strategy';
+import { AuthService } from '../../auth/auth.service';
 import { EntriesService } from './entries.service';
 import { CreateEntryDto } from './dto/create-entry.dto';
 import { CreateLinkDto } from './dto/create-link.dto';
@@ -22,7 +24,10 @@ import { UpdateEntryDto } from './dto/update-entry.dto';
 @ApiTags('worldbuilding-entries')
 @Controller('worlds/:slug/wb')
 export class EntriesController {
-  constructor(private readonly entriesService: EntriesService) {}
+  constructor(
+    private readonly entriesService: EntriesService,
+    private readonly authService: AuthService,
+  ) {}
 
   @Public()
   @Get('entries')
@@ -52,11 +57,14 @@ export class EntriesController {
   @Public()
   @Get('entries/:entrySlug')
   @ApiOperation({ summary: 'Detalle de una entrada' })
-  getEntry(
+  async getEntry(
     @Param('slug') slug: string,
     @Param('entrySlug') entrySlug: string,
+    @Headers('authorization') authorization?: string,
   ) {
-    return this.entriesService.getEntry(slug, entrySlug);
+    const viewer =
+      await this.authService.getOptionalJwtPayloadFromAuthHeader(authorization);
+    return this.entriesService.getEntry(slug, entrySlug, viewer?.sub ?? null);
   }
 
   @Public()

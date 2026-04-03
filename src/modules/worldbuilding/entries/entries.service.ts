@@ -68,7 +68,7 @@ export class EntriesService {
     };
   }
 
-  async getEntry(worldSlug: string, entrySlug: string) {
+  async getEntry(worldSlug: string, entrySlug: string, viewerId?: string | null) {
     const world = await this.getWorldBySlug(worldSlug);
 
     const entry = await this.prisma.wbEntry.findUnique({
@@ -114,12 +114,20 @@ export class EntriesService {
       createdAt: entry.createdAt,
       updatedAt: entry.updatedAt,
       category: entry.category,
+      world: {
+        id: world.id,
+        name: world.name,
+        slug: world.slug,
+      },
       author: {
         id: entry.author.id,
         username: entry.author.username,
         displayName: entry.author.profile?.displayName ?? entry.author.username,
         avatarUrl: entry.author.profile?.avatarUrl ?? null,
       },
+      viewerContext: viewerId
+        ? { isOwner: entry.authorId === viewerId }
+        : null,
       links: [
         ...entry.linksAsSource.map((link) => ({
           id: link.id,
