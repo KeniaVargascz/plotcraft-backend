@@ -11,6 +11,7 @@ import {
   Prisma,
 } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { CreateNovelDto } from './dto/create-novel.dto';
 import { NovelQueryDto } from './dto/novel-query.dto';
 import { UpdateNovelDto } from './dto/update-novel.dto';
@@ -26,7 +27,10 @@ type NovelListOptions = {
 
 @Injectable()
 export class NovelsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notificationsService: NotificationsService,
+  ) {}
 
   async createNovel(userId: string, dto: CreateNovelDto) {
     await this.assertGenresExist(dto.genreIds ?? []);
@@ -236,6 +240,21 @@ export class NovelsService {
         userId,
       },
     });
+
+    if (novel.authorId !== userId) {
+      // Check milestones: 100, 500, 1000, 5000
+      const likesCount = await this.prisma.novelLike.count({ where: { novelId: novel.id } });
+      const milestones = [100, 500, 1000, 5000];
+      if (milestones.includes(likesCount)) {
+        void this.notificationsService.createNotification({
+          userId: novel.authorId,
+          type: 'NOVEL_MILESTONE' as any,
+          title: `Tu novela alcanzo ${likesCount} likes!`,
+          body: novel.title,
+          actorId: userId,
+        });
+      }
+    }
 
     return { hasLiked: true };
   }

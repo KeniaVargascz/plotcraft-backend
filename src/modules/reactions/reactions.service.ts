@@ -1,11 +1,15 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { ReactionType } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { ToggleReactionDto } from './dto/toggle-reaction.dto';
 
 @Injectable()
 export class ReactionsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notificationsService: NotificationsService,
+  ) {}
 
   async toggleReaction(postId: string, userId: string, dto: ToggleReactionDto) {
     const post = await this.prisma.post.findUnique({
@@ -37,6 +41,17 @@ export class ReactionsService {
           reactionType,
         },
       });
+
+      if (post.authorId !== userId) {
+        void this.notificationsService.createNotification({
+          userId: post.authorId,
+          type: 'NEW_REACTION' as any,
+          title: `Alguien reacciono a tu publicacion`,
+          body: `Nueva reaccion`,
+          url: `/feed`,
+          actorId: userId,
+        });
+      }
     } else if (existing.reactionType === reactionType) {
       await this.prisma.reaction.delete({
         where: {

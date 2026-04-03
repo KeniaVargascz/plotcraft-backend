@@ -2006,6 +2006,162 @@ async function seedTimelineAndPlanner() {
   }
 }
 
+async function seedForumAndSettings() {
+  const demoWriter = await prisma.user.findUniqueOrThrow({ where: { username: 'demo_writer' } });
+  const writerLuna = await prisma.user.findUniqueOrThrow({ where: { username: 'writer_luna' } });
+  const readerAlex = await prisma.user.findUniqueOrThrow({ where: { username: 'reader_alex' } });
+  const writerMarcos = await prisma.user.findUniqueOrThrow({ where: { username: 'writer_marcos' } });
+
+  // ── Forum Threads ──
+  const slugify = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').substring(0, 300);
+
+  let thread1 = await prisma.forumThread.findFirst({ where: { slug: slugify('Como construis el sistema de magia de vuestras historias') } });
+  if (!thread1) {
+    thread1 = await prisma.forumThread.create({
+      data: {
+        authorId: demoWriter.id,
+        category: 'WRITING_TIPS',
+        title: 'Como construis el sistema de magia de vuestras historias?',
+        slug: slugify('Como construis el sistema de magia de vuestras historias'),
+        content: '## Sistemas de magia\n\nEstoy desarrollando un sistema de magia basado en el sacrificio de recuerdos. Me pregunto como otros autores abordan la creacion de sus sistemas magicos.\n\n- Partis de las limitaciones o de las posibilidades?\n- Usais alguna estructura (ley de Sanderson, etc.)?\n- Como evitais el deus ex machina?\n\nMe encantaria leer vuestras experiencias.',
+        status: 'OPEN',
+        tags: { create: [{ tag: 'magia' }, { tag: 'world-building' }] },
+      },
+    });
+  }
+
+  let thread2 = await prisma.forumThread.findFirst({ where: { slug: slugify('Feedback para El Septimo Silencio Capitulo 1') } });
+  if (!thread2) {
+    thread2 = await prisma.forumThread.create({
+      data: {
+        authorId: writerLuna.id,
+        category: 'FEEDBACK',
+        title: 'Feedback para El Septimo Silencio — Capitulo 1',
+        slug: slugify('Feedback para El Septimo Silencio Capitulo 1'),
+        content: '## Primer capitulo\n\nAcabo de publicar el primer capitulo de mi nueva novela. Me gustaria recibir feedback honesto sobre:\n\n1. El ritmo narrativo\n2. La voz del personaje principal\n3. El hook inicial\n\nGracias de antemano!',
+        status: 'OPEN',
+        tags: { create: [{ tag: 'feedback' }, { tag: 'revision' }] },
+      },
+    });
+
+    // Create poll for thread2
+    const existingPoll = await prisma.forumPoll.findUnique({ where: { threadId: thread2.id } });
+    if (!existingPoll) {
+      const poll = await prisma.forumPoll.create({
+        data: {
+          threadId: thread2.id,
+          question: 'Como calificarias el primer capitulo?',
+          status: 'OPEN',
+          options: {
+            create: [
+              { text: 'Excelente', order: 0 },
+              { text: 'Bueno', order: 1 },
+              { text: 'Regular', order: 2 },
+              { text: 'Necesita trabajo', order: 3 },
+            ],
+          },
+        },
+        include: { options: true },
+      });
+
+      // Votes
+      const excellentOption = poll.options.find(o => o.text === 'Excelente');
+      const goodOption = poll.options.find(o => o.text === 'Bueno');
+      if (excellentOption) {
+        await prisma.pollVote.upsert({
+          where: { pollId_userId: { pollId: poll.id, userId: readerAlex.id } },
+          update: { optionId: excellentOption.id },
+          create: { pollId: poll.id, optionId: excellentOption.id, userId: readerAlex.id },
+        });
+      }
+      if (goodOption) {
+        await prisma.pollVote.upsert({
+          where: { pollId_userId: { pollId: poll.id, userId: writerMarcos.id } },
+          update: { optionId: goodOption.id },
+          create: { pollId: poll.id, optionId: goodOption.id, userId: writerMarcos.id },
+        });
+      }
+    }
+  }
+
+  // ── Forum Replies ──
+  let reply1 = await prisma.forumReply.findFirst({ where: { threadId: thread1.id, authorId: writerLuna.id } });
+  if (!reply1) {
+    reply1 = await prisma.forumReply.create({
+      data: {
+        threadId: thread1.id,
+        authorId: writerLuna.id,
+        content: 'En mi caso uso un sistema elemental con 4 pilares: fuego, agua, tierra y aire. Cada uno tiene un costo fisico diferente. La clave para mi fue definir primero las **limitaciones** — que NO puede hacer la magia. Eso le da tension a las escenas.',
+        isSolution: true,
+      },
+    });
+  }
+
+  let reply2 = await prisma.forumReply.findFirst({ where: { threadId: thread1.id, authorId: readerAlex.id } });
+  if (!reply2) {
+    reply2 = await prisma.forumReply.create({
+      data: {
+        threadId: thread1.id,
+        authorId: readerAlex.id,
+        content: 'Interesante tema! Me pregunto: como manejas la consistencia del sistema cuando la trama se complica? Alguna vez tuviste que reescribir escenas porque el sistema no lo permitia?',
+      },
+    });
+  }
+
+  // ── Forum Reactions ──
+  await prisma.forumReaction.upsert({
+    where: { userId_threadId_reactionType: { userId: readerAlex.id, threadId: thread1.id, reactionType: 'HELPFUL' } },
+    update: {},
+    create: { userId: readerAlex.id, threadId: thread1.id, reactionType: 'HELPFUL' },
+  });
+
+  if (reply1) {
+    await prisma.forumReaction.upsert({
+      where: { userId_replyId_reactionType: { userId: writerMarcos.id, replyId: reply1.id, reactionType: 'LIKE' } },
+      update: {},
+      create: { userId: writerMarcos.id, replyId: reply1.id, reactionType: 'LIKE' },
+    });
+  }
+
+  // ── Privacy Settings ──
+  await prisma.privacySettings.upsert({
+    where: { userId: demoWriter.id },
+    update: {},
+    create: { userId: demoWriter.id },
+  });
+  await prisma.privacySettings.upsert({
+    where: { userId: readerAlex.id },
+    update: { showReadingActivity: false },
+    create: { userId: readerAlex.id, showReadingActivity: false },
+  });
+
+  // ── Notification Preferences ──
+  await prisma.notificationPreferences.upsert({
+    where: { userId: demoWriter.id },
+    update: {},
+    create: { userId: demoWriter.id },
+  });
+  await prisma.notificationPreferences.upsert({
+    where: { userId: readerAlex.id },
+    update: { newReactionOnPost: false },
+    create: { userId: readerAlex.id, newReactionOnPost: false },
+  });
+
+  // ── Notifications demo ──
+  const notifData = [
+    { userId: demoWriter.id, type: 'NEW_FOLLOWER' as const, title: 'writer_luna te empezo a seguir', body: 'Tienes un nuevo seguidor', url: '/perfil/writer_luna', actorId: writerLuna.id, isRead: false },
+    { userId: demoWriter.id, type: 'NEW_CHAPTER' as const, title: 'Nuevo capitulo publicado', body: 'Capitulo 1 — El umbral', url: '/novelas/las-cronicas-del-velo', actorId: demoWriter.id, isRead: false },
+    { userId: demoWriter.id, type: 'NOVEL_MILESTONE' as const, title: 'Tu novela alcanzo 100 likes!', body: 'Las Cronicas del Velo', isRead: true },
+  ];
+
+  for (const n of notifData) {
+    const existing = await prisma.notification.findFirst({ where: { userId: n.userId, title: n.title } });
+    if (!existing) {
+      await prisma.notification.create({ data: n as any });
+    }
+  }
+}
+
 async function main() {
   await upsertUsers();
   await seedSocialGraph();
@@ -2017,6 +2173,7 @@ async function main() {
   await seedWorldbuilding();
   await seedSearchHistory();
   await seedTimelineAndPlanner();
+  await seedForumAndSettings();
 }
 
 main()

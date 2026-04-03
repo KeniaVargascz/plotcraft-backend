@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { ChapterStatus, Prisma } from '@prisma/client';
 import { NovelsService } from '../novels/novels.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ChapterQueryDto } from './dto/chapter-query.dto';
 import { CreateChapterDto } from './dto/create-chapter.dto';
@@ -19,6 +20,7 @@ export class ChaptersService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly novelsService: NovelsService,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   async createChapter(
@@ -211,6 +213,24 @@ export class ChaptersService {
     });
 
     await this.novelsService.recalculateNovelWordCount(chapter.novelId);
+
+    // Notify followers of the author about the new chapter
+    const followers = await this.prisma.follow.findMany({
+      where: { followingId: userId },
+      select: { followerId: true },
+      take: 100,
+    });
+    // TODO: In production, use a queue system for large follower counts
+    for (const f of followers) {
+      void this.notificationsService.createNotification({
+        userId: f.followerId,
+        type: 'NEW_CHAPTER' as any,
+        title: `Nuevo capitulo publicado`,
+        body: `${updated.title} en ${updated.novel.title}`,
+        url: `/novelas/${updated.novel.slug}/${updated.slug}`,
+        actorId: userId,
+      });
+    }
 
     return this.toChapterDetailResponse(updated);
   }

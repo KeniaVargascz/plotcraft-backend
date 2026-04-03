@@ -19,7 +19,9 @@ type SearchSection = {
 
 @Injectable()
 export class SearchService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+  ) {}
 
   async searchGlobal(query: SearchQueryDto, userId?: string | null) {
     this.recordHistoryAsync(userId, query.q);
@@ -163,6 +165,7 @@ export class SearchService {
       this.prisma.user.findMany({
         where: {
           isActive: true,
+          NOT: { privacySettings: { searchable: false } },
           OR: [
             { username: { contains: normalized, mode: 'insensitive' } },
             {
@@ -586,6 +589,7 @@ export class SearchService {
     const users = await this.prisma.user.findMany({
       where: {
         isActive: true,
+        NOT: { privacySettings: { searchable: false } },
         OR: [
           { username: { contains: search.normalized, mode: 'insensitive' } },
           { email: { contains: search.normalized, mode: 'insensitive' } },

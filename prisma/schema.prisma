@@ -38,10 +38,18 @@ model User {
   characters        Character[]
   searchHistory     SearchHistory[]
   wbEntries         WbEntry[]
-  timelines         Timeline[]
-  timelineEvents    TimelineEvent[]
-  writingProjects   WritingProject[]
-  writingTasks      WritingTask[]
+  timelines              Timeline[]
+  timelineEvents         TimelineEvent[]
+  writingProjects        WritingProject[]
+  writingTasks           WritingTask[]
+  forumThreads           ForumThread[]
+  forumReplies           ForumReply[]
+  forumReactions         ForumReaction[]
+  pollVotes              PollVote[]
+  privacySettings        PrivacySettings?
+  notificationPrefs      NotificationPreferences?
+  notifications          Notification[]     @relation("NotificationRecipient")
+  sentNotifications      Notification[]     @relation("NotificationActor")
 
   @@index([email])
   @@index([username])
@@ -880,4 +888,228 @@ model WritingTask {
   @@index([dueDate])
   @@index([status])
   @@map("writing_tasks")
+}
+
+// ── Forum Enums & Models ──
+
+enum ForumCategory {
+  GENERAL
+  FEEDBACK
+  WRITING_TIPS
+  WORLD_BUILDING
+  CHARACTERS
+  SHOWCASE
+  ANNOUNCEMENTS
+  HELP
+  OFF_TOPIC
+}
+
+enum ThreadStatus {
+  OPEN
+  CLOSED
+  PINNED
+  ARCHIVED
+}
+
+enum PollStatus {
+  OPEN
+  CLOSED
+}
+
+enum ForumReactionType {
+  LIKE
+  HELPFUL
+  INSIGHTFUL
+  FUNNY
+}
+
+model ForumThread {
+  id         String        @id @default(uuid()) @db.Uuid
+  authorId   String        @map("author_id") @db.Uuid
+  category   ForumCategory @default(GENERAL)
+  title      String        @db.VarChar(300)
+  slug       String        @unique @db.VarChar(320)
+  content    String        @db.Text
+  status     ThreadStatus  @default(OPEN)
+  isPinned   Boolean       @default(false) @map("is_pinned")
+  viewsCount Int           @default(0) @map("views_count")
+  createdAt  DateTime      @default(now()) @map("created_at")
+  updatedAt  DateTime      @updatedAt @map("updated_at")
+  deletedAt  DateTime?     @map("deleted_at")
+
+  author    User              @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  replies   ForumReply[]
+  reactions ForumReaction[]
+  poll      ForumPoll?
+  tags      ForumThreadTag[]
+
+  @@index([category, status, createdAt])
+  @@index([authorId])
+  @@index([slug])
+  @@map("forum_threads")
+}
+
+model ForumThreadTag {
+  threadId String @map("thread_id") @db.Uuid
+  tag      String @db.VarChar(50)
+
+  thread ForumThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+
+  @@id([threadId, tag])
+  @@index([tag])
+  @@map("forum_thread_tags")
+}
+
+model ForumReply {
+  id         String    @id @default(uuid()) @db.Uuid
+  threadId   String    @map("thread_id") @db.Uuid
+  authorId   String    @map("author_id") @db.Uuid
+  content    String    @db.Text
+  isSolution Boolean   @default(false) @map("is_solution")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+  deletedAt  DateTime? @map("deleted_at")
+
+  thread    ForumThread      @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  author    User             @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  reactions ForumReaction[]
+
+  @@index([threadId, createdAt])
+  @@index([authorId])
+  @@map("forum_replies")
+}
+
+model ForumReaction {
+  id           String            @id @default(uuid()) @db.Uuid
+  userId       String            @map("user_id") @db.Uuid
+  threadId     String?           @map("thread_id") @db.Uuid
+  replyId      String?           @map("reply_id") @db.Uuid
+  reactionType ForumReactionType @default(LIKE) @map("reaction_type")
+  createdAt    DateTime          @default(now()) @map("created_at")
+
+  user   User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  thread ForumThread? @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  reply  ForumReply?  @relation(fields: [replyId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, threadId, reactionType])
+  @@unique([userId, replyId, reactionType])
+  @@index([threadId])
+  @@index([replyId])
+  @@map("forum_reactions")
+}
+
+model ForumPoll {
+  id        String     @id @default(uuid()) @db.Uuid
+  threadId  String     @unique @map("thread_id") @db.Uuid
+  question  String     @db.VarChar(300)
+  status    PollStatus @default(OPEN)
+  closesAt  DateTime?  @map("closes_at")
+  createdAt DateTime   @default(now()) @map("created_at")
+
+  thread  ForumThread  @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  options PollOption[]
+  votes   PollVote[]
+
+  @@map("forum_polls")
+}
+
+model PollOption {
+  id     String @id @default(uuid()) @db.Uuid
+  pollId String @map("poll_id") @db.Uuid
+  text   String @db.VarChar(200)
+  order  Int    @default(0)
+
+  poll  ForumPoll  @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  votes PollVote[]
+
+  @@index([pollId])
+  @@map("poll_options")
+}
+
+model PollVote {
+  id        String   @id @default(uuid()) @db.Uuid
+  pollId    String   @map("poll_id") @db.Uuid
+  optionId  String   @map("option_id") @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at")
+
+  poll   ForumPoll  @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  option PollOption @relation(fields: [optionId], references: [id], onDelete: Cascade)
+  user   User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([pollId, userId])
+  @@index([pollId])
+  @@index([userId])
+  @@map("poll_votes")
+}
+
+// ── Settings & Notifications Models ──
+
+enum NotificationChannel {
+  IN_APP
+  EMAIL
+}
+
+enum NotificationType {
+  NEW_FOLLOWER
+  NEW_COMMENT
+  NEW_REACTION
+  NEW_REPLY
+  NEW_CHAPTER
+  NOVEL_MILESTONE
+  SYSTEM
+}
+
+model PrivacySettings {
+  id                  String   @id @default(uuid()) @db.Uuid
+  userId              String   @unique @map("user_id") @db.Uuid
+  showReadingActivity Boolean  @default(true) @map("show_reading_activity")
+  showReadingLists    Boolean  @default(true) @map("show_reading_lists")
+  showFollows         Boolean  @default(true) @map("show_follows")
+  showStats           Boolean  @default(true) @map("show_stats")
+  allowMessages       Boolean  @default(true) @map("allow_messages")
+  searchable          Boolean  @default(true)
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("privacy_settings")
+}
+
+model NotificationPreferences {
+  id                      String              @id @default(uuid()) @db.Uuid
+  userId                  String              @unique @map("user_id") @db.Uuid
+  newFollower             Boolean             @default(true) @map("new_follower")
+  newCommentOnPost        Boolean             @default(true) @map("new_comment_on_post")
+  newReactionOnPost       Boolean             @default(false) @map("new_reaction_on_post")
+  newReplyInThread        Boolean             @default(true) @map("new_reply_in_thread")
+  newChapterFromFollowed  Boolean             @default(true) @map("new_chapter_from_followed")
+  novelMilestone          Boolean             @default(true) @map("novel_milestone")
+  channel                 NotificationChannel @default(IN_APP)
+  createdAt               DateTime            @default(now()) @map("created_at")
+  updatedAt               DateTime            @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notification_preferences")
+}
+
+model Notification {
+  id        String           @id @default(uuid()) @db.Uuid
+  userId    String           @map("user_id") @db.Uuid
+  type      NotificationType
+  title     String           @db.VarChar(200)
+  body      String           @db.VarChar(500)
+  url       String?          @db.VarChar(500)
+  isRead    Boolean          @default(false) @map("is_read")
+  actorId   String?          @map("actor_id") @db.Uuid
+  createdAt DateTime         @default(now()) @map("created_at")
+
+  user  User  @relation("NotificationRecipient", fields: [userId], references: [id], onDelete: Cascade)
+  actor User? @relation("NotificationActor", fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([userId, isRead, createdAt])
+  @@index([userId, createdAt])
+  @@map("notifications")
 }

@@ -3,9 +3,10 @@ import { PrismaModule } from '../../prisma/prisma.module';
 import { NovelsModule } from '../novels/novels.module';
 import { ChaptersController } from './chapters.controller';
 import { ChaptersService } from './chapters.service';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
-  imports: [PrismaModule, NovelsModule],
+  imports: [PrismaModule, NovelsModule, NotificationsModule],
   controllers: [ChaptersController],
   providers: [ChaptersService],
   exports: [ChaptersService],

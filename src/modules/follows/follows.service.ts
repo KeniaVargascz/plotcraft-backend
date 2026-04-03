@@ -5,6 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 type FollowListOptions = {
   username: string;
@@ -16,7 +17,10 @@ type FollowListOptions = {
 
 @Injectable()
 export class FollowsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notificationsService: NotificationsService,
+  ) {}
 
   async followUser(followerId: string, username: string) {
     const targetUser = await this.prisma.user.findUnique({
@@ -49,6 +53,20 @@ export class FollowsService {
         followerId,
         followingId: targetUser.id,
       },
+    });
+
+    const follower = await this.prisma.user.findUnique({
+      where: { id: followerId },
+      include: { profile: true },
+    });
+
+    void this.notificationsService.createNotification({
+      userId: targetUser.id,
+      type: 'NEW_FOLLOWER' as any,
+      title: `${follower?.profile?.displayName || follower?.username} te empezo a seguir`,
+      body: `Tienes un nuevo seguidor`,
+      url: `/perfil/${follower?.username}`,
+      actorId: followerId,
     });
 
     return { followed: true };

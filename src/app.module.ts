@@ -22,6 +22,9 @@ import { SearchModule } from './modules/search/search.module';
 import { UsersModule } from './modules/users/users.module';
 import { TimelineModule } from './modules/timeline/timeline.module';
 import { PlannerModule } from './modules/planner/planner.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
+import { SettingsModule } from './modules/settings/settings.module';
+import { ForumModule } from './modules/forum/forum.module';
 import { WorldbuildingModule } from './modules/worldbuilding/worldbuilding.module';
 import { WorldsModule } from './modules/worlds/worlds.module';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
@@ -59,6 +62,9 @@ import { PrismaModule } from './prisma/prisma.module';
     LibraryModule,
     TimelineModule,
     PlannerModule,
+    NotificationsModule,
+    SettingsModule,
+    ForumModule,
   ],
   providers: [
     { provide: APP_PIPE, useClass: ValidationPipe },

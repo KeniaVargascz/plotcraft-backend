@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { CreateCommentDto } from './dto/create-comment.dto';
 import { UpdateCommentDto } from './dto/update-comment.dto';
 
@@ -20,10 +21,16 @@ type CommentWithAuthor = Prisma.CommentGetPayload<{
 
 @Injectable()
 export class CommentsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notificationsService: NotificationsService,
+  ) {}
 
   async createComment(postId: string, userId: string, dto: CreateCommentDto) {
-    await this.ensurePost(postId);
+    const post = await this.prisma.post.findUnique({ where: { id: postId } });
+    if (!post) {
+      throw new NotFoundException('Publicacion no encontrada');
+    }
 
     const comment = await this.prisma.comment.create({
       data: {
@@ -32,6 +39,17 @@ export class CommentsService {
         content: dto.content.trim(),
       },
     });
+
+    if (post.authorId !== userId) {
+      void this.notificationsService.createNotification({
+        userId: post.authorId,
+        type: 'NEW_COMMENT' as any,
+        title: `Nuevo comentario en tu publicacion`,
+        body: dto.content.trim().substring(0, 100),
+        url: `/feed`,
+        actorId: userId,
+      });
+    }
 
     return this.getCommentById(postId, comment.id);
   }
