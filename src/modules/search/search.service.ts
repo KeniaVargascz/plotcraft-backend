@@ -24,12 +24,13 @@ export class SearchService {
   async searchGlobal(query: SearchQueryDto, userId?: string | null) {
     this.recordHistoryAsync(userId, query.q);
 
-    const [novels, worlds, characters, users, posts] = await Promise.all([
+    const [novels, worlds, characters, users, posts, wbEntries] = await Promise.all([
       this.searchNovelsSection({ ...query, limit: 5, sort: 'relevance' }),
       this.searchWorldsSection({ ...query, limit: 5, sort: 'relevance' }),
       this.searchCharactersSection({ ...query, limit: 5 }),
       this.searchUsersSection({ ...query, limit: 5, sort: 'relevance' }),
       this.searchPostsSection({ ...query, limit: 5, sort: 'relevance' }),
+      this.searchWbEntriesSection(query.q, 5),
     ]);
 
     return {
@@ -40,6 +41,7 @@ export class SearchService {
         characters,
         users,
         posts,
+        wb_entries: wbEntries,
       },
     };
   }
@@ -731,6 +733,142 @@ export class SearchService {
         .filter((post): post is NonNullable<typeof post> => Boolean(post))
         .map((post) => this.toPostSearchResult(post)),
       total_hint: totalRows[0]?.total ?? 0,
+    };
+  }
+
+  private async searchWbEntriesSection(
+    q: string,
+    limit = 5,
+  ): Promise<SearchSection> {
+    const search = buildSearchQuery(q);
+
+    if (!search.useFullText) {
+      const where: Prisma.WbEntryWhereInput = {
+        isPublic: true,
+        world: { visibility: 'PUBLIC' },
+        OR: [
+          { name: { contains: search.normalized, mode: 'insensitive' } },
+          { summary: { contains: search.normalized, mode: 'insensitive' } },
+          { tags: { hasSome: search.terms } },
+        ],
+      };
+
+      const [items, total] = await Promise.all([
+        this.prisma.wbEntry.findMany({
+          where,
+          include: {
+            category: { select: { id: true, name: true, slug: true, icon: true, color: true } },
+            author: { include: { profile: true } },
+            world: { select: { id: true, name: true, slug: true } },
+          },
+          orderBy: [{ updatedAt: 'desc' }],
+          take: limit,
+        }),
+        this.prisma.wbEntry.count({ where }),
+      ]);
+
+      return {
+        items: items.map((entry) => this.toWbEntrySummary(entry)),
+        total_hint: Math.min(total, 999),
+      };
+    }
+
+    const sql = `
+      SELECT e.id,
+             CASE
+               WHEN e.search_vector @@ to_tsquery('spanish', $1)
+                 THEN ts_rank(e.search_vector, to_tsquery('spanish', $1))
+               ELSE 0.05
+             END AS score
+      FROM wb_entries e
+      JOIN worlds w ON w.id = e.world_id
+      WHERE e.is_public = true
+        AND w.visibility = 'PUBLIC'
+        AND (
+          e.search_vector @@ to_tsquery('spanish', $1)
+          OR e.name ILIKE $2
+          OR COALESCE(e.summary, '') ILIKE $2
+        )
+      ORDER BY score DESC, e.created_at DESC
+      LIMIT $3
+    `;
+    const countSql = `
+      SELECT LEAST(COUNT(*), 999)::int AS total
+      FROM wb_entries e
+      JOIN worlds w ON w.id = e.world_id
+      WHERE e.is_public = true
+        AND w.visibility = 'PUBLIC'
+        AND (
+          e.search_vector @@ to_tsquery('spanish', $1)
+          OR e.name ILIKE $2
+          OR COALESCE(e.summary, '') ILIKE $2
+        )
+    `;
+
+    const [rows, totalRows] = await Promise.all([
+      this.prisma.$queryRawUnsafe<Array<{ id: string }>>(
+        sql,
+        search.tsquery,
+        search.ilike,
+        limit,
+      ),
+      this.prisma.$queryRawUnsafe<Array<{ total: number }>>(
+        countSql,
+        search.tsquery,
+        search.ilike,
+      ),
+    ]);
+
+    if (rows.length === 0) {
+      return { items: [], total_hint: 0 };
+    }
+
+    const entries = await this.prisma.wbEntry.findMany({
+      where: { id: { in: rows.map((r) => r.id) } },
+      include: {
+        category: { select: { id: true, name: true, slug: true, icon: true, color: true } },
+        author: { include: { profile: true } },
+        world: { select: { id: true, name: true, slug: true } },
+      },
+    });
+    const byId = new Map(entries.map((e) => [e.id, e]));
+
+    return {
+      items: rows
+        .map((r) => byId.get(r.id))
+        .filter((e): e is NonNullable<typeof e> => Boolean(e))
+        .map((entry) => this.toWbEntrySummary(entry)),
+      total_hint: totalRows[0]?.total ?? 0,
+    };
+  }
+
+  private toWbEntrySummary(
+    entry: Prisma.WbEntryGetPayload<{
+      include: {
+        category: { select: { id: true; name: true; slug: true; icon: true; color: true } };
+        author: { include: { profile: true } };
+        world: { select: { id: true; name: true; slug: true } };
+      };
+    }>,
+  ) {
+    return {
+      type: 'wb_entry' as const,
+      id: entry.id,
+      name: entry.name,
+      slug: entry.slug,
+      summary: entry.summary,
+      tags: entry.tags,
+      isPublic: entry.isPublic,
+      createdAt: entry.createdAt,
+      updatedAt: entry.updatedAt,
+      category: entry.category,
+      world: entry.world,
+      author: {
+        id: entry.author.id,
+        username: entry.author.username,
+        displayName: entry.author.profile?.displayName ?? entry.author.username,
+        avatarUrl: entry.author.profile?.avatarUrl ?? null,
+      },
     };
   }
 

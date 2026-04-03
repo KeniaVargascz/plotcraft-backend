@@ -1536,6 +1536,382 @@ async function seedWorldsAndCharacters() {
   });
 }
 
+async function seedWorldbuilding() {
+  const demoWriter = await prisma.user.findUniqueOrThrow({
+    where: { username: 'demo_writer' },
+  });
+  const mateoWorlds = await prisma.user.findUniqueOrThrow({
+    where: { username: 'mateo.worlds' },
+  });
+
+  const veloWorld = await prisma.world.findUniqueOrThrow({
+    where: { slug: 'el-mundo-del-velo' },
+  });
+  const aetheryaWorld = await prisma.world.findUniqueOrThrow({
+    where: { slug: 'aetherya' },
+  });
+
+  // ---- Categories for el-mundo-del-velo ----
+  const racesCategory = await prisma.wbCategory.upsert({
+    where: { worldId_slug: { worldId: veloWorld.id, slug: 'razas' } },
+    update: {
+      name: 'Razas',
+      icon: '\u{1F465}',
+      color: '#8b5cf6',
+      description: 'Razas y pueblos del mundo del Velo.',
+      sortOrder: 1,
+    },
+    create: {
+      worldId: veloWorld.id,
+      name: 'Razas',
+      slug: 'razas',
+      icon: '\u{1F465}',
+      color: '#8b5cf6',
+      description: 'Razas y pueblos del mundo del Velo.',
+      fieldSchema: [
+        { key: 'origin', label: 'Origen', type: 'textarea', required: false, placeholder: null, options: null, default: null, sortOrder: 1 },
+        { key: 'traits', label: 'Rasgos', type: 'textarea', required: false, placeholder: null, options: null, default: null, sortOrder: 2 },
+        { key: 'lifespan', label: 'Esperanza de vida', type: 'text', required: false, placeholder: null, options: null, default: null, sortOrder: 3 },
+        { key: 'population', label: 'Poblacion', type: 'text', required: false, placeholder: null, options: null, default: null, sortOrder: 4 },
+        { key: 'is_extinct', label: 'Extinta', type: 'boolean', required: false, placeholder: null, options: null, default: null, sortOrder: 5 },
+      ],
+      sortOrder: 1,
+      isSystem: false,
+    },
+  });
+
+  const citiesCategory = await prisma.wbCategory.upsert({
+    where: { worldId_slug: { worldId: veloWorld.id, slug: 'ciudades' } },
+    update: {
+      name: 'Ciudades',
+      icon: '\u{1F3D9}\uFE0F',
+      color: '#3db05a',
+      description: 'Ciudades y asentamientos del mundo del Velo.',
+      sortOrder: 2,
+    },
+    create: {
+      worldId: veloWorld.id,
+      name: 'Ciudades',
+      slug: 'ciudades',
+      icon: '\u{1F3D9}\uFE0F',
+      color: '#3db05a',
+      description: 'Ciudades y asentamientos del mundo del Velo.',
+      fieldSchema: [
+        { key: 'region', label: 'Region', type: 'text', required: false, placeholder: null, options: null, default: null, sortOrder: 1 },
+        { key: 'population', label: 'Poblacion', type: 'text', required: false, placeholder: null, options: null, default: null, sortOrder: 2 },
+        { key: 'government', label: 'Gobierno', type: 'text', required: false, placeholder: null, options: null, default: null, sortOrder: 3 },
+        { key: 'current_status', label: 'Estado actual', type: 'select', required: false, placeholder: null, options: ['Floreciente', 'En decadencia', 'Destruida', 'Abandonada', 'Legendaria', 'Desconocida'], default: null, sortOrder: 4 },
+      ],
+      sortOrder: 2,
+      isSystem: false,
+    },
+  });
+
+  const magicCategory = await prisma.wbCategory.upsert({
+    where: { worldId_slug: { worldId: veloWorld.id, slug: 'magia' } },
+    update: {
+      name: 'Magia',
+      icon: '\u2728',
+      color: '#c9a84c',
+      description: 'Sistemas de magia del Velo.',
+      sortOrder: 3,
+    },
+    create: {
+      worldId: veloWorld.id,
+      name: 'Magia',
+      slug: 'magia',
+      icon: '\u2728',
+      color: '#c9a84c',
+      description: 'Sistemas de magia del Velo.',
+      fieldSchema: [
+        { key: 'source', label: 'Fuente', type: 'textarea', required: false, placeholder: null, options: null, default: null, sortOrder: 1 },
+        { key: 'limitations', label: 'Limitaciones', type: 'textarea', required: false, placeholder: null, options: null, default: null, sortOrder: 2 },
+        { key: 'power_level', label: 'Nivel de poder', type: 'select', required: false, placeholder: null, options: ['Menor', 'Moderado', 'Mayor', 'Legendario'], default: null, sortOrder: 3 },
+        { key: 'is_learnable', label: 'Se puede aprender', type: 'boolean', required: false, placeholder: null, options: null, default: null, sortOrder: 4 },
+      ],
+      sortOrder: 3,
+      isSystem: false,
+    },
+  });
+
+  const loreCategory = await prisma.wbCategory.upsert({
+    where: { worldId_slug: { worldId: veloWorld.id, slug: 'lore' } },
+    update: {
+      name: 'Lore',
+      icon: '\u{1F4DC}',
+      color: '#9088a0',
+      description: 'Historia y leyendas del mundo del Velo.',
+      sortOrder: 4,
+    },
+    create: {
+      worldId: veloWorld.id,
+      name: 'Lore',
+      slug: 'lore',
+      icon: '\u{1F4DC}',
+      color: '#9088a0',
+      description: 'Historia y leyendas del mundo del Velo.',
+      fieldSchema: [
+        { key: 'date_in_world', label: 'Fecha en el mundo', type: 'text', required: false, placeholder: null, options: null, default: null, sortOrder: 1 },
+        { key: 'participants', label: 'Participantes', type: 'textarea', required: false, placeholder: null, options: null, default: null, sortOrder: 2 },
+        { key: 'consequences', label: 'Consecuencias', type: 'textarea', required: false, placeholder: null, options: null, default: null, sortOrder: 3 },
+        { key: 'is_verified', label: 'Verificado', type: 'boolean', required: false, placeholder: null, options: null, default: null, sortOrder: 4 },
+      ],
+      sortOrder: 4,
+      isSystem: false,
+    },
+  });
+
+  // ---- Entries for el-mundo-del-velo ----
+  const entryCartografos = await prisma.wbEntry.upsert({
+    where: { worldId_slug: { worldId: veloWorld.id, slug: 'cartografos-del-velo' } },
+    update: {
+      name: 'Cartografos del Velo',
+      summary: 'Linaje ancestral que traza rutas entre umbrales de agua negra.',
+      fields: { origin: 'Se remontan a la primera apertura del Velo.', traits: 'Marcas de tinta ritual en las manos. Memoria prodigiosa.', lifespan: '80-120 anos', is_extinct: false },
+      tags: ['linaje', 'cartografia', 'ritual'],
+      isPublic: true,
+      sortOrder: 1,
+    },
+    create: {
+      worldId: veloWorld.id,
+      categoryId: racesCategory.id,
+      authorId: demoWriter.id,
+      name: 'Cartografos del Velo',
+      slug: 'cartografos-del-velo',
+      summary: 'Linaje ancestral que traza rutas entre umbrales de agua negra.',
+      content: 'Los Cartografos del Velo son un linaje casi extinto que custodia los mapas vivos del mundo sumergido. Sus miembros nacen con marcas rituales que permiten leer corrientes invisibles y trazar caminos entre portales.',
+      fields: { origin: 'Se remontan a la primera apertura del Velo.', traits: 'Marcas de tinta ritual en las manos. Memoria prodigiosa.', lifespan: '80-120 anos', is_extinct: false },
+      tags: ['linaje', 'cartografia', 'ritual'],
+      isPublic: true,
+      sortOrder: 1,
+    },
+  });
+
+  const entryNacar = await prisma.wbEntry.upsert({
+    where: { worldId_slug: { worldId: veloWorld.id, slug: 'nacar-de-bruma' } },
+    update: {
+      name: 'Nacar de Bruma',
+      summary: 'Capital costera levantada sobre pilotes de cobre y puentes ceremoniales.',
+      fields: { region: 'Archipielago central', population: '~45.000', government: 'Consejo de Campanas', current_status: 'Floreciente' },
+      tags: ['capital', 'puerto', 'cobre'],
+      isPublic: true,
+      sortOrder: 1,
+    },
+    create: {
+      worldId: veloWorld.id,
+      categoryId: citiesCategory.id,
+      authorId: demoWriter.id,
+      name: 'Nacar de Bruma',
+      slug: 'nacar-de-bruma',
+      summary: 'Capital costera levantada sobre pilotes de cobre y puentes ceremoniales.',
+      content: 'Nacar de Bruma es la ciudad mas grande del mundo del Velo, construida sobre una red de pilotes en el delta de tres rios que desembocan en agua negra. Sus tejados de cobre oxidado brillan con un verde particular al atardecer.',
+      fields: { region: 'Archipielago central', population: '~45.000', government: 'Consejo de Campanas', current_status: 'Floreciente' },
+      tags: ['capital', 'puerto', 'cobre'],
+      isPublic: true,
+      sortOrder: 1,
+    },
+  });
+
+  const entryArchivoSumergido = await prisma.wbEntry.upsert({
+    where: { worldId_slug: { worldId: veloWorld.id, slug: 'archivo-sumergido' } },
+    update: {
+      name: 'Archivo Sumergido',
+      summary: 'Camara subacuatica donde se conservan los mapas mas antiguos.',
+      fields: { region: 'Profundidades del delta', population: 'Ninguna permanente', government: 'Sin gobierno', current_status: 'Legendaria' },
+      tags: ['ruina', 'mapas', 'ritual'],
+      isPublic: true,
+      sortOrder: 2,
+    },
+    create: {
+      worldId: veloWorld.id,
+      categoryId: citiesCategory.id,
+      authorId: demoWriter.id,
+      name: 'Archivo Sumergido',
+      slug: 'archivo-sumergido',
+      summary: 'Camara subacuatica donde se conservan los mapas mas antiguos.',
+      content: 'El Archivo Sumergido es una estructura parcialmente inundada en la que los cartografos copiaban rutas sobre piel mineral. Solo quienes portan las marcas rituales pueden respirar en sus salas mas profundas.',
+      fields: { region: 'Profundidades del delta', population: 'Ninguna permanente', government: 'Sin gobierno', current_status: 'Legendaria' },
+      tags: ['ruina', 'mapas', 'ritual'],
+      isPublic: true,
+      sortOrder: 2,
+    },
+  });
+
+  const entryMagiaDeLasDeudas = await prisma.wbEntry.upsert({
+    where: { worldId_slug: { worldId: veloWorld.id, slug: 'magia-de-las-deudas' } },
+    update: {
+      name: 'Magia de las Deudas',
+      summary: 'Sistema donde toda travesia exige ofrecer recuerdos como pago.',
+      fields: { source: 'El Velo mismo: una membrana entre realidades.', limitations: 'Cada uso borra fragmentos de memoria personal.', power_level: 'Mayor', is_learnable: false },
+      tags: ['sistema-magico', 'memoria', 'deuda'],
+      isPublic: true,
+      sortOrder: 1,
+    },
+    create: {
+      worldId: veloWorld.id,
+      categoryId: magicCategory.id,
+      authorId: demoWriter.id,
+      name: 'Magia de las Deudas',
+      slug: 'magia-de-las-deudas',
+      summary: 'Sistema donde toda travesia exige ofrecer recuerdos como pago.',
+      content: 'La magia del Velo no se aprende ni se hereda: se negocia. Cada vez que alguien cruza un umbral debe ofrecer algo personal, normalmente un recuerdo, un nombre o una cancion. El precio sube con la distancia y con la importancia del destino.',
+      fields: { source: 'El Velo mismo: una membrana entre realidades.', limitations: 'Cada uso borra fragmentos de memoria personal.', power_level: 'Mayor', is_learnable: false },
+      tags: ['sistema-magico', 'memoria', 'deuda'],
+      isPublic: true,
+      sortOrder: 1,
+    },
+  });
+
+  const entryCartaDelSilencio = await prisma.wbEntry.upsert({
+    where: { worldId_slug: { worldId: veloWorld.id, slug: 'carta-del-silencio' } },
+    update: {
+      name: 'Carta del Silencio',
+      summary: 'Ritual magico que permite comunicarse sin palabras a traves del Velo.',
+      fields: { source: 'Derivada de la Magia de las Deudas.', limitations: 'Solo funciona entre personas que comparten un recuerdo perdido.', power_level: 'Menor', is_learnable: true },
+      tags: ['ritual', 'comunicacion', 'silencio'],
+      isPublic: true,
+      sortOrder: 2,
+    },
+    create: {
+      worldId: veloWorld.id,
+      categoryId: magicCategory.id,
+      authorId: demoWriter.id,
+      name: 'Carta del Silencio',
+      slug: 'carta-del-silencio',
+      summary: 'Ritual magico que permite comunicarse sin palabras a traves del Velo.',
+      content: 'La Carta del Silencio es un metodo de comunicacion ritual que nacio como efecto secundario de la Magia de las Deudas. Dos personas que hayan perdido el mismo recuerdo pueden intercambiar impresiones a traves del Velo sin hablar.',
+      fields: { source: 'Derivada de la Magia de las Deudas.', limitations: 'Solo funciona entre personas que comparten un recuerdo perdido.', power_level: 'Menor', is_learnable: true },
+      tags: ['ritual', 'comunicacion', 'silencio'],
+      isPublic: true,
+      sortOrder: 2,
+    },
+  });
+
+  const entryPrimeraApertura = await prisma.wbEntry.upsert({
+    where: { worldId_slug: { worldId: veloWorld.id, slug: 'la-primera-apertura' } },
+    update: {
+      name: 'La Primera Apertura',
+      summary: 'Evento mitico que dio origen al Velo y a las rutas entre mundos.',
+      fields: { date_in_world: 'Era Cero, ciclo desconocido', participants: 'Los Fundadores sin nombre', consequences: 'Creacion de las rutas, nacimiento de los Cartografos, perdida del idioma original.', is_verified: false },
+      tags: ['evento', 'mito', 'fundacion'],
+      isPublic: true,
+      sortOrder: 1,
+    },
+    create: {
+      worldId: veloWorld.id,
+      categoryId: loreCategory.id,
+      authorId: demoWriter.id,
+      name: 'La Primera Apertura',
+      slug: 'la-primera-apertura',
+      summary: 'Evento mitico que dio origen al Velo y a las rutas entre mundos.',
+      content: 'Nadie sabe con certeza cuando ocurrio la Primera Apertura. Los relatos fragmentarios hablan de un grupo de navegantes que encontraron un punto donde el agua dejaba de reflejar el cielo y empezaba a mostrar otro lugar.',
+      fields: { date_in_world: 'Era Cero, ciclo desconocido', participants: 'Los Fundadores sin nombre', consequences: 'Creacion de las rutas, nacimiento de los Cartografos, perdida del idioma original.', is_verified: false },
+      tags: ['evento', 'mito', 'fundacion'],
+      isPublic: true,
+      sortOrder: 1,
+    },
+  });
+
+  // ---- 3 cross-reference links ----
+  const linkData = [
+    { source: entryCartografos, target: entryMagiaDeLasDeudas, relation: 'usa', isMutual: false },
+    { source: entryNacar, target: entryArchivoSumergido, relation: 'contiene', isMutual: false },
+    { source: entryMagiaDeLasDeudas, target: entryCartaDelSilencio, relation: 'deriva en', isMutual: true },
+  ];
+
+  for (const ld of linkData) {
+    await prisma.wbEntryLink.upsert({
+      where: {
+        sourceId_targetId_relation: {
+          sourceId: ld.source.id,
+          targetId: ld.target.id,
+          relation: ld.relation,
+        },
+      },
+      update: { isMutual: ld.isMutual },
+      create: {
+        sourceId: ld.source.id,
+        targetId: ld.target.id,
+        relation: ld.relation,
+        isMutual: ld.isMutual,
+      },
+    });
+
+    if (ld.isMutual) {
+      await prisma.wbEntryLink.upsert({
+        where: {
+          sourceId_targetId_relation: {
+            sourceId: ld.target.id,
+            targetId: ld.source.id,
+            relation: ld.relation,
+          },
+        },
+        update: { isMutual: true },
+        create: {
+          sourceId: ld.target.id,
+          targetId: ld.source.id,
+          relation: ld.relation,
+          isMutual: true,
+        },
+      });
+    }
+  }
+
+  // ---- 1 category + 1 entry for aetherya ----
+  const aethFactions = await prisma.wbCategory.upsert({
+    where: { worldId_slug: { worldId: aetheryaWorld.id, slug: 'facciones' } },
+    update: {
+      name: 'Facciones',
+      icon: '\u{1F3DB}\uFE0F',
+      color: '#50c87a',
+      description: 'Organizaciones y facciones de Aetherya.',
+      sortOrder: 1,
+    },
+    create: {
+      worldId: aetheryaWorld.id,
+      name: 'Facciones',
+      slug: 'facciones',
+      icon: '\u{1F3DB}\uFE0F',
+      color: '#50c87a',
+      description: 'Organizaciones y facciones de Aetherya.',
+      fieldSchema: [
+        { key: 'founded', label: 'Fundacion', type: 'text', required: false, placeholder: null, options: null, default: null, sortOrder: 1 },
+        { key: 'leader', label: 'Lider', type: 'text', required: false, placeholder: null, options: null, default: null, sortOrder: 2 },
+        { key: 'headquarters', label: 'Sede', type: 'text', required: false, placeholder: null, options: null, default: null, sortOrder: 3 },
+        { key: 'goals', label: 'Objetivos', type: 'textarea', required: false, placeholder: null, options: null, default: null, sortOrder: 4 },
+        { key: 'is_active', label: 'Activa', type: 'boolean', required: false, placeholder: null, options: null, default: null, sortOrder: 5 },
+      ],
+      sortOrder: 1,
+      isSystem: false,
+    },
+  });
+
+  await prisma.wbEntry.upsert({
+    where: { worldId_slug: { worldId: aetheryaWorld.id, slug: 'senado-de-las-corrientes' } },
+    update: {
+      name: 'Senado de las Corrientes',
+      summary: 'Organo politico que regula el trafico aereo y los pactos entre ciudades flotantes.',
+      fields: { founded: 'Hace 200 ciclos', leader: 'Rotativo entre tres casas', headquarters: 'Heliora', goals: 'Mantener el equilibrio entre estratos del cielo.', is_active: true },
+      tags: ['gobierno', 'politica', 'aereo'],
+      isPublic: true,
+      sortOrder: 1,
+    },
+    create: {
+      worldId: aetheryaWorld.id,
+      categoryId: aethFactions.id,
+      authorId: mateoWorlds.id,
+      name: 'Senado de las Corrientes',
+      slug: 'senado-de-las-corrientes',
+      summary: 'Organo politico que regula el trafico aereo y los pactos entre ciudades flotantes.',
+      content: 'El Senado de las Corrientes fue establecido despues de la Guerra de los Vientos como organo de mediacion. Se reune en la torre central de Heliora y sus decisiones determinan que ciudades pueden acceder a las corrientes superiores.',
+      fields: { founded: 'Hace 200 ciclos', leader: 'Rotativo entre tres casas', headquarters: 'Heliora', goals: 'Mantener el equilibrio entre estratos del cielo.', is_active: true },
+      tags: ['gobierno', 'politica', 'aereo'],
+      isPublic: true,
+      sortOrder: 1,
+    },
+  });
+}
+
 async function seedSearchHistory() {
   const readerAlex = await prisma.user.findUniqueOrThrow({
     where: { username: 'reader_alex' },
@@ -1570,6 +1946,7 @@ async function main() {
   await seedNovels();
   await seedReaderLibrary();
   await seedWorldsAndCharacters();
+  await seedWorldbuilding();
   await seedSearchHistory();
 }
 

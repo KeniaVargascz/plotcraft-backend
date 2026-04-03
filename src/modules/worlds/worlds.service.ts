@@ -440,11 +440,18 @@ export class WorldsService {
           },
         },
       },
+      wbCategories: {
+        orderBy: [{ sortOrder: 'asc' as const }, { createdAt: 'asc' as const }],
+        include: {
+          _count: { select: { entries: true } },
+        },
+      },
       _count: {
         select: {
           locations: true,
           characters: true,
           novelWorlds: true,
+          wbEntries: true,
         },
       },
     } satisfies Prisma.WorldInclude;
@@ -489,6 +496,22 @@ export class WorldsService {
         locationsCount: world._count.locations,
         charactersCount: world._count.characters,
         novelsCount: linkedNovels.length,
+      },
+      wbSummary: {
+        categoriesCount: world.wbCategories.length,
+        entriesCount: world._count.wbEntries,
+        publicEntriesCount: world.wbCategories.reduce(
+          (sum, cat) => sum + cat._count.entries,
+          0,
+        ),
+        categories: world.wbCategories.map((cat) => ({
+          id: cat.id,
+          name: cat.name,
+          slug: cat.slug,
+          icon: cat.icon,
+          color: cat.color,
+          entriesCount: cat._count.entries,
+        })),
       },
       viewerContext: viewerId
         ? {

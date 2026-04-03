@@ -20,6 +20,7 @@ import { ReactionsModule } from './modules/reactions/reactions.module';
 import { ReadingListsModule } from './modules/reading-lists/reading-lists.module';
 import { SearchModule } from './modules/search/search.module';
 import { UsersModule } from './modules/users/users.module';
+import { WorldbuildingModule } from './modules/worldbuilding/worldbuilding.module';
 import { WorldsModule } from './modules/worlds/worlds.module';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
@@ -47,6 +48,7 @@ import { PrismaModule } from './prisma/prisma.module';
     NovelsModule,
     ChaptersModule,
     WorldsModule,
+    WorldbuildingModule,
     CharactersModule,
     ReaderModule,
     BookmarksModule,

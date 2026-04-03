@@ -37,6 +37,7 @@ model User {
   worlds            World[]
   characters        Character[]
   searchHistory     SearchHistory[]
+  wbEntries         WbEntry[]
 
   @@index([email])
   @@index([username])
@@ -525,10 +526,12 @@ model World {
   createdAt   DateTime        @default(now()) @map("created_at")
   updatedAt   DateTime        @updatedAt @map("updated_at")
 
-  author      User            @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  characters  Character[]
-  novelWorlds NovelWorld[]
-  locations   WorldLocation[]
+  author       User            @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  characters   Character[]
+  novelWorlds  NovelWorld[]
+  locations    WorldLocation[]
+  wbCategories WbCategory[]
+  wbEntries    WbEntry[]
 
   @@index([authorId])
   @@index([slug])
@@ -645,4 +648,73 @@ model SearchHistory {
   @@unique([userId, query])
   @@index([userId, createdAt])
   @@map("search_history")
+}
+
+model WbCategory {
+  id          String   @id @default(uuid()) @db.Uuid
+  worldId     String   @map("world_id") @db.Uuid
+  name        String   @db.VarChar(100)
+  slug        String   @db.VarChar(120)
+  icon        String?  @db.VarChar(10)
+  description String?  @db.VarChar(500)
+  color       String?  @db.VarChar(20)
+  fieldSchema Json     @map("field_schema")
+  sortOrder   Int      @default(0) @map("sort_order")
+  isSystem    Boolean  @default(false) @map("is_system")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  world   World     @relation(fields: [worldId], references: [id], onDelete: Cascade)
+  entries WbEntry[]
+
+  @@unique([worldId, slug])
+  @@index([worldId, sortOrder])
+  @@map("wb_categories")
+}
+
+model WbEntry {
+  id         String   @id @default(uuid()) @db.Uuid
+  worldId    String   @map("world_id") @db.Uuid
+  categoryId String   @map("category_id") @db.Uuid
+  authorId   String   @map("author_id") @db.Uuid
+  name       String   @db.VarChar(200)
+  slug       String   @db.VarChar(220)
+  summary    String?  @db.VarChar(500)
+  content    String?  @db.Text
+  coverUrl   String?  @map("cover_url")
+  fields     Json     @default("{}")
+  tags       String[]
+  isPublic   Boolean  @default(false) @map("is_public")
+  sortOrder  Int      @default(0) @map("sort_order")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  world         World         @relation(fields: [worldId], references: [id], onDelete: Cascade)
+  category      WbCategory    @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  author        User          @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  linksAsSource WbEntryLink[] @relation("WbLinkSource")
+  linksAsTarget WbEntryLink[] @relation("WbLinkTarget")
+
+  @@unique([worldId, slug])
+  @@index([worldId, categoryId])
+  @@index([authorId])
+  @@index([worldId, isPublic])
+  @@map("wb_entries")
+}
+
+model WbEntryLink {
+  id        String   @id @default(uuid()) @db.Uuid
+  sourceId  String   @map("source_id") @db.Uuid
+  targetId  String   @map("target_id") @db.Uuid
+  relation  String   @db.VarChar(100)
+  isMutual  Boolean  @default(false) @map("is_mutual")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  source WbEntry @relation("WbLinkSource", fields: [sourceId], references: [id], onDelete: Cascade)
+  target WbEntry @relation("WbLinkTarget", fields: [targetId], references: [id], onDelete: Cascade)
+
+  @@unique([sourceId, targetId, relation])
+  @@index([sourceId])
+  @@index([targetId])
+  @@map("wb_entry_links")
 }
