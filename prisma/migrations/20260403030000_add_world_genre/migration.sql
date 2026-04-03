@@ -1,0 +1,19 @@
+-- CreateEnum
+CREATE TYPE "WorldGenre" AS ENUM (
+  'FANTASIA',
+  'REALISTA',
+  'POSAPOCALIPTICO',
+  'CIENCIA_FICCION',
+  'DISTOPIA',
+  'STEAMPUNK',
+  'CYBERPUNK',
+  'MEDIEVAL',
+  'MITOLOGICO',
+  'HORROR',
+  'URBANO',
+  'HISTORICO',
+  'SURREAL'
+);
+
+-- AlterTable
+ALTER TABLE "worlds" ADD COLUMN "genre" "WorldGenre";

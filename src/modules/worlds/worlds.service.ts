@@ -43,6 +43,7 @@ export class WorldsService {
         rules: dto.rules?.trim() || null,
         coverUrl: dto.coverUrl?.trim() || null,
         mapUrl: dto.mapUrl?.trim() || null,
+        genre: dto.genre ?? null,
         visibility: dto.visibility ?? WorldVisibility.PRIVATE,
         tags: dto.tags?.map((item) => item.trim()).filter(Boolean) ?? [],
         metadata:
@@ -127,6 +128,9 @@ export class WorldsService {
           : {}),
         ...(dto.mapUrl !== undefined
           ? { mapUrl: dto.mapUrl?.trim() || null }
+          : {}),
+        ...(dto.genre !== undefined
+          ? { genre: dto.genre }
           : {}),
         ...(dto.visibility !== undefined ? { visibility: dto.visibility } : {}),
         ...(dto.tags !== undefined
@@ -469,6 +473,7 @@ export class WorldsService {
       rules: world.rules,
       coverUrl: world.coverUrl,
       mapUrl: world.mapUrl,
+      genre: world.genre,
       visibility: world.visibility,
       tags: world.tags,
       metadata: world.metadata,

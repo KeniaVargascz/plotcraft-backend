@@ -1,4 +1,4 @@
-import { WorldVisibility } from '@prisma/client';
+import { WorldGenre, WorldVisibility } from '@prisma/client';
 import {
   ArrayMaxSize,
   IsArray,
@@ -48,6 +48,10 @@ export class CreateWorldDto {
   @IsOptional()
   @IsString()
   mapUrl?: string;
+
+  @IsOptional()
+  @IsEnum(WorldGenre)
+  genre?: WorldGenre;
 
   @IsOptional()
   @IsEnum(WorldVisibility)

@@ -219,6 +219,22 @@ enum WorldVisibility {
   PRIVATE
 }
 
+enum WorldGenre {
+  FANTASIA
+  REALISTA
+  POSAPOCALIPTICO
+  CIENCIA_FICCION
+  DISTOPIA
+  STEAMPUNK
+  CYBERPUNK
+  MEDIEVAL
+  MITOLOGICO
+  HORROR
+  URBANO
+  HISTORICO
+  SURREAL
+}
+
 enum CharacterRole {
   PROTAGONIST
   ANTAGONIST
@@ -502,6 +518,7 @@ model World {
   rules       String?         @db.Text
   coverUrl    String?         @map("cover_url")
   mapUrl      String?         @map("map_url")
+  genre       WorldGenre?
   visibility  WorldVisibility @default(PRIVATE)
   tags        String[]
   metadata    Json?
