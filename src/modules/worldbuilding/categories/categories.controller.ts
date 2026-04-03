@@ -36,6 +36,16 @@ export class CategoriesController {
     return this.categoriesService.listCategories(slug);
   }
 
+  @Public()
+  @Get('worlds/:slug/wb/categories/:catSlug')
+  @ApiOperation({ summary: 'Obtener una categoria por slug' })
+  getCategory(
+    @Param('slug') slug: string,
+    @Param('catSlug') catSlug: string,
+  ) {
+    return this.categoriesService.getCategory(slug, catSlug);
+  }
+
   @ApiBearerAuth()
   @Post('worlds/:slug/wb/categories')
   @ApiOperation({ summary: 'Crear categoria en un mundo' })

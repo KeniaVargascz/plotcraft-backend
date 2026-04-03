@@ -58,6 +58,27 @@ export class CategoriesService {
     }));
   }
 
+  async getCategory(worldSlug: string, catSlug: string) {
+    const world = await this.prisma.world.findUnique({
+      where: { slug: worldSlug },
+    });
+
+    if (!world) {
+      throw new NotFoundException('Mundo no encontrado');
+    }
+
+    const category = await this.prisma.wbCategory.findUnique({
+      where: { worldId_slug: { worldId: world.id, slug: catSlug } },
+      include: { _count: { select: { entries: true } } },
+    });
+
+    if (!category) {
+      throw new NotFoundException('Categoria no encontrada');
+    }
+
+    return this.toCategoryResponse(category);
+  }
+
   async create(userId: string, worldSlug: string, dto: CreateCategoryDto) {
     dto.validateNoDuplicateKeys();
 
