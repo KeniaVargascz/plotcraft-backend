@@ -20,6 +20,8 @@ import { ReactionsModule } from './modules/reactions/reactions.module';
 import { ReadingListsModule } from './modules/reading-lists/reading-lists.module';
 import { SearchModule } from './modules/search/search.module';
 import { UsersModule } from './modules/users/users.module';
+import { TimelineModule } from './modules/timeline/timeline.module';
+import { PlannerModule } from './modules/planner/planner.module';
 import { WorldbuildingModule } from './modules/worldbuilding/worldbuilding.module';
 import { WorldsModule } from './modules/worlds/worlds.module';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
@@ -55,6 +57,8 @@ import { PrismaModule } from './prisma/prisma.module';
     HighlightsModule,
     ReadingListsModule,
     LibraryModule,
+    TimelineModule,
+    PlannerModule,
   ],
   providers: [
     { provide: APP_PIPE, useClass: ValidationPipe },

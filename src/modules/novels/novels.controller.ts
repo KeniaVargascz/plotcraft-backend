@@ -18,6 +18,8 @@ import { CreateNovelDto } from './dto/create-novel.dto';
 import { NovelQueryDto } from './dto/novel-query.dto';
 import { UpdateNovelDto } from './dto/update-novel.dto';
 import { NovelsService } from './novels.service';
+import { TimelineService } from '../timeline/timeline.service';
+import { PlannerService } from '../planner/planner.service';
 
 @ApiTags('novels')
 @Controller('novels')
@@ -25,6 +27,8 @@ export class NovelsController {
   constructor(
     private readonly novelsService: NovelsService,
     private readonly authService: AuthService,
+    private readonly timelineService: TimelineService,
+    private readonly plannerService: PlannerService,
   ) {}
 
   @Public()
@@ -89,6 +93,20 @@ export class NovelsController {
       await this.authService.getOptionalJwtPayloadFromAuthHeader(authorization);
 
     return this.novelsService.listNovelCharacters(slug, viewer?.sub ?? null);
+  }
+
+  @ApiBearerAuth()
+  @Get(':slug/timeline')
+  @ApiOperation({ summary: 'Timeline vinculado a esta novela (upsert)' })
+  getNovelTimeline(@Param('slug') slug: string, @CurrentUser() user: JwtPayload) {
+    return this.timelineService.upsertByNovel(slug, user.sub);
+  }
+
+  @ApiBearerAuth()
+  @Get(':slug/planner')
+  @ApiOperation({ summary: 'Planner vinculado a esta novela (upsert)' })
+  getNovelPlanner(@Param('slug') slug: string, @CurrentUser() user: JwtPayload) {
+    return this.plannerService.upsertByNovel(slug, user.sub);
   }
 
   @ApiBearerAuth()

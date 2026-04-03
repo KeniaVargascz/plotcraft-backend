@@ -38,6 +38,10 @@ model User {
   characters        Character[]
   searchHistory     SearchHistory[]
   wbEntries         WbEntry[]
+  timelines         Timeline[]
+  timelineEvents    TimelineEvent[]
+  writingProjects   WritingProject[]
+  writingTasks      WritingTask[]
 
   @@index([email])
   @@index([username])
@@ -236,6 +240,49 @@ enum WorldGenre {
   SURREAL
 }
 
+// ── Timeline & Planner enums ──
+
+enum TimelineEventType {
+  WORLD_EVENT
+  STORY_EVENT
+  CHARACTER_ARC
+  CHAPTER_EVENT
+  LORE_EVENT
+  NOTE
+}
+
+enum TimelineEventRelevance {
+  CRITICAL
+  MAJOR
+  MINOR
+  BACKGROUND
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum TaskStatus {
+  BACKLOG
+  IN_PROGRESS
+  REVIEW
+  DONE
+}
+
+enum TaskType {
+  CHAPTER
+  CHARACTER
+  WORLDBUILDING
+  PLANNING
+  REVISION
+  RESEARCH
+  PUBLICATION
+  OTHER
+}
+
 enum CharacterRole {
   PROTAGONIST
   ANTAGONIST
@@ -293,6 +340,8 @@ model Novel {
   readingListItems ReadingListItem[]
   novelWorlds      NovelWorld[]
   novelCharacters  NovelCharacter[]
+  timelines        Timeline[]
+  writingProjects  WritingProject[]
 
   @@index([authorId])
   @@index([slug])
@@ -334,6 +383,8 @@ model Chapter {
   readingHistory   ReadingHistory[]
   chapterBookmarks ChapterBookmark[]
   highlights       Highlight[]
+  timelineEvents   TimelineEvent[]
+  writingTasks     WritingTask[]
 
   @@unique([novelId, slug])
   @@unique([novelId, order])
@@ -530,8 +581,9 @@ model World {
   characters   Character[]
   novelWorlds  NovelWorld[]
   locations    WorldLocation[]
-  wbCategories WbCategory[]
-  wbEntries    WbEntry[]
+  wbCategories   WbCategory[]
+  wbEntries      WbEntry[]
+  timelineEvents TimelineEvent[]
 
   @@index([authorId])
   @@index([slug])
@@ -598,6 +650,8 @@ model Character {
   novelCharacters       NovelCharacter[]
   relationshipsAsSource CharacterRelationship[] @relation("RelationshipSource")
   relationshipsAsTarget CharacterRelationship[] @relation("RelationshipTarget")
+  timelineEvents        TimelineEvent[]
+  writingTasks          WritingTask[]
 
   @@unique([authorId, slug])
   @@index([authorId])
@@ -692,8 +746,9 @@ model WbEntry {
   world         World         @relation(fields: [worldId], references: [id], onDelete: Cascade)
   category      WbCategory    @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   author        User          @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  linksAsSource WbEntryLink[] @relation("WbLinkSource")
-  linksAsTarget WbEntryLink[] @relation("WbLinkTarget")
+  linksAsSource  WbEntryLink[]  @relation("WbLinkSource")
+  linksAsTarget  WbEntryLink[]  @relation("WbLinkTarget")
+  timelineEvents TimelineEvent[]
 
   @@unique([worldId, slug])
   @@index([worldId, categoryId])
@@ -717,4 +772,112 @@ model WbEntryLink {
   @@index([sourceId])
   @@index([targetId])
   @@map("wb_entry_links")
+}
+
+// ── Timeline Models ──
+
+model Timeline {
+  id          String   @id @default(uuid()) @db.Uuid
+  authorId    String   @map("author_id") @db.Uuid
+  novelId     String?  @map("novel_id") @db.Uuid
+  name        String   @db.VarChar(200)
+  description String?  @db.VarChar(500)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  author User             @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  novel  Novel?           @relation(fields: [novelId], references: [id], onDelete: SetNull)
+  events TimelineEvent[]
+
+  @@unique([authorId, novelId])
+  @@index([authorId])
+  @@map("timelines")
+}
+
+model TimelineEvent {
+  id          String                 @id @default(uuid()) @db.Uuid
+  timelineId  String                 @map("timeline_id") @db.Uuid
+  authorId    String                 @map("author_id") @db.Uuid
+  title       String                 @db.VarChar(200)
+  description String?                @db.Text
+  type        TimelineEventType      @default(STORY_EVENT)
+  relevance   TimelineEventRelevance @default(MINOR)
+  dateLabel   String?                @map("date_label") @db.VarChar(100)
+  sortOrder   Int                    @default(0) @map("sort_order")
+  color       String?                @db.VarChar(20)
+  tags        String[]
+  chapterId   String?                @map("chapter_id") @db.Uuid
+  characterId String?                @map("character_id") @db.Uuid
+  worldId     String?                @map("world_id") @db.Uuid
+  wbEntryId   String?                @map("wb_entry_id") @db.Uuid
+  metadata    Json?
+  createdAt   DateTime               @default(now()) @map("created_at")
+  updatedAt   DateTime               @updatedAt @map("updated_at")
+
+  timeline  Timeline   @relation(fields: [timelineId], references: [id], onDelete: Cascade)
+  author    User       @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  chapter   Chapter?   @relation(fields: [chapterId], references: [id], onDelete: SetNull)
+  character Character? @relation(fields: [characterId], references: [id], onDelete: SetNull)
+  world     World?     @relation(fields: [worldId], references: [id], onDelete: SetNull)
+  wbEntry   WbEntry?   @relation(fields: [wbEntryId], references: [id], onDelete: SetNull)
+
+  @@index([timelineId, sortOrder])
+  @@index([authorId])
+  @@index([type])
+  @@index([characterId])
+  @@map("timeline_events")
+}
+
+// ── Planner Models ──
+
+model WritingProject {
+  id          String   @id @default(uuid()) @db.Uuid
+  authorId    String   @map("author_id") @db.Uuid
+  novelId     String?  @map("novel_id") @db.Uuid
+  name        String   @db.VarChar(200)
+  description String?  @db.VarChar(500)
+  color       String?  @db.VarChar(20)
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  author User          @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  novel  Novel?        @relation(fields: [novelId], references: [id], onDelete: SetNull)
+  tasks  WritingTask[]
+
+  @@index([authorId])
+  @@index([novelId])
+  @@map("writing_projects")
+}
+
+model WritingTask {
+  id          String       @id @default(uuid()) @db.Uuid
+  projectId   String       @map("project_id") @db.Uuid
+  authorId    String       @map("author_id") @db.Uuid
+  title       String       @db.VarChar(200)
+  description String?      @db.Text
+  type        TaskType     @default(OTHER)
+  priority    TaskPriority @default(MEDIUM)
+  status      TaskStatus   @default(BACKLOG)
+  dueDate     DateTime?    @map("due_date")
+  targetWords Int?         @map("target_words")
+  actualWords Int?         @map("actual_words")
+  sortOrder   Int          @default(0) @map("sort_order")
+  tags        String[]
+  chapterId   String?      @map("chapter_id") @db.Uuid
+  characterId String?      @map("character_id") @db.Uuid
+  completedAt DateTime?    @map("completed_at")
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
+
+  project   WritingProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  author    User           @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  chapter   Chapter?       @relation(fields: [chapterId], references: [id], onDelete: SetNull)
+  character Character?     @relation(fields: [characterId], references: [id], onDelete: Cascade)
+
+  @@index([projectId, status, sortOrder])
+  @@index([authorId])
+  @@index([dueDate])
+  @@index([status])
+  @@map("writing_tasks")
 }

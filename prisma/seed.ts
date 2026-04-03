@@ -1938,6 +1938,74 @@ async function seedSearchHistory() {
   }
 }
 
+async function seedTimelineAndPlanner() {
+  const demoWriter = await prisma.user.findUniqueOrThrow({ where: { username: 'demo_writer' } });
+  const novel = await prisma.novel.findFirst({ where: { authorId: demoWriter.id, slug: { contains: 'cronicas' } } });
+  if (!novel) return;
+
+  const kael = await prisma.character.findFirst({ where: { authorId: demoWriter.id, slug: 'kael' } });
+  const tejedor = await prisma.character.findFirst({ where: { authorId: demoWriter.id, slug: 'el-tejedor' } });
+
+  // ── Timeline ──
+  const timeline = await prisma.timeline.upsert({
+    where: { authorId_novelId: { authorId: demoWriter.id, novelId: novel.id } },
+    update: { name: 'Timeline de Las Cronicas del Velo', description: 'Cronologia de los eventos del mundo del Velo' },
+    create: {
+      authorId: demoWriter.id,
+      novelId: novel.id,
+      name: 'Timeline de Las Cronicas del Velo',
+      description: 'Cronologia de los eventos del mundo del Velo',
+    },
+  });
+
+  const timelineEvents = [
+    { sortOrder: 1, title: 'El primer desgarro del Velo', type: 'WORLD_EVENT' as const, relevance: 'CRITICAL' as const, dateLabel: 'Ano 0 del Velo', description: 'El momento en que la membrana se rompio por primera vez', characterId: null },
+    { sortOrder: 2, title: 'Fundacion del Consejo de los Anclados', type: 'WORLD_EVENT' as const, relevance: 'MAJOR' as const, dateLabel: 'Ano 12 del Velo', description: null, characterId: null },
+    { sortOrder: 3, title: 'Nacimiento de Kael', type: 'CHARACTER_ARC' as const, relevance: 'MINOR' as const, dateLabel: 'Ano 280 del Velo', description: null, characterId: kael?.id ?? null },
+    { sortOrder: 4, title: 'El Tejedor cruza el Velo por primera vez', type: 'CHARACTER_ARC' as const, relevance: 'MAJOR' as const, dateLabel: 'Ano 298 del Velo', description: null, characterId: tejedor?.id ?? null },
+    { sortOrder: 5, title: 'Kael descubre su habilidad', type: 'STORY_EVENT' as const, relevance: 'CRITICAL' as const, dateLabel: 'Ano 302 del Velo, Capitulo 1', description: null, characterId: kael?.id ?? null },
+    { sortOrder: 6, title: 'El umbral comienza a debilitarse', type: 'WORLD_EVENT' as const, relevance: 'MAJOR' as const, dateLabel: 'Ano 302 del Velo', description: null, characterId: null },
+  ];
+
+  for (const evt of timelineEvents) {
+    const existing = await prisma.timelineEvent.findFirst({ where: { timelineId: timeline.id, title: evt.title } });
+    if (existing) {
+      await prisma.timelineEvent.update({ where: { id: existing.id }, data: { sortOrder: evt.sortOrder, type: evt.type, relevance: evt.relevance, dateLabel: evt.dateLabel, description: evt.description, characterId: evt.characterId } });
+    } else {
+      await prisma.timelineEvent.create({ data: { timelineId: timeline.id, authorId: demoWriter.id, title: evt.title, sortOrder: evt.sortOrder, type: evt.type, relevance: evt.relevance, dateLabel: evt.dateLabel, description: evt.description, characterId: evt.characterId } });
+    }
+  }
+
+  // ── Planner ──
+  let project = await prisma.writingProject.findFirst({ where: { authorId: demoWriter.id, novelId: novel.id } });
+  if (!project) {
+    project = await prisma.writingProject.create({ data: { authorId: demoWriter.id, novelId: novel.id, name: 'Las Cronicas del Velo — Planner', color: '#c9a84c' } });
+  } else {
+    await prisma.writingProject.update({ where: { id: project.id }, data: { name: 'Las Cronicas del Velo — Planner', color: '#c9a84c' } });
+  }
+
+  const now = new Date();
+  const tasks = [
+    { title: 'Escribir Cap. 15 — Los hilos rotos', type: 'CHAPTER' as const, priority: 'HIGH' as const, status: 'IN_PROGRESS' as const, targetWords: 3000, actualWords: 1240, dueDate: new Date(now.getTime() + 7 * 86400000), completedAt: null, sortOrder: 1 },
+    { title: 'Revisar arco de Seren — consistencia emocional', type: 'REVISION' as const, priority: 'MEDIUM' as const, status: 'IN_PROGRESS' as const, targetWords: null, actualWords: null, dueDate: null, completedAt: null, sortOrder: 2 },
+    { title: 'Desarrollar historia de origen del Tejedor', type: 'WORLDBUILDING' as const, priority: 'HIGH' as const, status: 'BACKLOG' as const, targetWords: null, actualWords: null, dueDate: null, completedAt: null, sortOrder: 1 },
+    { title: 'Mapa del Mundo del Velo', type: 'WORLDBUILDING' as const, priority: 'MEDIUM' as const, status: 'BACKLOG' as const, targetWords: null, actualWords: null, dueDate: null, completedAt: null, sortOrder: 2 },
+    { title: 'Definir reglas del cruce del Velo', type: 'PLANNING' as const, priority: 'LOW' as const, status: 'BACKLOG' as const, targetWords: null, actualWords: null, dueDate: null, completedAt: null, sortOrder: 3 },
+    { title: 'Cap. 14 — segunda lectura y edicion', type: 'REVISION' as const, priority: 'HIGH' as const, status: 'REVIEW' as const, targetWords: null, actualWords: null, dueDate: null, completedAt: null, sortOrder: 1 },
+    { title: 'Publicar Cap. 14 — El umbral', type: 'PUBLICATION' as const, priority: 'HIGH' as const, status: 'DONE' as const, targetWords: null, actualWords: null, dueDate: null, completedAt: new Date(now.getTime() - 2 * 86400000), sortOrder: 1 },
+    { title: 'Ficha de personaje: El Tejedor', type: 'CHARACTER' as const, priority: 'MEDIUM' as const, status: 'DONE' as const, targetWords: null, actualWords: null, dueDate: null, completedAt: new Date(now.getTime() - 7 * 86400000), sortOrder: 2 },
+  ];
+
+  for (const t of tasks) {
+    const existing = await prisma.writingTask.findFirst({ where: { projectId: project.id, title: t.title } });
+    if (existing) {
+      await prisma.writingTask.update({ where: { id: existing.id }, data: { type: t.type, priority: t.priority, status: t.status, targetWords: t.targetWords, actualWords: t.actualWords, dueDate: t.dueDate, completedAt: t.completedAt, sortOrder: t.sortOrder } });
+    } else {
+      await prisma.writingTask.create({ data: { projectId: project.id, authorId: demoWriter.id, title: t.title, type: t.type, priority: t.priority, status: t.status, targetWords: t.targetWords, actualWords: t.actualWords, dueDate: t.dueDate, completedAt: t.completedAt, sortOrder: t.sortOrder } });
+    }
+  }
+}
+
 async function main() {
   await upsertUsers();
   await seedSocialGraph();
@@ -1948,6 +2016,7 @@ async function main() {
   await seedWorldsAndCharacters();
   await seedWorldbuilding();
   await seedSearchHistory();
+  await seedTimelineAndPlanner();
 }
 
 main()
