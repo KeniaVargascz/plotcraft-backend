@@ -1,11 +1,18 @@
 import {
+  CharacterRole,
+  CharacterStatus,
   ChapterStatus,
+  HighlightColor,
   NovelRating,
   NovelStatus,
   PostType,
   Prisma,
   PrismaClient,
   ReactionType,
+  ReaderFontFamily,
+  ReaderMode,
+  ReadingListVisibility,
+  WorldVisibility,
 } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import slugify from 'slugify';
@@ -20,7 +27,7 @@ const usersSeed = [
     username: 'demo_writer',
     profile: {
       displayName: 'Demo Writer',
-      bio: 'Cuenta principal de demostracion para probar el flujo de PlotCraft.',
+      bio: 'Cuenta principal de demostracion para probar el flujo de PlotCraft con fantasia, magia, oscuridad y cronicas del velo.',
       website: 'https://plotcraft.local/demo-writer',
     },
   },
@@ -65,7 +72,7 @@ const usersSeed = [
     username: 'reader_alex',
     profile: {
       displayName: 'Reader Alex',
-      bio: 'Lector beta, comentarista y coleccionista de historias largas.',
+      bio: 'Lector beta, comentarista y coleccionista de historias largas con fantasia, personajes complejos y mundos memorables.',
       website: 'https://plotcraft.local/reader-alex',
     },
   },
@@ -263,6 +270,24 @@ async function seedPostsAndInteractions() {
       type: PostType.ANNOUNCEMENT,
       content:
         'El primer arco de Ceniza y Marea queda abierto para lectura beta esta semana.',
+    },
+    {
+      authorUsername: 'reader_alex',
+      type: PostType.TEXT,
+      content:
+        'Estoy tomando notas sobre escritura, personajes y el modo en que un mundo bien construido sostiene cada escena.',
+    },
+    {
+      authorUsername: 'mateo.worlds',
+      type: PostType.WORLDBUILDING,
+      content:
+        'Cada mundo necesita reglas visibles: magia con costo, politica en conflicto y geografia que empuje la trama.',
+    },
+    {
+      authorUsername: 'writer_luna',
+      type: PostType.UPDATE,
+      content:
+        'Hoy reescribi una escena completa para que el silencio, la oscuridad y la escritura interior se sintieran mas honestos.',
     },
   ] as const;
 
@@ -546,37 +571,45 @@ async function upsertNovelWithChapters(input: {
           }
         : Prisma.JsonNull;
 
-    await prisma.chapter.upsert({
+    const existingChapter = await prisma.chapter.findFirst({
       where: {
-        novelId_slug: {
-          novelId: novel.id,
-          slug: chapterSlug,
-        },
-      },
-      update: {
-        authorId: author.id,
-        title: entry.title,
-        content: entry.content,
-        order: entry.order,
-        status: entry.status,
-        wordCount,
-        publishedAt,
-        scheduledAt: null,
-        contentSnapshot,
-      },
-      create: {
         novelId: novel.id,
-        authorId: author.id,
-        title: entry.title,
-        slug: chapterSlug,
-        content: entry.content,
-        order: entry.order,
-        status: entry.status,
-        wordCount,
-        publishedAt,
-        contentSnapshot,
+        OR: [{ slug: chapterSlug }, { order: entry.order }],
       },
     });
+
+    if (existingChapter) {
+      await prisma.chapter.update({
+        where: { id: existingChapter.id },
+        data: {
+          authorId: author.id,
+          title: entry.title,
+          slug: chapterSlug,
+          content: entry.content,
+          order: entry.order,
+          status: entry.status,
+          wordCount,
+          publishedAt,
+          scheduledAt: null,
+          contentSnapshot,
+        },
+      });
+    } else {
+      await prisma.chapter.create({
+        data: {
+          novelId: novel.id,
+          authorId: author.id,
+          title: entry.title,
+          slug: chapterSlug,
+          content: entry.content,
+          order: entry.order,
+          status: entry.status,
+          wordCount,
+          publishedAt,
+          contentSnapshot,
+        },
+      });
+    }
   }
 
   const aggregate = await prisma.chapter.aggregate({
@@ -646,7 +679,7 @@ async function seedNovels() {
     authorUsername: 'demo_writer',
     title: 'Las Cronicas del Velo',
     synopsis:
-      'Una cartografa descubre que el mapa de su ciudad encubre un corredor hacia un reino anfibio donde toda deuda se paga con memoria.',
+      'Una cartografa descubre que el mapa de su ciudad encubre un corredor hacia un reino anfibio donde toda deuda se paga con memoria, magia del velo, silencio ritual y oscuridad marina.',
     status: NovelStatus.IN_PROGRESS,
     rating: NovelRating.PG13,
     genreSlugs: ['fantasy', 'mythology'],
@@ -660,7 +693,7 @@ async function seedNovels() {
     authorUsername: 'writer_luna',
     title: 'El Septimo Silencio',
     synopsis:
-      'Una desaparicion imposible obliga a una inspectora a reconstruir una noche de versiones contradictorias y omisiones peligrosas.',
+      'Una desaparicion imposible obliga a una inspectora a reconstruir una noche de versiones contradictorias, omisiones peligrosas y un silencio que empieza a comportarse como magia oscura.',
     status: NovelStatus.COMPLETED,
     rating: NovelRating.R,
     genreSlugs: ['mystery', 'thriller'],
@@ -723,12 +756,821 @@ async function seedNovels() {
   });
 }
 
+async function seedReaderLibrary() {
+  const [demoWriter, readerAlex] = await Promise.all([
+    prisma.user.findUniqueOrThrow({ where: { username: 'demo_writer' } }),
+    prisma.user.findUniqueOrThrow({ where: { username: 'reader_alex' } }),
+  ]);
+
+  for (const userId of [demoWriter.id, readerAlex.id]) {
+    await prisma.readerPreferences.upsert({
+      where: { userId },
+      update: {},
+      create: {
+        userId,
+        fontFamily: ReaderFontFamily.crimson,
+        fontSize: 18,
+        lineHeight: 1.8,
+        maxWidth: 720,
+        readingMode: ReaderMode.scroll,
+        showProgress: true,
+      },
+    });
+  }
+
+  const veil = await prisma.novel.findUniqueOrThrow({
+    where: { slug: normalizeSlug('Las Cronicas del Velo') },
+    include: {
+      chapters: {
+        orderBy: { order: 'asc' },
+      },
+    },
+  });
+  const silence = await prisma.novel.findUniqueOrThrow({
+    where: { slug: normalizeSlug('El Septimo Silencio') },
+    include: {
+      chapters: {
+        orderBy: { order: 'asc' },
+      },
+    },
+  });
+
+  const veilChapter2 = veil.chapters.find((chapter) => chapter.order === 2)!;
+  const veilChapter1 = veil.chapters.find((chapter) => chapter.order === 1)!;
+  const veilChapter3 = veil.chapters.find((chapter) => chapter.order === 3)!;
+  const silenceChapter2 = silence.chapters.find(
+    (chapter) => chapter.order === 2,
+  )!;
+  const silenceChapter1 = silence.chapters.find(
+    (chapter) => chapter.order === 1,
+  )!;
+
+  await prisma.readingProgress.upsert({
+    where: {
+      userId_novelId: {
+        userId: readerAlex.id,
+        novelId: veil.id,
+      },
+    },
+    update: {
+      chapterId: veilChapter2.id,
+      scrollPct: 0.65,
+    },
+    create: {
+      userId: readerAlex.id,
+      novelId: veil.id,
+      chapterId: veilChapter2.id,
+      scrollPct: 0.65,
+    },
+  });
+
+  await prisma.readingProgress.upsert({
+    where: {
+      userId_novelId: {
+        userId: readerAlex.id,
+        novelId: silence.id,
+      },
+    },
+    update: {
+      chapterId: silenceChapter2.id,
+      scrollPct: 1,
+    },
+    create: {
+      userId: readerAlex.id,
+      novelId: silence.id,
+      chapterId: silenceChapter2.id,
+      scrollPct: 1,
+    },
+  });
+
+  const historyEntries = [
+    {
+      novelId: veil.id,
+      chapterId: veilChapter1.id,
+      openedAt: new Date(Date.now() - 1000 * 60 * 60 * 26),
+    },
+    {
+      novelId: veil.id,
+      chapterId: veilChapter2.id,
+      openedAt: new Date(Date.now() - 1000 * 60 * 60 * 18),
+    },
+    {
+      novelId: veil.id,
+      chapterId: veilChapter3.id,
+      openedAt: new Date(Date.now() - 1000 * 60 * 60 * 6),
+    },
+    {
+      novelId: silence.id,
+      chapterId: silenceChapter1.id,
+      openedAt: new Date(Date.now() - 1000 * 60 * 60 * 50),
+    },
+    {
+      novelId: silence.id,
+      chapterId: silenceChapter2.id,
+      openedAt: new Date(Date.now() - 1000 * 60 * 60 * 30),
+    },
+  ];
+
+  for (const entry of historyEntries) {
+    const existing = await prisma.readingHistory.findFirst({
+      where: {
+        userId: readerAlex.id,
+        novelId: entry.novelId,
+        chapterId: entry.chapterId,
+      },
+    });
+
+    if (!existing) {
+      await prisma.readingHistory.create({
+        data: {
+          userId: readerAlex.id,
+          novelId: entry.novelId,
+          chapterId: entry.chapterId,
+          openedAt: entry.openedAt,
+        },
+      });
+    }
+  }
+
+  const bookmark = await prisma.chapterBookmark.findFirst({
+    where: {
+      userId: readerAlex.id,
+      chapterId: veilChapter2.id,
+      label: 'Retomar aqui',
+    },
+  });
+
+  if (!bookmark) {
+    await prisma.chapterBookmark.create({
+      data: {
+        userId: readerAlex.id,
+        novelId: veil.id,
+        chapterId: veilChapter2.id,
+        label: 'Retomar aqui',
+      },
+    });
+  }
+
+  const highlights = [
+    {
+      chapterId: veilChapter1.id,
+      novelId: veil.id,
+      anchorId: 'p-3',
+      startOffset: 0,
+      endOffset: 50,
+      color: HighlightColor.yellow,
+      note: null,
+    },
+    {
+      chapterId: veilChapter1.id,
+      novelId: veil.id,
+      anchorId: 'p-7',
+      startOffset: 10,
+      endOffset: 80,
+      color: HighlightColor.blue,
+      note: 'Frase poderosa',
+    },
+  ];
+
+  for (const entry of highlights) {
+    const existing = await prisma.highlight.findFirst({
+      where: {
+        userId: readerAlex.id,
+        chapterId: entry.chapterId,
+        anchorId: entry.anchorId,
+        startOffset: entry.startOffset,
+        endOffset: entry.endOffset,
+      },
+    });
+
+    if (!existing) {
+      await prisma.highlight.create({
+        data: {
+          userId: readerAlex.id,
+          chapterId: entry.chapterId,
+          novelId: entry.novelId,
+          anchorId: entry.anchorId,
+          startOffset: entry.startOffset,
+          endOffset: entry.endOffset,
+          color: entry.color,
+          note: entry.note,
+        },
+      });
+    }
+  }
+
+  const epicList = await prisma.readingList.upsert({
+    where: {
+      id: 'c1ec5d08-0c04-490d-b2c7-6e7e00a00001',
+    },
+    update: {
+      userId: readerAlex.id,
+      name: 'Fantasia epica',
+      description: 'Historias extensas para leer con tiempo.',
+      visibility: ReadingListVisibility.PUBLIC,
+    },
+    create: {
+      id: 'c1ec5d08-0c04-490d-b2c7-6e7e00a00001',
+      userId: readerAlex.id,
+      name: 'Fantasia epica',
+      description: 'Historias extensas para leer con tiempo.',
+      visibility: ReadingListVisibility.PUBLIC,
+    },
+  });
+
+  const pendingList = await prisma.readingList.upsert({
+    where: {
+      id: 'c1ec5d08-0c04-490d-b2c7-6e7e00a00002',
+    },
+    update: {
+      userId: readerAlex.id,
+      name: 'Pendientes',
+      description: 'Lo que quiero seguir este mes.',
+      visibility: ReadingListVisibility.PRIVATE,
+    },
+    create: {
+      id: 'c1ec5d08-0c04-490d-b2c7-6e7e00a00002',
+      userId: readerAlex.id,
+      name: 'Pendientes',
+      description: 'Lo que quiero seguir este mes.',
+      visibility: ReadingListVisibility.PRIVATE,
+    },
+  });
+
+  await prisma.readingListItem.upsert({
+    where: {
+      readingListId_novelId: {
+        readingListId: epicList.id,
+        novelId: veil.id,
+      },
+    },
+    update: {},
+    create: {
+      readingListId: epicList.id,
+      novelId: veil.id,
+    },
+  });
+
+  await prisma.readingListItem.upsert({
+    where: {
+      readingListId_novelId: {
+        readingListId: pendingList.id,
+        novelId: silence.id,
+      },
+    },
+    update: {},
+    create: {
+      readingListId: pendingList.id,
+      novelId: silence.id,
+    },
+  });
+
+  const now = new Date();
+  await prisma.readingGoal.upsert({
+    where: {
+      userId_year_month: {
+        userId: readerAlex.id,
+        year: now.getUTCFullYear(),
+        month: now.getUTCMonth() + 1,
+      },
+    },
+    update: {
+      targetWords: 50000,
+    },
+    create: {
+      userId: readerAlex.id,
+      year: now.getUTCFullYear(),
+      month: now.getUTCMonth() + 1,
+      targetWords: 50000,
+    },
+  });
+}
+
+async function seedWorldsAndCharacters() {
+  const [demoWriter, mateoWorlds, readerAlex] = await Promise.all([
+    prisma.user.findUniqueOrThrow({ where: { username: 'demo_writer' } }),
+    prisma.user.findUniqueOrThrow({ where: { username: 'mateo.worlds' } }),
+    prisma.user.findUniqueOrThrow({ where: { username: 'reader_alex' } }),
+  ]);
+
+  const [veloNovel, silenceNovel] = await Promise.all([
+    prisma.novel.findUniqueOrThrow({
+      where: { slug: normalizeSlug('Las Cronicas del Velo') },
+    }),
+    prisma.novel.findUniqueOrThrow({
+      where: { slug: normalizeSlug('El Septimo Silencio') },
+    }),
+  ]);
+
+  const worldSeeds: Array<{
+    authorId: string;
+    name: string;
+    slug: string;
+    tagline: string;
+    description: string;
+    setting: string;
+    magicSystem: string;
+    rules: string;
+    visibility: WorldVisibility;
+    tags: string[];
+    locations: Array<{
+      name: string;
+      type: string;
+      description: string;
+      isNotable: boolean;
+    }>;
+  }> = [
+    {
+      authorId: demoWriter.id,
+      name: 'El Mundo del Velo',
+      slug: 'el-mundo-del-velo',
+      tagline: 'Ciudades anfibias, memoria ritual y campanas sumergidas.',
+      description:
+        'Un mundo costero atravesado por portales de agua negra, linajes de cartografos y deudas que se pagan con recuerdos.',
+      setting:
+        'Archipielagos brumosos, ciudades-puerto de cobre y rutas ceremoniales entre islas hundidas.',
+      magicSystem:
+        'El Velo altera el precio de la memoria. Toda travesia importante exige ofrecer nombres, canciones o pasados enteros.',
+      rules:
+        'Nadie cruza dos veces el mismo umbral sin cambiar. Las campanas solo suenan cuando alguien rompe un juramento antiguo.',
+      visibility: WorldVisibility.PUBLIC,
+      tags: ['fantasia', 'serial', 'ciudad-puerto'],
+      locations: [
+        {
+          name: 'Nacar de Bruma',
+          type: 'capital costera',
+          description:
+            'Ciudad principal levantada sobre pilotes y puentes de cobre oxidado.',
+          isNotable: true,
+        },
+        {
+          name: 'Archivo Sumergido',
+          type: 'ruina ritual',
+          description:
+            'Camara inundada donde los mapas se copian sobre piel mineral.',
+          isNotable: true,
+        },
+        {
+          name: 'Puente de las Campanas',
+          type: 'frontera',
+          description:
+            'Paso ceremonial entre la ciudad visible y los corredores del Velo.',
+          isNotable: false,
+        },
+      ],
+    },
+    {
+      authorId: mateoWorlds.id,
+      name: 'Aetherya',
+      slug: 'aetherya',
+      tagline: 'Un continente suspendido por pactos aereos y politica arcana.',
+      description:
+        'Aetherya esta formado por terrazas celestes, casas de aire y ciudades ancladas a torres de resonancia.',
+      setting:
+        'Mesetas flotantes, bibliotecas orbitantes y rutas comerciales escoltadas por navegantes del viento.',
+      magicSystem:
+        'La energia del eter responde a juramentos colectivos y a coralizaciones de cristal vivo.',
+      rules:
+        'Las ciudades que rompen sus pactos descienden de nivel y pierden acceso a las corrientes superiores.',
+      visibility: WorldVisibility.PUBLIC,
+      tags: ['fantasia', 'politica', 'aereo'],
+      locations: [
+        {
+          name: 'Heliora',
+          type: 'metropoli suspendida',
+          description:
+            'Capital academica donde se negocian pactos de navegacion y tratados de cristal.',
+          isNotable: true,
+        },
+        {
+          name: 'Las Agujas de Cuarzo',
+          type: 'frontera',
+          description:
+            'Cadena de torres vivas que regula el trafico entre estratos del cielo.',
+          isNotable: true,
+        },
+      ],
+    },
+  ];
+
+  const worldBySlug = new Map<string, { id: string; authorId: string }>();
+
+  for (const entry of worldSeeds) {
+    const world = await prisma.world.upsert({
+      where: { slug: entry.slug },
+      update: {
+        authorId: entry.authorId,
+        name: entry.name,
+        tagline: entry.tagline,
+        description: entry.description,
+        setting: entry.setting,
+        magicSystem: entry.magicSystem,
+        rules: entry.rules,
+        visibility: entry.visibility,
+        tags: entry.tags,
+      },
+      create: {
+        authorId: entry.authorId,
+        name: entry.name,
+        slug: entry.slug,
+        tagline: entry.tagline,
+        description: entry.description,
+        setting: entry.setting,
+        magicSystem: entry.magicSystem,
+        rules: entry.rules,
+        visibility: entry.visibility,
+        tags: entry.tags,
+      },
+    });
+
+    worldBySlug.set(entry.slug, { id: world.id, authorId: world.authorId });
+
+    for (const location of entry.locations) {
+      const existing = await prisma.worldLocation.findFirst({
+        where: {
+          worldId: world.id,
+          name: location.name,
+        },
+      });
+
+      if (existing) {
+        await prisma.worldLocation.update({
+          where: { id: existing.id },
+          data: {
+            type: location.type,
+            description: location.description,
+            isNotable: location.isNotable,
+          },
+        });
+      } else {
+        await prisma.worldLocation.create({
+          data: {
+            worldId: world.id,
+            name: location.name,
+            type: location.type,
+            description: location.description,
+            isNotable: location.isNotable,
+          },
+        });
+      }
+    }
+  }
+
+  await prisma.novelWorld.upsert({
+    where: {
+      novelId_worldId: {
+        novelId: veloNovel.id,
+        worldId: worldBySlug.get('el-mundo-del-velo')!.id,
+      },
+    },
+    update: {},
+    create: {
+      novelId: veloNovel.id,
+      worldId: worldBySlug.get('el-mundo-del-velo')!.id,
+    },
+  });
+
+  const characterSeeds: Array<{
+    authorId: string;
+    worldSlug: string;
+    name: string;
+    slug: string;
+    role: CharacterRole;
+    status: CharacterStatus;
+    age?: string;
+    appearance: string;
+    personality: string;
+    motivations: string;
+    fears: string;
+    strengths: string;
+    weaknesses: string;
+    backstory: string;
+    arc: string;
+    isPublic: boolean;
+    tags: string[];
+  }> = [
+    {
+      authorId: demoWriter.id,
+      worldSlug: 'el-mundo-del-velo',
+      name: 'Kael',
+      slug: 'kael',
+      role: CharacterRole.PROTAGONIST,
+      status: CharacterStatus.ALIVE,
+      age: '24',
+      appearance:
+        'Cabello oscuro, cicatriz leve en la sien y manos marcadas por tinta ritual.',
+      personality: 'Observador, terco, brillante bajo presion.',
+      motivations:
+        'Descifrar el origen del Velo y recuperar una memoria perdida de su familia.',
+      fears: 'Olvidar a quien juraba proteger.',
+      strengths: 'Cartografia simbolica, improvisacion, resistencia emocional.',
+      weaknesses: 'Impulsividad, orgullo y tendencia al sacrificio silencioso.',
+      backstory:
+        'Heredero accidental de una linea de cartografos que fueron borrados de los registros oficiales.',
+      arc: 'Aprende que guiar a otros exige compartir el peso del mapa, no cargarlo solo.',
+      isPublic: true,
+      tags: ['protagonista', 'cartografo'],
+    },
+    {
+      authorId: demoWriter.id,
+      worldSlug: 'el-mundo-del-velo',
+      name: 'El Tejedor',
+      slug: 'el-tejedor',
+      role: CharacterRole.ANTAGONIST,
+      status: CharacterStatus.UNKNOWN,
+      appearance:
+        'Figura cubierta por velos minerales y fibras negras que vibran con las campanas.',
+      personality: 'Paciente, calculador, ceremonial.',
+      motivations:
+        'Reescribir las rutas del mundo para controlar cada deuda de memoria.',
+      fears: 'Perder el monopolio sobre los nombres verdaderos.',
+      strengths: 'Magia ritual, estrategia de largo plazo.',
+      weaknesses: 'Obsesion con el control y desprecio por el azar.',
+      backstory:
+        'Ultimo guardian de una orden que cree que la historia debe pertenecer solo a quienes pueden pagarla.',
+      arc: 'Su dominio empieza a fracturarse cuando los mapas dejan de obedecerle.',
+      isPublic: true,
+      tags: ['antagonista', 'ritual'],
+    },
+    {
+      authorId: mateoWorlds.id,
+      worldSlug: 'aetherya',
+      name: 'Seren',
+      slug: 'seren',
+      role: CharacterRole.MENTOR,
+      status: CharacterStatus.ALIVE,
+      appearance:
+        'Abrigo azul pizarra, baston de cuarzo y una libreta de pactos bordada en plata.',
+      personality: 'Didactica, incisiva, estratega.',
+      motivations:
+        'Evitar la caida politica de Heliora sin repetir las guerras de sus maestros.',
+      fears: 'Que sus alumnos hereden un cielo dividido.',
+      strengths: 'Diplomacia, lectura politica, memoria prodigiosa.',
+      weaknesses: 'Control excesivo y dificultad para delegar.',
+      backstory:
+        'Arquitecta de pactos que negocia entre ciudades flotantes desde hace veinte anos.',
+      arc: 'Acepta ceder protagonismo a una nueva generacion de navegantes.',
+      isPublic: true,
+      tags: ['mentora', 'politica'],
+    },
+    {
+      authorId: mateoWorlds.id,
+      worldSlug: 'aetherya',
+      name: 'Lyra',
+      slug: 'lyra',
+      role: CharacterRole.ALLY,
+      status: CharacterStatus.ALIVE,
+      appearance:
+        'Cabello trenzado con cristal vivo y uniforme de navegante del viento.',
+      personality: 'Audaz, ironica, ferozmente leal.',
+      motivations:
+        'Demostrar que los barrios bajos del cielo tambien pueden dirigir rutas mayores.',
+      fears: 'Ser usada como simbolo y no como persona.',
+      strengths: 'Navegacion, combate aereo, intuicion tactica.',
+      weaknesses: 'Impaciencia y desconfianza de las instituciones.',
+      backstory:
+        'Piloto de convoyes que ascendio desde las plataformas inferiores hasta la escolta diplomatica.',
+      arc: 'Transforma su rebeldia en liderazgo colectivo.',
+      isPublic: true,
+      tags: ['aliada', 'navegante'],
+    },
+  ];
+
+  const characterIds = new Map<string, { id: string; authorId: string }>();
+
+  for (const entry of characterSeeds) {
+    const worldId = worldBySlug.get(entry.worldSlug)?.id ?? null;
+
+    const character = await prisma.character.upsert({
+      where: {
+        authorId_slug: {
+          authorId: entry.authorId,
+          slug: entry.slug,
+        },
+      },
+      update: {
+        worldId,
+        name: entry.name,
+        role: entry.role,
+        status: entry.status,
+        age: entry.age,
+        appearance: entry.appearance,
+        personality: entry.personality,
+        motivations: entry.motivations,
+        fears: entry.fears,
+        strengths: entry.strengths,
+        weaknesses: entry.weaknesses,
+        backstory: entry.backstory,
+        arc: entry.arc,
+        isPublic: entry.isPublic,
+        tags: entry.tags,
+      },
+      create: {
+        authorId: entry.authorId,
+        worldId,
+        name: entry.name,
+        slug: entry.slug,
+        role: entry.role,
+        status: entry.status,
+        age: entry.age,
+        appearance: entry.appearance,
+        personality: entry.personality,
+        motivations: entry.motivations,
+        fears: entry.fears,
+        strengths: entry.strengths,
+        weaknesses: entry.weaknesses,
+        backstory: entry.backstory,
+        arc: entry.arc,
+        isPublic: entry.isPublic,
+        tags: entry.tags,
+      },
+    });
+
+    characterIds.set(entry.slug, {
+      id: character.id,
+      authorId: character.authorId,
+    });
+  }
+
+  const relationships: Array<{
+    sourceSlug: string;
+    targetSlug: string;
+    type: string;
+    description: string;
+    isMutual: boolean;
+  }> = [
+    {
+      sourceSlug: 'kael',
+      targetSlug: 'el-tejedor',
+      type: 'enemistad',
+      description:
+        'El Tejedor necesita a Kael para reactivar rutas selladas del Velo.',
+      isMutual: true,
+    },
+    {
+      sourceSlug: 'seren',
+      targetSlug: 'lyra',
+      type: 'mentoria',
+      description:
+        'Seren entreno a Lyra para convertir intuicion en estrategia.',
+      isMutual: false,
+    },
+  ];
+
+  for (const relationship of relationships) {
+    const source = characterIds.get(relationship.sourceSlug);
+    const target = characterIds.get(relationship.targetSlug);
+
+    if (!source || !target) {
+      continue;
+    }
+
+    await prisma.characterRelationship.upsert({
+      where: {
+        sourceId_targetId_type: {
+          sourceId: source.id,
+          targetId: target.id,
+          type: relationship.type,
+        },
+      },
+      update: {
+        description: relationship.description,
+        isMutual: relationship.isMutual,
+      },
+      create: {
+        sourceId: source.id,
+        targetId: target.id,
+        type: relationship.type,
+        description: relationship.description,
+        isMutual: relationship.isMutual,
+      },
+    });
+
+    if (relationship.isMutual) {
+      await prisma.characterRelationship.upsert({
+        where: {
+          sourceId_targetId_type: {
+            sourceId: target.id,
+            targetId: source.id,
+            type: relationship.type,
+          },
+        },
+        update: {
+          description: relationship.description,
+          isMutual: true,
+        },
+        create: {
+          sourceId: target.id,
+          targetId: source.id,
+          type: relationship.type,
+          description: relationship.description,
+          isMutual: true,
+        },
+      });
+    }
+  }
+
+  const novelCharacterLinks: Array<{
+    novelId: string;
+    characterSlug: string;
+    roleInNovel: CharacterRole;
+  }> = [
+    {
+      novelId: veloNovel.id,
+      characterSlug: 'kael',
+      roleInNovel: CharacterRole.PROTAGONIST,
+    },
+    {
+      novelId: veloNovel.id,
+      characterSlug: 'el-tejedor',
+      roleInNovel: CharacterRole.ANTAGONIST,
+    },
+    {
+      novelId: silenceNovel.id,
+      characterSlug: 'seren',
+      roleInNovel: CharacterRole.MENTOR,
+    },
+    {
+      novelId: silenceNovel.id,
+      characterSlug: 'lyra',
+      roleInNovel: CharacterRole.ALLY,
+    },
+  ];
+
+  for (const link of novelCharacterLinks) {
+    const character = characterIds.get(link.characterSlug);
+    if (!character) {
+      continue;
+    }
+
+    await prisma.novelCharacter.upsert({
+      where: {
+        novelId_characterId: {
+          novelId: link.novelId,
+          characterId: character.id,
+        },
+      },
+      update: {
+        roleInNovel: link.roleInNovel,
+      },
+      create: {
+        novelId: link.novelId,
+        characterId: character.id,
+        roleInNovel: link.roleInNovel,
+      },
+    });
+  }
+
+  await prisma.novelBookmark.upsert({
+    where: {
+      novelId_userId: {
+        novelId: veloNovel.id,
+        userId: readerAlex.id,
+      },
+    },
+    update: {},
+    create: {
+      novelId: veloNovel.id,
+      userId: readerAlex.id,
+    },
+  });
+}
+
+async function seedSearchHistory() {
+  const readerAlex = await prisma.user.findUniqueOrThrow({
+    where: { username: 'reader_alex' },
+  });
+
+  const entries = ['cronicas', 'fantasia'] as const;
+
+  for (const query of entries) {
+    await prisma.searchHistory.upsert({
+      where: {
+        userId_query: {
+          userId: readerAlex.id,
+          query,
+        },
+      },
+      update: {
+        createdAt: new Date(),
+      },
+      create: {
+        userId: readerAlex.id,
+        query,
+      },
+    });
+  }
+}
+
 async function main() {
   await upsertUsers();
   await seedSocialGraph();
   await seedPostsAndInteractions();
   await seedGenres();
   await seedNovels();
+  await seedReaderLibrary();
+  await seedWorldsAndCharacters();
+  await seedSearchHistory();
 }
 
 main()

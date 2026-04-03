@@ -43,6 +43,14 @@ export class PostsService {
     const where: Prisma.PostWhereInput = {
       deletedAt: null,
       ...(options.query.type ? { type: options.query.type } : {}),
+      ...(options.query.search
+        ? {
+            content: {
+              contains: options.query.search,
+              mode: 'insensitive',
+            },
+          }
+        : {}),
       ...(options.authorIds ? { authorId: { in: options.authorIds } } : {}),
       ...(options.onlySavedByUserId
         ? {

@@ -8,25 +8,35 @@ datasource db {
 }
 
 model User {
-  id            String         @id @default(uuid()) @db.Uuid
-  email         String         @unique @db.VarChar(255)
-  username      String         @unique @db.VarChar(30)
-  passwordHash  String         @map("password_hash")
-  isActive      Boolean        @default(true) @map("is_active")
-  createdAt     DateTime       @default(now()) @map("created_at")
-  updatedAt     DateTime       @updatedAt @map("updated_at")
-  profile       Profile?
-  refreshTokens RefreshToken[]
-  followers     Follow[]       @relation("UserFollowers")
-  following     Follow[]       @relation("UserFollowing")
-  posts         Post[]
-  comments      Comment[]
-  reactions     Reaction[]
-  savedPosts    SavedPost[]
-  novels        Novel[]
-  novelLikes    NovelLike[]
-  novelBookmarks NovelBookmark[]
-  chapters      Chapter[]
+  id                String             @id @default(uuid()) @db.Uuid
+  email             String             @unique @db.VarChar(255)
+  username          String             @unique @db.VarChar(30)
+  passwordHash      String             @map("password_hash")
+  isActive          Boolean            @default(true) @map("is_active")
+  createdAt         DateTime           @default(now()) @map("created_at")
+  updatedAt         DateTime           @updatedAt @map("updated_at")
+  profile           Profile?
+  refreshTokens     RefreshToken[]
+  followers         Follow[]           @relation("UserFollowers")
+  following         Follow[]           @relation("UserFollowing")
+  posts             Post[]
+  comments          Comment[]
+  reactions         Reaction[]
+  savedPosts        SavedPost[]
+  novels            Novel[]
+  novelLikes        NovelLike[]
+  novelBookmarks    NovelBookmark[]
+  chapters          Chapter[]
+  readerPreferences ReaderPreferences?
+  readingProgress   ReadingProgress[]
+  readingHistory    ReadingHistory[]
+  chapterBookmarks  ChapterBookmark[]
+  highlights        Highlight[]
+  readingLists      ReadingList[]
+  readingGoals      ReadingGoal[]
+  worlds            World[]
+  characters        Character[]
+  searchHistory     SearchHistory[]
 
   @@index([email])
   @@index([username])
@@ -69,8 +79,8 @@ model Follow {
   followingId String   @map("following_id") @db.Uuid
   createdAt   DateTime @default(now()) @map("created_at")
 
-  follower    User     @relation("UserFollowers", fields: [followerId], references: [id], onDelete: Cascade)
-  following   User     @relation("UserFollowing", fields: [followingId], references: [id], onDelete: Cascade)
+  follower  User @relation("UserFollowers", fields: [followerId], references: [id], onDelete: Cascade)
+  following User @relation("UserFollowing", fields: [followingId], references: [id], onDelete: Cascade)
 
   @@unique([followerId, followingId])
   @@index([followerId])
@@ -87,19 +97,19 @@ enum PostType {
 }
 
 model Post {
-  id         String      @id @default(uuid()) @db.Uuid
-  authorId   String      @map("author_id") @db.Uuid
-  type       PostType    @default(TEXT)
-  content    String      @db.Text
-  isSaved    Boolean     @default(false) @map("is_saved")
-  createdAt  DateTime    @default(now()) @map("created_at")
-  updatedAt  DateTime    @updatedAt @map("updated_at")
-  deletedAt  DateTime?   @map("deleted_at")
+  id        String    @id @default(uuid()) @db.Uuid
+  authorId  String    @map("author_id") @db.Uuid
+  type      PostType  @default(TEXT)
+  content   String    @db.Text
+  isSaved   Boolean   @default(false) @map("is_saved")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
 
-  author     User        @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  comments   Comment[]
-  reactions  Reaction[]
-  savedBy    SavedPost[]
+  author    User        @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  comments  Comment[]
+  reactions Reaction[]
+  savedBy   SavedPost[]
 
   @@index([authorId])
   @@index([createdAt])
@@ -107,16 +117,16 @@ model Post {
 }
 
 model Comment {
-  id         String    @id @default(uuid()) @db.Uuid
-  postId     String    @map("post_id") @db.Uuid
-  authorId   String    @map("author_id") @db.Uuid
-  content    String    @db.Text
-  createdAt  DateTime  @default(now()) @map("created_at")
-  updatedAt  DateTime  @updatedAt @map("updated_at")
-  deletedAt  DateTime? @map("deleted_at")
+  id        String    @id @default(uuid()) @db.Uuid
+  postId    String    @map("post_id") @db.Uuid
+  authorId  String    @map("author_id") @db.Uuid
+  content   String    @db.Text
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
 
-  post       Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
-  author     User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  post   Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
 
   @@index([postId])
   @@index([authorId])
@@ -137,8 +147,8 @@ model Reaction {
   reactionType ReactionType @default(LIKE) @map("reaction_type")
   createdAt    DateTime     @default(now()) @map("created_at")
 
-  post         Post         @relation(fields: [postId], references: [id], onDelete: Cascade)
-  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([postId, userId])
   @@index([postId])
@@ -146,13 +156,13 @@ model Reaction {
 }
 
 model SavedPost {
-  id         String   @id @default(uuid()) @db.Uuid
-  postId     String   @map("post_id") @db.Uuid
-  userId     String   @map("user_id") @db.Uuid
-  createdAt  DateTime @default(now()) @map("created_at")
+  id        String   @id @default(uuid()) @db.Uuid
+  postId    String   @map("post_id") @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at")
 
-  post       Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([postId, userId])
   @@index([userId])
@@ -180,6 +190,54 @@ enum ChapterStatus {
   SCHEDULED
 }
 
+enum ReaderFontFamily {
+  crimson
+  outfit
+  georgia
+  mono
+}
+
+enum ReaderMode {
+  scroll
+  paginated
+}
+
+enum HighlightColor {
+  yellow
+  green
+  blue
+  pink
+}
+
+enum ReadingListVisibility {
+  PUBLIC
+  PRIVATE
+}
+
+enum WorldVisibility {
+  PUBLIC
+  PRIVATE
+}
+
+enum CharacterRole {
+  PROTAGONIST
+  ANTAGONIST
+  SECONDARY
+  MENTOR
+  ALLY
+  RIVAL
+  NEUTRAL
+  BACKGROUND
+}
+
+enum CharacterStatus {
+  ALIVE
+  DECEASED
+  UNKNOWN
+  UNDEAD
+  TRANSFORMED
+}
+
 model Genre {
   id     String       @id @default(uuid()) @db.Uuid
   slug   String       @unique @db.VarChar(80)
@@ -190,27 +248,34 @@ model Genre {
 }
 
 model Novel {
-  id          String          @id @default(uuid()) @db.Uuid
-  authorId    String          @map("author_id") @db.Uuid
-  title       String          @db.VarChar(200)
-  slug        String          @unique @db.VarChar(220)
-  synopsis    String?         @db.Text
-  coverUrl    String?         @map("cover_url")
-  status      NovelStatus     @default(DRAFT)
-  rating      NovelRating     @default(G)
-  tags        String[]
-  warnings    String[]
-  isPublic    Boolean         @default(false) @map("is_public")
-  wordCount   Int             @default(0) @map("word_count")
-  viewsCount  Int             @default(0) @map("views_count")
-  createdAt   DateTime        @default(now()) @map("created_at")
-  updatedAt   DateTime        @updatedAt @map("updated_at")
+  id         String      @id @default(uuid()) @db.Uuid
+  authorId   String      @map("author_id") @db.Uuid
+  title      String      @db.VarChar(200)
+  slug       String      @unique @db.VarChar(220)
+  synopsis   String?     @db.Text
+  coverUrl   String?     @map("cover_url")
+  status     NovelStatus @default(DRAFT)
+  rating     NovelRating @default(G)
+  tags       String[]
+  warnings   String[]
+  isPublic   Boolean     @default(false) @map("is_public")
+  wordCount  Int         @default(0) @map("word_count")
+  viewsCount Int         @default(0) @map("views_count")
+  createdAt  DateTime    @default(now()) @map("created_at")
+  updatedAt  DateTime    @updatedAt @map("updated_at")
 
-  author      User            @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  chapters    Chapter[]
-  genres      NovelGenre[]
-  likes       NovelLike[]
-  bookmarks   NovelBookmark[]
+  author           User              @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  chapters         Chapter[]
+  genres           NovelGenre[]
+  likes            NovelLike[]
+  bookmarks        NovelBookmark[]
+  readingProgress  ReadingProgress[]
+  readingHistory   ReadingHistory[]
+  chapterBookmarks ChapterBookmark[]
+  highlights       Highlight[]
+  readingListItems ReadingListItem[]
+  novelWorlds      NovelWorld[]
+  novelCharacters  NovelCharacter[]
 
   @@index([authorId])
   @@index([slug])
@@ -220,11 +285,11 @@ model Novel {
 }
 
 model NovelGenre {
-  novelId     String @map("novel_id") @db.Uuid
-  genreId     String @map("genre_id") @db.Uuid
+  novelId String @map("novel_id") @db.Uuid
+  genreId String @map("genre_id") @db.Uuid
 
-  novel       Novel  @relation(fields: [novelId], references: [id], onDelete: Cascade)
-  genre       Genre  @relation(fields: [genreId], references: [id], onDelete: Cascade)
+  novel Novel @relation(fields: [novelId], references: [id], onDelete: Cascade)
+  genre Genre @relation(fields: [genreId], references: [id], onDelete: Cascade)
 
   @@id([novelId, genreId])
   @@map("novel_genres")
@@ -246,8 +311,12 @@ model Chapter {
   createdAt       DateTime      @default(now()) @map("created_at")
   updatedAt       DateTime      @updatedAt @map("updated_at")
 
-  novel           Novel         @relation(fields: [novelId], references: [id], onDelete: Cascade)
-  author          User          @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  novel            Novel             @relation(fields: [novelId], references: [id], onDelete: Cascade)
+  author           User              @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  readingProgress  ReadingProgress[]
+  readingHistory   ReadingHistory[]
+  chapterBookmarks ChapterBookmark[]
+  highlights       Highlight[]
 
   @@unique([novelId, slug])
   @@unique([novelId, order])
@@ -257,13 +326,13 @@ model Chapter {
 }
 
 model NovelLike {
-  id         String   @id @default(uuid()) @db.Uuid
-  novelId     String   @map("novel_id") @db.Uuid
-  userId      String   @map("user_id") @db.Uuid
-  createdAt   DateTime @default(now()) @map("created_at")
+  id        String   @id @default(uuid()) @db.Uuid
+  novelId   String   @map("novel_id") @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at")
 
-  novel       Novel    @relation(fields: [novelId], references: [id], onDelete: Cascade)
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  novel Novel @relation(fields: [novelId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([novelId, userId])
   @@index([novelId])
@@ -272,15 +341,291 @@ model NovelLike {
 }
 
 model NovelBookmark {
-  id         String   @id @default(uuid()) @db.Uuid
-  novelId     String   @map("novel_id") @db.Uuid
-  userId      String   @map("user_id") @db.Uuid
-  createdAt   DateTime @default(now()) @map("created_at")
+  id        String   @id @default(uuid()) @db.Uuid
+  novelId   String   @map("novel_id") @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at")
 
-  novel       Novel    @relation(fields: [novelId], references: [id], onDelete: Cascade)
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  novel Novel @relation(fields: [novelId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([novelId, userId])
   @@index([userId])
   @@map("novel_bookmarks")
+}
+
+model ReaderPreferences {
+  id           String           @id @default(uuid()) @db.Uuid
+  userId       String           @unique @map("user_id") @db.Uuid
+  fontFamily   ReaderFontFamily @default(crimson) @map("font_family")
+  fontSize     Int              @default(18) @map("font_size")
+  lineHeight   Float            @default(1.8) @map("line_height")
+  maxWidth     Int              @default(720) @map("max_width")
+  readingMode  ReaderMode       @default(scroll) @map("reading_mode")
+  showProgress Boolean          @default(true) @map("show_progress")
+  createdAt    DateTime         @default(now()) @map("created_at")
+  updatedAt    DateTime         @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("reader_preferences")
+}
+
+model ReadingProgress {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  novelId   String   @map("novel_id") @db.Uuid
+  chapterId String   @map("chapter_id") @db.Uuid
+  scrollPct Float    @default(0) @map("scroll_pct")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  novel   Novel   @relation(fields: [novelId], references: [id], onDelete: Cascade)
+  chapter Chapter @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, novelId])
+  @@index([userId])
+  @@index([novelId])
+  @@map("reading_progress")
+}
+
+model ReadingHistory {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  novelId   String   @map("novel_id") @db.Uuid
+  chapterId String   @map("chapter_id") @db.Uuid
+  openedAt  DateTime @default(now()) @map("opened_at")
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  novel   Novel   @relation(fields: [novelId], references: [id], onDelete: Cascade)
+  chapter Chapter @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+
+  @@index([userId, openedAt])
+  @@map("reading_history")
+}
+
+model ChapterBookmark {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  chapterId String   @map("chapter_id") @db.Uuid
+  novelId   String   @map("novel_id") @db.Uuid
+  anchorId  String?  @map("anchor_id")
+  label     String?  @db.VarChar(100)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  chapter Chapter @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+  novel   Novel   @relation(fields: [novelId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([chapterId])
+  @@map("chapter_bookmarks")
+}
+
+model Highlight {
+  id          String         @id @default(uuid()) @db.Uuid
+  userId      String         @map("user_id") @db.Uuid
+  chapterId   String         @map("chapter_id") @db.Uuid
+  novelId     String         @map("novel_id") @db.Uuid
+  anchorId    String         @map("anchor_id")
+  startOffset Int            @map("start_offset")
+  endOffset   Int            @map("end_offset")
+  color       HighlightColor @default(yellow)
+  note        String?        @db.VarChar(500)
+  createdAt   DateTime       @default(now()) @map("created_at")
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  chapter Chapter @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+  novel   Novel   @relation(fields: [novelId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([chapterId])
+  @@map("highlights")
+}
+
+model ReadingList {
+  id          String                @id @default(uuid()) @db.Uuid
+  userId      String                @map("user_id") @db.Uuid
+  name        String                @db.VarChar(100)
+  description String?               @db.VarChar(500)
+  visibility  ReadingListVisibility @default(PRIVATE)
+  createdAt   DateTime              @default(now()) @map("created_at")
+  updatedAt   DateTime              @updatedAt @map("updated_at")
+
+  user  User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items ReadingListItem[]
+
+  @@index([userId])
+  @@map("reading_lists")
+}
+
+model ReadingListItem {
+  id            String   @id @default(uuid()) @db.Uuid
+  readingListId String   @map("reading_list_id") @db.Uuid
+  novelId       String   @map("novel_id") @db.Uuid
+  addedAt       DateTime @default(now()) @map("added_at")
+  personalNote  String?  @map("personal_note") @db.VarChar(500)
+
+  readingList ReadingList @relation(fields: [readingListId], references: [id], onDelete: Cascade)
+  novel       Novel       @relation(fields: [novelId], references: [id], onDelete: Cascade)
+
+  @@unique([readingListId, novelId])
+  @@index([readingListId])
+  @@map("reading_list_items")
+}
+
+model ReadingGoal {
+  id          String   @id @default(uuid()) @db.Uuid
+  userId      String   @map("user_id") @db.Uuid
+  year        Int
+  month       Int?
+  targetWords Int      @map("target_words")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, year, month])
+  @@index([userId])
+  @@map("reading_goals")
+}
+
+model World {
+  id          String          @id @default(uuid()) @db.Uuid
+  authorId    String          @map("author_id") @db.Uuid
+  name        String          @db.VarChar(200)
+  slug        String          @unique @db.VarChar(220)
+  tagline     String?         @db.VarChar(300)
+  description String?         @db.Text
+  setting     String?         @db.Text
+  magicSystem String?         @map("magic_system") @db.Text
+  rules       String?         @db.Text
+  coverUrl    String?         @map("cover_url")
+  mapUrl      String?         @map("map_url")
+  visibility  WorldVisibility @default(PRIVATE)
+  tags        String[]
+  metadata    Json?
+  createdAt   DateTime        @default(now()) @map("created_at")
+  updatedAt   DateTime        @updatedAt @map("updated_at")
+
+  author      User            @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  characters  Character[]
+  novelWorlds NovelWorld[]
+  locations   WorldLocation[]
+
+  @@index([authorId])
+  @@index([slug])
+  @@index([visibility])
+  @@map("worlds")
+}
+
+model WorldLocation {
+  id          String   @id @default(uuid()) @db.Uuid
+  worldId     String   @map("world_id") @db.Uuid
+  name        String   @db.VarChar(200)
+  type        String   @db.VarChar(80)
+  description String?  @db.Text
+  isNotable   Boolean  @default(false) @map("is_notable")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  world World @relation(fields: [worldId], references: [id], onDelete: Cascade)
+
+  @@index([worldId])
+  @@map("world_locations")
+}
+
+model NovelWorld {
+  novelId String @map("novel_id") @db.Uuid
+  worldId String @map("world_id") @db.Uuid
+
+  novel Novel @relation(fields: [novelId], references: [id], onDelete: Cascade)
+  world World @relation(fields: [worldId], references: [id], onDelete: Cascade)
+
+  @@id([novelId, worldId])
+  @@index([novelId])
+  @@index([worldId])
+  @@map("novel_worlds")
+}
+
+model Character {
+  id          String          @id @default(uuid()) @db.Uuid
+  authorId    String          @map("author_id") @db.Uuid
+  worldId     String?         @map("world_id") @db.Uuid
+  name        String          @db.VarChar(200)
+  slug        String          @db.VarChar(220)
+  alias       String[]
+  role        CharacterRole   @default(SECONDARY)
+  status      CharacterStatus @default(ALIVE)
+  age         String?         @db.VarChar(80)
+  appearance  String?         @db.Text
+  personality String?         @db.Text
+  motivations String?         @db.Text
+  fears       String?         @db.Text
+  strengths   String?         @db.Text
+  weaknesses  String?         @db.Text
+  backstory   String?         @db.Text
+  arc         String?         @db.Text
+  avatarUrl   String?         @map("avatar_url")
+  isPublic    Boolean         @default(false) @map("is_public")
+  tags        String[]
+  metadata    Json?
+  createdAt   DateTime        @default(now()) @map("created_at")
+  updatedAt   DateTime        @updatedAt @map("updated_at")
+
+  author                User                    @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  world                 World?                  @relation(fields: [worldId], references: [id], onDelete: SetNull)
+  novelCharacters       NovelCharacter[]
+  relationshipsAsSource CharacterRelationship[] @relation("RelationshipSource")
+  relationshipsAsTarget CharacterRelationship[] @relation("RelationshipTarget")
+
+  @@unique([authorId, slug])
+  @@index([authorId])
+  @@index([worldId])
+  @@map("characters")
+}
+
+model CharacterRelationship {
+  id          String   @id @default(uuid()) @db.Uuid
+  sourceId    String   @map("source_id") @db.Uuid
+  targetId    String   @map("target_id") @db.Uuid
+  type        String   @db.VarChar(100)
+  description String?  @db.VarChar(500)
+  isMutual    Boolean  @default(false) @map("is_mutual")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  source Character @relation("RelationshipSource", fields: [sourceId], references: [id], onDelete: Cascade)
+  target Character @relation("RelationshipTarget", fields: [targetId], references: [id], onDelete: Cascade)
+
+  @@unique([sourceId, targetId, type])
+  @@index([sourceId])
+  @@index([targetId])
+  @@map("character_relationships")
+}
+
+model NovelCharacter {
+  novelId     String         @map("novel_id") @db.Uuid
+  characterId String         @map("character_id") @db.Uuid
+  roleInNovel CharacterRole? @map("role_in_novel")
+
+  novel     Novel     @relation(fields: [novelId], references: [id], onDelete: Cascade)
+  character Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+
+  @@id([novelId, characterId])
+  @@index([novelId])
+  @@index([characterId])
+  @@map("novel_characters")
+}
+
+model SearchHistory {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  query     String   @db.VarChar(200)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, query])
+  @@index([userId, createdAt])
+  @@map("search_history")
 }

@@ -21,4 +21,8 @@ export class PostQueryDto {
   @IsOptional()
   @IsString()
   author?: string;
+
+  @IsOptional()
+  @IsString()
+  search?: string;
 }

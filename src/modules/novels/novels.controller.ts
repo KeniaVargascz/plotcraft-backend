@@ -78,6 +78,19 @@ export class NovelsController {
     return this.novelsService.getNovelBySlug(slug, viewer?.sub ?? null);
   }
 
+  @Public()
+  @Get(':slug/characters')
+  @ApiOperation({ summary: 'Personajes vinculados a una novela' })
+  async listNovelCharacters(
+    @Param('slug') slug: string,
+    @Headers('authorization') authorization?: string,
+  ) {
+    const viewer =
+      await this.authService.getOptionalJwtPayloadFromAuthHeader(authorization);
+
+    return this.novelsService.listNovelCharacters(slug, viewer?.sub ?? null);
+  }
+
   @ApiBearerAuth()
   @Post()
   @ApiOperation({ summary: 'Crear novela' })

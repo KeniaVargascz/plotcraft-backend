@@ -320,6 +320,22 @@ export class NovelsService {
     return novel;
   }
 
+  async findAccessibleNovelById(novelId: string, viewerId?: string | null) {
+    const novel = await this.prisma.novel.findUnique({
+      where: { id: novelId },
+    });
+
+    if (!novel) {
+      throw new NotFoundException('Novela no encontrada');
+    }
+
+    if (!novel.isPublic && novel.authorId !== viewerId) {
+      throw new NotFoundException('Novela no encontrada');
+    }
+
+    return novel;
+  }
+
   private async listNovels(options: NovelListOptions) {
     const limit = options.query.limit ?? 12;
     const where: Prisma.NovelWhereInput = {
@@ -430,6 +446,23 @@ export class NovelsService {
             select: { id: true },
           }
         : false,
+      readingProgress: viewerId
+        ? {
+            where: {
+              userId: viewerId,
+            },
+            include: {
+              chapter: {
+                select: {
+                  id: true,
+                  slug: true,
+                  title: true,
+                  order: true,
+                },
+              },
+            },
+          }
+        : false,
       chapters: includeChapters
         ? {
             where: includeDrafts
@@ -455,11 +488,47 @@ export class NovelsService {
             },
             select: { id: true },
           },
+      novelWorlds: {
+        include: {
+          world: {
+            include: {
+              author: {
+                include: {
+                  profile: true,
+                },
+              },
+            },
+          },
+        },
+      },
+      novelCharacters: {
+        include: {
+          character: {
+            include: {
+              author: {
+                include: {
+                  profile: true,
+                },
+              },
+              world: {
+                select: {
+                  id: true,
+                  name: true,
+                  slug: true,
+                  visibility: true,
+                },
+              },
+            },
+          },
+        },
+      },
       _count: {
         select: {
           chapters: true,
           likes: true,
           bookmarks: true,
+          novelWorlds: true,
+          novelCharacters: true,
         },
       },
     } satisfies Prisma.NovelInclude;
@@ -473,6 +542,22 @@ export class NovelsService {
     includeChapters = false,
   ) {
     const chapters = Array.isArray(novel.chapters) ? novel.chapters : [];
+    const likes = Array.isArray(novel.likes) ? novel.likes : [];
+    const bookmarks = Array.isArray(novel.bookmarks) ? novel.bookmarks : [];
+    const readingProgress = Array.isArray(novel.readingProgress)
+      ? novel.readingProgress
+      : [];
+    const readingProgressItem = readingProgress[0] as unknown as
+      | {
+          chapterId: string;
+          scrollPct: number;
+          chapter: {
+            slug: string;
+            title: string;
+            order: number;
+          };
+        }
+      | undefined;
     const chapterItems = includeChapters
       ? (chapters as Array<{
           id: string;
@@ -484,6 +569,19 @@ export class NovelsService {
           publishedAt: Date | null;
           updatedAt: Date;
         }>)
+      : [];
+    const linkedWorlds = includeChapters
+      ? novel.novelWorlds.filter(
+          (item) =>
+            item.world.visibility === 'PUBLIC' ||
+            item.world.authorId === viewerId,
+        )
+      : [];
+    const linkedCharacters = includeChapters
+      ? novel.novelCharacters.filter(
+          (item) =>
+            item.character.isPublic || item.character.authorId === viewerId,
+        )
       : [];
 
     return {
@@ -517,12 +615,23 @@ export class NovelsService {
         publishedChaptersCount: chapters.length,
         likesCount: novel._count.likes,
         bookmarksCount: novel._count.bookmarks,
+        worldsCount: novel._count.novelWorlds,
+        charactersCount: novel._count.novelCharacters,
       },
       viewerContext: viewerId
         ? {
-            hasLiked: Boolean(novel.likes.length),
-            hasBookmarked: Boolean(novel.bookmarks.length),
+            hasLiked: Boolean(likes.length),
+            hasBookmarked: Boolean(bookmarks.length),
             isAuthor: novel.authorId === viewerId,
+            reading_progress: readingProgressItem
+              ? {
+                  chapter_id: readingProgressItem.chapterId,
+                  chapter_slug: readingProgressItem.chapter.slug,
+                  chapter_title: readingProgressItem.chapter.title,
+                  chapter_order: readingProgressItem.chapter.order,
+                  scroll_pct: readingProgressItem.scrollPct,
+                }
+              : null,
           }
         : null,
       ...(includeChapters
@@ -538,9 +647,107 @@ export class NovelsService {
               publishedAt: chapter.publishedAt,
               updatedAt: chapter.updatedAt,
             })),
+            worlds: linkedWorlds.map((item) => ({
+              id: item.world.id,
+              name: item.world.name,
+              slug: item.world.slug,
+              tagline: item.world.tagline,
+              coverUrl: item.world.coverUrl,
+              visibility: item.world.visibility,
+              author: {
+                id: item.world.author.id,
+                username: item.world.author.username,
+                displayName:
+                  item.world.author.profile?.displayName ??
+                  item.world.author.username,
+                avatarUrl: item.world.author.profile?.avatarUrl ?? null,
+              },
+            })),
+            characters: linkedCharacters.map((item) => ({
+              id: item.character.id,
+              name: item.character.name,
+              slug: item.character.slug,
+              avatarUrl: item.character.avatarUrl,
+              role: item.character.role,
+              roleInNovel: item.roleInNovel ?? item.character.role,
+              status: item.character.status,
+              isPublic: item.character.isPublic,
+              author: {
+                id: item.character.author.id,
+                username: item.character.author.username,
+                displayName:
+                  item.character.author.profile?.displayName ??
+                  item.character.author.username,
+                avatarUrl: item.character.author.profile?.avatarUrl ?? null,
+              },
+              world:
+                item.character.world &&
+                (item.character.world.visibility === 'PUBLIC' ||
+                  item.character.authorId === viewerId)
+                  ? item.character.world
+                  : null,
+            })),
           }
         : {}),
     };
+  }
+
+  async listNovelCharacters(slug: string, viewerId?: string | null) {
+    const novel = await this.findAccessibleNovel(slug, viewerId);
+
+    const items = await this.prisma.novelCharacter.findMany({
+      where: { novelId: novel.id },
+      orderBy: [{ roleInNovel: 'asc' }, { character: { name: 'asc' } }],
+      include: {
+        character: {
+          include: {
+            author: {
+              include: {
+                profile: true,
+              },
+            },
+            world: {
+              select: {
+                id: true,
+                name: true,
+                slug: true,
+                visibility: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    return items
+      .filter(
+        (item) =>
+          item.character.isPublic || item.character.authorId === viewerId,
+      )
+      .map((item) => ({
+        id: item.character.id,
+        name: item.character.name,
+        slug: item.character.slug,
+        avatarUrl: item.character.avatarUrl,
+        role: item.character.role,
+        roleInNovel: item.roleInNovel ?? item.character.role,
+        status: item.character.status,
+        isPublic: item.character.isPublic,
+        author: {
+          id: item.character.author.id,
+          username: item.character.author.username,
+          displayName:
+            item.character.author.profile?.displayName ??
+            item.character.author.username,
+          avatarUrl: item.character.author.profile?.avatarUrl ?? null,
+        },
+        world:
+          item.character.world &&
+          (item.character.world.visibility === 'PUBLIC' ||
+            item.character.authorId === viewerId)
+            ? item.character.world
+            : null,
+      }));
   }
 
   private async generateUniqueNovelSlug(title: string, ignoreNovelId?: string) {
