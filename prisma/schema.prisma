@@ -50,6 +50,7 @@ model User {
   notificationPrefs      NotificationPreferences?
   notifications          Notification[]     @relation("NotificationRecipient")
   sentNotifications      Notification[]     @relation("NotificationActor")
+  authorDailySnapshots   AuthorDailySnapshot[]
 
   @@index([email])
   @@index([username])
@@ -348,8 +349,9 @@ model Novel {
   readingListItems ReadingListItem[]
   novelWorlds      NovelWorld[]
   novelCharacters  NovelCharacter[]
-  timelines        Timeline[]
-  writingProjects  WritingProject[]
+  timelines            Timeline[]
+  writingProjects      WritingProject[]
+  novelDailySnapshots  NovelDailySnapshot[]
 
   @@index([authorId])
   @@index([slug])
@@ -592,6 +594,7 @@ model World {
   wbCategories   WbCategory[]
   wbEntries      WbEntry[]
   timelineEvents TimelineEvent[]
+  worldMap       WorldMap?
 
   @@index([authorId])
   @@index([slug])
@@ -609,7 +612,8 @@ model WorldLocation {
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
-  world World @relation(fields: [worldId], references: [id], onDelete: Cascade)
+  world      World        @relation(fields: [worldId], references: [id], onDelete: Cascade)
+  mapMarkers MapMarker[]
 
   @@index([worldId])
   @@map("world_locations")
@@ -1112,4 +1116,112 @@ model Notification {
   @@index([userId, isRead, createdAt])
   @@index([userId, createdAt])
   @@map("notifications")
+}
+
+// ── Analytics Snapshots ──
+
+model NovelDailySnapshot {
+  id           String   @id @default(uuid()) @db.Uuid
+  novelId      String   @map("novel_id") @db.Uuid
+  date         DateTime @db.Date
+  views        Int      @default(0)
+  likes        Int      @default(0)
+  bookmarks    Int      @default(0)
+  newReaders   Int      @default(0) @map("new_readers")
+  chaptersRead Int      @default(0) @map("chapters_read")
+  wordsRead    Int      @default(0) @map("words_read")
+
+  novel Novel @relation(fields: [novelId], references: [id], onDelete: Cascade)
+
+  @@unique([novelId, date])
+  @@index([novelId, date])
+  @@map("novel_daily_snapshots")
+}
+
+model AuthorDailySnapshot {
+  id             String   @id @default(uuid()) @db.Uuid
+  authorId       String   @map("author_id") @db.Uuid
+  date           DateTime @db.Date
+  newFollowers   Int      @default(0) @map("new_followers")
+  profileViews   Int      @default(0) @map("profile_views")
+  postReactions  Int      @default(0) @map("post_reactions")
+
+  author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@unique([authorId, date])
+  @@index([authorId, date])
+  @@map("author_daily_snapshots")
+}
+
+// ── Map Editor ──
+
+enum MarkerType {
+  CITY
+  TOWN
+  VILLAGE
+  DUNGEON
+  LANDMARK
+  RUINS
+  TEMPLE
+  FORTRESS
+  PORT
+  MOUNTAIN
+  FOREST
+  CUSTOM
+}
+
+model WorldMap {
+  id            String   @id @default(uuid()) @db.Uuid
+  worldId       String   @unique @map("world_id") @db.Uuid
+  baseImageUrl  String?  @map("base_image_url")
+  viewport      Json     @default("{\"x\":0,\"y\":0,\"zoom\":1}")
+  canvasWidth   Int      @default(2000) @map("canvas_width")
+  canvasHeight  Int      @default(1500) @map("canvas_height")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  world   World       @relation(fields: [worldId], references: [id], onDelete: Cascade)
+  markers MapMarker[]
+  regions MapRegion[]
+
+  @@map("world_maps")
+}
+
+model MapMarker {
+  id          String     @id @default(uuid()) @db.Uuid
+  mapId       String     @map("map_id") @db.Uuid
+  label       String     @db.VarChar(100)
+  type        MarkerType @default(CUSTOM)
+  x           Float
+  y           Float
+  description String?    @db.VarChar(500)
+  icon        String?    @db.VarChar(10)
+  color       String?    @db.VarChar(20)
+  locationId  String?    @map("location_id") @db.Uuid
+  wbEntryId   String?    @map("wb_entry_id") @db.Uuid
+  createdAt   DateTime   @default(now()) @map("created_at")
+  updatedAt   DateTime   @updatedAt @map("updated_at")
+
+  map      WorldMap        @relation(fields: [mapId], references: [id], onDelete: Cascade)
+  location WorldLocation?  @relation(fields: [locationId], references: [id], onDelete: SetNull)
+
+  @@index([mapId])
+  @@map("map_markers")
+}
+
+model MapRegion {
+  id          String   @id @default(uuid()) @db.Uuid
+  mapId       String   @map("map_id") @db.Uuid
+  label       String   @db.VarChar(100)
+  color       String   @default("#8b5cf640")
+  borderColor String   @default("#8b5cf6") @map("border_color")
+  points      Json
+  description String?  @db.VarChar(500)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  map WorldMap @relation(fields: [mapId], references: [id], onDelete: Cascade)
+
+  @@index([mapId])
+  @@map("map_regions")
 }

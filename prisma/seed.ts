@@ -2162,6 +2162,87 @@ async function seedForumAndSettings() {
   }
 }
 
+async function seedAnalyticsAndMaps() {
+  const demoWriter = await prisma.user.findUniqueOrThrow({ where: { username: 'demo_writer' } });
+  const novel = await prisma.novel.findFirst({ where: { authorId: demoWriter.id, slug: { contains: 'cronicas' } } });
+  if (!novel) return;
+
+  // ── Novel Daily Snapshots (14 days) ──
+  const today = new Date();
+  for (let i = 13; i >= 0; i--) {
+    const d = new Date(today);
+    d.setDate(d.getDate() - i);
+    const dateOnly = new Date(d.toISOString().split('T')[0]);
+    const dayIdx = 14 - i;
+    await prisma.novelDailySnapshot.upsert({
+      where: { novelId_date: { novelId: novel.id, date: dateOnly } },
+      update: {},
+      create: {
+        novelId: novel.id, date: dateOnly,
+        views: 5 + dayIdx * 2, likes: Math.min(dayIdx, 5), bookmarks: Math.floor(dayIdx / 3),
+        newReaders: 1 + Math.floor(dayIdx * 0.3), chaptersRead: 3 + dayIdx, wordsRead: (3 + dayIdx) * 800,
+      },
+    });
+  }
+
+  // ── Author Daily Snapshots (14 days) ──
+  for (let i = 13; i >= 0; i--) {
+    const d = new Date(today);
+    d.setDate(d.getDate() - i);
+    const dateOnly = new Date(d.toISOString().split('T')[0]);
+    const dayIdx = 14 - i;
+    await prisma.authorDailySnapshot.upsert({
+      where: { authorId_date: { authorId: demoWriter.id, date: dateOnly } },
+      update: {},
+      create: {
+        authorId: demoWriter.id, date: dateOnly,
+        newFollowers: Math.floor(dayIdx * 0.2), postReactions: 1 + dayIdx, profileViews: 0,
+      },
+    });
+  }
+
+  // ── World Map ──
+  const world = await prisma.world.findFirst({ where: { authorId: demoWriter.id, slug: 'el-mundo-del-velo' } });
+  if (!world) return;
+
+  const worldMap = await prisma.worldMap.upsert({
+    where: { worldId: world.id },
+    update: {},
+    create: { worldId: world.id, canvasWidth: 2000, canvasHeight: 1500 },
+  });
+
+  // Get locations for linking
+  const locations = await prisma.worldLocation.findMany({ where: { worldId: world.id } });
+  const echoCity = locations.find(l => l.name.includes('Ecos'));
+  const umbral = locations.find(l => l.name.includes('Umbral'));
+
+  const markers = [
+    { label: 'Ciudad de los Ecos', type: 'CITY' as const, x: 0.45, y: 0.35, icon: '\u{1F3D9}\uFE0F', color: '#c9a84c', locationId: echoCity?.id ?? null },
+    { label: 'El Umbral', type: 'LANDMARK' as const, x: 0.65, y: 0.50, icon: '\u{1F300}', color: '#8b5cf6', locationId: umbral?.id ?? null },
+    { label: 'Los Campos Grises', type: 'RUINS' as const, x: 0.30, y: 0.60, icon: '\u{1F480}', color: '#9088a0', locationId: null },
+  ];
+
+  for (const m of markers) {
+    const existing = await prisma.mapMarker.findFirst({ where: { mapId: worldMap.id, label: m.label } });
+    if (!existing) {
+      await prisma.mapMarker.create({ data: { mapId: worldMap.id, label: m.label, type: m.type, x: m.x, y: m.y, icon: m.icon, color: m.color, locationId: m.locationId } });
+    }
+  }
+
+  const regions = [
+    { label: 'Territorio de los Vivos', color: '#3db05a30', borderColor: '#3db05a', points: [{x:0.05,y:0.1},{x:0.55,y:0.1},{x:0.55,y:0.9},{x:0.05,y:0.9}] },
+    { label: 'El Velo', color: '#8b5cf620', borderColor: '#8b5cf6', points: [{x:0.45,y:0.0},{x:0.65,y:0.0},{x:0.65,y:1.0},{x:0.45,y:1.0}] },
+    { label: 'Territorio de los Muertos', color: '#e0555530', borderColor: '#e05555', points: [{x:0.65,y:0.1},{x:0.95,y:0.1},{x:0.95,y:0.9},{x:0.65,y:0.9}] },
+  ];
+
+  for (const r of regions) {
+    const existing = await prisma.mapRegion.findFirst({ where: { mapId: worldMap.id, label: r.label } });
+    if (!existing) {
+      await prisma.mapRegion.create({ data: { mapId: worldMap.id, label: r.label, color: r.color, borderColor: r.borderColor, points: r.points } });
+    }
+  }
+}
+
 async function main() {
   await upsertUsers();
   await seedSocialGraph();
@@ -2174,6 +2255,7 @@ async function main() {
   await seedSearchHistory();
   await seedTimelineAndPlanner();
   await seedForumAndSettings();
+  await seedAnalyticsAndMaps();
 }
 
 main()

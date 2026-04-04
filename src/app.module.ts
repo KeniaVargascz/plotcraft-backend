@@ -26,7 +26,10 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
 import { SettingsModule } from './modules/settings/settings.module';
 import { ForumModule } from './modules/forum/forum.module';
 import { WorldbuildingModule } from './modules/worldbuilding/worldbuilding.module';
+import { MapsModule } from './modules/maps/maps.module';
 import { WorldsModule } from './modules/worlds/worlds.module';
+import { ExportsModule } from './modules/exports/exports.module';
+import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
 import { ValidationPipe } from './common/pipes/validation.pipe';
@@ -65,6 +68,9 @@ import { PrismaModule } from './prisma/prisma.module';
     NotificationsModule,
     SettingsModule,
     ForumModule,
+    ExportsModule,
+    MapsModule,
+    AnalyticsModule,
   ],
   providers: [
     { provide: APP_PIPE, useClass: ValidationPipe },
