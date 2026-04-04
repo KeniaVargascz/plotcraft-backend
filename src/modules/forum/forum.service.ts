@@ -39,7 +39,7 @@ export class ForumService {
 
     const statusFilter = query.status
       ? { status: query.status }
-      : { status: { in: [ThreadStatus.OPEN, ThreadStatus.PINNED] } };
+      : { status: { in: [ThreadStatus.OPEN, ThreadStatus.PINNED, ThreadStatus.CLOSED] } };
 
     const andConditions: Prisma.ForumThreadWhereInput[] = [
       // Soft-deleted threads excluded unless they have replies
@@ -194,6 +194,22 @@ export class ForumService {
           select: { id: true },
           take: 1,
         },
+        poll: { select: { id: true } },
+      },
+    });
+
+    return threads.map((thread) => this.toThreadSummary(thread));
+  }
+
+  async listMyThreads(userId: string) {
+    const threads = await this.prisma.forumThread.findMany({
+      where: { authorId: userId },
+      orderBy: { createdAt: 'desc' },
+      include: {
+        author: { include: { profile: true } },
+        tags: true,
+        _count: { select: { replies: true, reactions: true } },
+        replies: { where: { isSolution: true }, select: { id: true }, take: 1 },
         poll: { select: { id: true } },
       },
     });
@@ -664,8 +680,12 @@ export class ForumService {
     throw new ForbiddenException('Only admins can unpin threads');
   }
 
-  async archiveThread(_slug: string) {
-    throw new ForbiddenException('Only admins can archive threads');
+  async archiveThread(slug: string, userId: string) {
+    const thread = await this.prisma.forumThread.findUnique({ where: { slug } });
+    if (!thread) throw new NotFoundException('Thread not found');
+    if (thread.authorId !== userId) throw new ForbiddenException('Only the author can archive this thread');
+    await this.prisma.forumThread.update({ where: { id: thread.id }, data: { status: 'ARCHIVED' } });
+    return { message: 'Thread archived' };
   }
 
   // ── Private Helpers ──

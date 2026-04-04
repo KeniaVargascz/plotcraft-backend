@@ -60,6 +60,13 @@ export class ForumController {
     return this.forumService.listUserThreads(username);
   }
 
+  @ApiBearerAuth()
+  @Get('mine')
+  @ApiOperation({ summary: 'List my threads including archived' })
+  listMyThreads(@CurrentUser() user: JwtPayload) {
+    return this.forumService.listMyThreads(user.sub);
+  }
+
   @Public()
   @Get(':slug')
   @ApiOperation({ summary: 'Get thread detail' })
@@ -254,8 +261,8 @@ export class ForumController {
 
   @ApiBearerAuth()
   @Post(':slug/archive')
-  @ApiOperation({ summary: 'Archive thread (admin only)' })
-  archiveThread(@Param('slug') slug: string) {
-    return this.forumService.archiveThread(slug);
+  @ApiOperation({ summary: 'Archive thread (author or admin)' })
+  archiveThread(@Param('slug') slug: string, @CurrentUser() user: JwtPayload) {
+    return this.forumService.archiveThread(slug, user.sub);
   }
 }
