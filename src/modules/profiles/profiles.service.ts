@@ -72,6 +72,8 @@ export class ProfilesService {
           : {}),
         ...(dto.bio !== undefined ? { bio: dto.bio } : {}),
         ...(dto.website !== undefined ? { website: dto.website } : {}),
+        ...(dto.avatarUrl !== undefined ? { avatarUrl: dto.avatarUrl } : {}),
+        ...(dto.bannerUrl !== undefined ? { bannerUrl: dto.bannerUrl } : {}),
         ...(dto.isPublic !== undefined ? { isPublic: dto.isPublic } : {}),
       },
     });

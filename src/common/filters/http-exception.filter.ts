@@ -20,6 +20,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
 
     let message = 'Error interno del servidor';
     let errors: string[] | undefined;
+    let code: string | undefined;
 
     if (typeof exceptionResponse === 'string') {
       message = exceptionResponse;
@@ -28,6 +29,13 @@ export class HttpExceptionFilter implements ExceptionFilter {
       typeof exceptionResponse === 'object' &&
       'message' in exceptionResponse
     ) {
+      if (
+        'code' in exceptionResponse &&
+        typeof exceptionResponse.code === 'string'
+      ) {
+        code = exceptionResponse.code;
+      }
+
       const rawMessage = exceptionResponse.message;
 
       if (Array.isArray(rawMessage)) {
@@ -43,6 +51,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
       error: {
         statusCode,
         message,
+        ...(code ? { code } : {}),
         ...(errors ? { errors } : {}),
       },
       timestamp: new Date().toISOString(),

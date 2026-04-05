@@ -75,8 +75,18 @@ export class AuthService {
       include: { profile: true },
     });
 
-    if (!user || !user.isActive) {
-      throw new UnauthorizedException('Credenciales incorrectas');
+    if (!user) {
+      throw new UnauthorizedException({
+        code: 'INVALID_CREDENTIALS',
+        message: 'Credenciales incorrectas',
+      });
+    }
+
+    if (!user.isActive) {
+      throw new UnauthorizedException({
+        code: 'ACCOUNT_DISABLED',
+        message: 'Tu cuenta esta desactivada. Contacta al soporte.',
+      });
     }
 
     const passwordMatches = await bcrypt.compare(
@@ -84,7 +94,10 @@ export class AuthService {
       user.passwordHash,
     );
     if (!passwordMatches) {
-      throw new UnauthorizedException('Credenciales incorrectas');
+      throw new UnauthorizedException({
+        code: 'INVALID_CREDENTIALS',
+        message: 'Credenciales incorrectas',
+      });
     }
 
     return {

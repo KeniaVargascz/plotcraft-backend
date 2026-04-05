@@ -29,6 +29,7 @@ const usersSeed = [
       displayName: 'Demo Writer',
       bio: 'Cuenta principal de demostracion para probar el flujo de PlotCraft con fantasia, magia, oscuridad y cronicas del velo.',
       website: 'https://plotcraft.local/demo-writer',
+      avatarUrl: 'https://api.dicebear.com/9.x/shapes/svg?seed=demo_writer',
     },
   },
   {
@@ -65,6 +66,7 @@ const usersSeed = [
       displayName: 'Writer Luna',
       bio: 'Misterio, thriller y silencios que pesan mas que un crimen.',
       website: 'https://plotcraft.local/writer-luna',
+      avatarUrl: 'https://api.dicebear.com/9.x/shapes/svg?seed=writer_luna',
     },
   },
   {
@@ -168,6 +170,7 @@ async function upsertUsers() {
         displayName: entry.profile.displayName,
         bio: entry.profile.bio,
         website: entry.profile.website,
+        avatarUrl: entry.profile.avatarUrl,
         isPublic: true,
       },
       create: {
@@ -175,6 +178,7 @@ async function upsertUsers() {
         displayName: entry.profile.displayName,
         bio: entry.profile.bio,
         website: entry.profile.website,
+        avatarUrl: entry.profile.avatarUrl,
         isPublic: true,
       },
     });

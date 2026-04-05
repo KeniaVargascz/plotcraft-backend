@@ -10,7 +10,8 @@ import {
   ValidatorConstraintInterface,
 } from 'class-validator';
 
-const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
+const PASSWORD_REGEX =
+  /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
 
 @ValidatorConstraint({ name: 'requiresCurrentPassword', async: false })
 class RequiresCurrentPasswordConstraint implements ValidatorConstraintInterface {
@@ -40,7 +41,10 @@ export class UpdateUserDto {
   @IsOptional()
   @IsString()
   @MinLength(8)
-  @Matches(PASSWORD_REGEX)
+  @Matches(PASSWORD_REGEX, {
+    message:
+      'La contrasena debe incluir mayuscula, minuscula, numero y caracter especial',
+  })
   @Validate(RequiresCurrentPasswordConstraint)
   newPassword?: string;
 }

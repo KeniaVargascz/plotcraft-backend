@@ -3,9 +3,11 @@ import {
   IsBoolean,
   IsOptional,
   IsString,
-  IsUrl,
+  Matches,
   MaxLength,
 } from 'class-validator';
+
+const HTTP_URL_REGEX = /^https?:\/\/[^\s]+$/i;
 
 export class UpdateProfileDto {
   @IsOptional()
@@ -22,8 +24,22 @@ export class UpdateProfileDto {
   @Transform(({ value }: { value: unknown }) =>
     typeof value === 'string' && value.trim() === '' ? undefined : value,
   )
-  @IsUrl()
+  @Matches(HTTP_URL_REGEX, { message: 'website debe ser una URL valida' })
   website?: string;
+
+  @IsOptional()
+  @Transform(({ value }: { value: unknown }) =>
+    typeof value === 'string' && value.trim() === '' ? undefined : value,
+  )
+  @Matches(HTTP_URL_REGEX, { message: 'avatarUrl debe ser una URL valida' })
+  avatarUrl?: string;
+
+  @IsOptional()
+  @Transform(({ value }: { value: unknown }) =>
+    typeof value === 'string' && value.trim() === '' ? undefined : value,
+  )
+  @Matches(HTTP_URL_REGEX, { message: 'bannerUrl debe ser una URL valida' })
+  bannerUrl?: string;
 
   @IsOptional()
   @IsBoolean()
