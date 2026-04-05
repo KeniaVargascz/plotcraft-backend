@@ -324,14 +324,23 @@ export class ChaptersService {
       }
     }
 
-    await this.prisma.$transaction(
-      dto.chapters.map((item) =>
-        this.prisma.chapter.update({
+    const offsetBase = chapters.length + 100;
+
+    await this.prisma.$transaction(async (tx) => {
+      for (const [index, item] of dto.chapters.entries()) {
+        await tx.chapter.update({
+          where: { id: item.id },
+          data: { order: offsetBase + index },
+        });
+      }
+
+      for (const item of dto.chapters) {
+        await tx.chapter.update({
           where: { id: item.id },
           data: { order: item.order },
-        }),
-      ),
-    );
+        });
+      }
+    });
 
     return this.listDraftChapters(novelSlug, userId, {});
   }

@@ -81,6 +81,17 @@ export class ChaptersController {
   }
 
   @ApiBearerAuth()
+  @Patch('reorder')
+  @ApiOperation({ summary: 'Reordenar capitulos propios' })
+  reorderChapters(
+    @Param('slug') novelSlug: string,
+    @CurrentUser() user: JwtPayload,
+    @Body() dto: ReorderChaptersDto,
+  ) {
+    return this.chaptersService.reorderChapters(novelSlug, user.sub, dto);
+  }
+
+  @ApiBearerAuth()
   @Patch(':chapterSlug')
   @ApiOperation({ summary: 'Actualizar capitulo propio' })
   updateChapter(
@@ -170,16 +181,5 @@ export class ChaptersController {
       user.sub,
       scheduledAt,
     );
-  }
-
-  @ApiBearerAuth()
-  @Patch('reorder')
-  @ApiOperation({ summary: 'Reordenar capitulos propios' })
-  reorderChapters(
-    @Param('slug') novelSlug: string,
-    @CurrentUser() user: JwtPayload,
-    @Body() dto: ReorderChaptersDto,
-  ) {
-    return this.chaptersService.reorderChapters(novelSlug, user.sub, dto);
   }
 }

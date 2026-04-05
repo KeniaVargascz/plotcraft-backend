@@ -150,7 +150,7 @@ export class SearchService {
     const normalized = query.q.trim();
     const prefix = normalized.toLowerCase();
 
-    const [novels, users, worlds, characters] = await Promise.all([
+    const [novels, users, worlds, characters, genres] = await Promise.all([
       this.prisma.novel.findMany({
         where: {
           isPublic: true,
@@ -201,6 +201,15 @@ export class SearchService {
         },
         take: 6,
         orderBy: { updatedAt: 'desc' },
+      }),
+      this.prisma.genre.findMany({
+        where: {
+          OR: [
+            { label: { contains: normalized, mode: 'insensitive' } },
+            { slug: { contains: normalized, mode: 'insensitive' } },
+          ],
+        },
+        take: 6,
       }),
     ]);
 
@@ -254,7 +263,16 @@ export class SearchService {
             character.avatarUrl ?? character.author.profile?.avatarUrl ?? null,
         })),
       ).slice(0, 2),
-    ].slice(0, 8);
+      ...rankByPrefix(
+        genres.map((genre) => ({
+          type: 'genre' as const,
+          label: genre.label,
+          sublabel: `Genero · ${genre.slug}`,
+          url: `/novelas/genero/${genre.slug}`,
+          avatar_url: null,
+        })),
+      ).slice(0, 2),
+    ].slice(0, 10);
 
     return { suggestions };
   }

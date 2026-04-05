@@ -1,0 +1,6 @@
+import { PrismaClient } from '@prisma/client';
+import { runSeedStep } from './seed-step.util';
+
+export async function seed00Genres(prisma: PrismaClient): Promise<void> {
+  await runSeedStep(prisma, 'genres', async () => {});
+}
