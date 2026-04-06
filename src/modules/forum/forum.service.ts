@@ -24,6 +24,72 @@ import { UpdateReplyDto } from './dto/update-reply.dto';
 import { UpdateThreadDto } from './dto/update-thread.dto';
 import { VotePollDto } from './dto/vote-poll.dto';
 
+type ForumAuthorView = {
+  username: string;
+  profile: { displayName: string | null; avatarUrl: string | null } | null;
+};
+
+type ForumReactionView = {
+  userId: string;
+  reactionType: ForumReactionType;
+};
+
+type ForumTagView = { tag: string };
+
+type ThreadSummaryView = {
+  id: string;
+  title: string;
+  slug: string;
+  category: ForumCategory;
+  status: ThreadStatus;
+  isPinned: boolean;
+  viewsCount: number;
+  createdAt: Date;
+  updatedAt: Date;
+  author: ForumAuthorView;
+  tags?: ForumTagView[];
+  reactions?: ForumReactionView[];
+  replies?: Array<{ id: string }>;
+  poll?: { id: string } | null;
+  _count?: { replies: number; reactions: number };
+};
+
+type ReplyDetailView = {
+  id: string;
+  content: string;
+  isSolution: boolean;
+  deletedAt: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+  author: ForumAuthorView;
+  reactions?: ForumReactionView[];
+};
+
+type PollOptionView = {
+  id: string;
+  text: string;
+  order: number;
+  _count?: { votes: number };
+  votes?: Array<{ userId: string }>;
+};
+
+type PollDetailView = {
+  id: string;
+  question: string;
+  status: PollStatus;
+  closesAt: Date | null;
+  _count?: { votes: number };
+  votes?: Array<{ userId: string; optionId: string }>;
+  options?: PollOptionView[];
+};
+
+type ThreadDetailView = ThreadSummaryView & {
+  content: string;
+  replies?: ReplyDetailView[];
+  reactions?: ForumReactionView[];
+  poll?: PollDetailView | null;
+};
+
 @Injectable()
 export class ForumService {
   constructor(
@@ -39,7 +105,11 @@ export class ForumService {
 
     const statusFilter = query.status
       ? { status: query.status }
-      : { status: { in: [ThreadStatus.OPEN, ThreadStatus.PINNED, ThreadStatus.CLOSED] } };
+      : {
+          status: {
+            in: [ThreadStatus.OPEN, ThreadStatus.PINNED, ThreadStatus.CLOSED],
+          },
+        };
 
     const andConditions: Prisma.ForumThreadWhereInput[] = [
       // Soft-deleted threads excluded unless they have replies
@@ -75,9 +145,7 @@ export class ForumService {
     const threads = await this.prisma.forumThread.findMany({
       where,
       take: limit + 1,
-      ...(query.cursor
-        ? { skip: 1, cursor: { id: query.cursor } }
-        : {}),
+      ...(query.cursor ? { skip: 1, cursor: { id: query.cursor } } : {}),
       orderBy,
       include: {
         author: { include: { profile: true } },
@@ -168,9 +236,7 @@ export class ForumService {
       _count: { id: true },
     });
 
-    const countMap = new Map(
-      counts.map((c) => [c.category, c._count.id]),
-    );
+    const countMap = new Map(counts.map((c) => [c.category, c._count.id]));
 
     return categories.map((category) => ({
       category,
@@ -302,9 +368,7 @@ export class ForumService {
           ...(dto.title !== undefined
             ? { title: dto.title.trim(), slug: newSlug ?? thread.slug }
             : {}),
-          ...(dto.content !== undefined
-            ? { content: dto.content.trim() }
-            : {}),
+          ...(dto.content !== undefined ? { content: dto.content.trim() } : {}),
           ...(dto.category !== undefined ? { category: dto.category } : {}),
         },
       });
@@ -336,8 +400,13 @@ export class ForumService {
       throw new NotFoundException('Thread not found');
     }
 
-    if (thread.status !== ThreadStatus.OPEN && thread.status !== ThreadStatus.PINNED) {
-      throw new BadRequestException('Cannot reply to a closed or archived thread');
+    if (
+      thread.status !== ThreadStatus.OPEN &&
+      thread.status !== ThreadStatus.PINNED
+    ) {
+      throw new BadRequestException(
+        'Cannot reply to a closed or archived thread',
+      );
     }
 
     const reply = await this.prisma.forumReply.create({
@@ -383,9 +452,7 @@ export class ForumService {
     const updated = await this.prisma.forumReply.update({
       where: { id: reply.id },
       data: {
-        ...(dto.content !== undefined
-          ? { content: dto.content.trim() }
-          : {}),
+        ...(dto.content !== undefined ? { content: dto.content.trim() } : {}),
       },
       include: {
         author: { include: { profile: true } },
@@ -672,19 +739,27 @@ export class ForumService {
     return { message: 'Thread reopened' };
   }
 
-  async pinThread(_slug: string) {
+  pinThread(slug: string) {
+    void slug;
     throw new ForbiddenException('Only admins can pin threads');
   }
 
-  async unpinThread(_slug: string) {
+  unpinThread(slug: string) {
+    void slug;
     throw new ForbiddenException('Only admins can unpin threads');
   }
 
   async archiveThread(slug: string, userId: string) {
-    const thread = await this.prisma.forumThread.findUnique({ where: { slug } });
+    const thread = await this.prisma.forumThread.findUnique({
+      where: { slug },
+    });
     if (!thread) throw new NotFoundException('Thread not found');
-    if (thread.authorId !== userId) throw new ForbiddenException('Only the author can archive this thread');
-    await this.prisma.forumThread.update({ where: { id: thread.id }, data: { status: 'ARCHIVED' } });
+    if (thread.authorId !== userId)
+      throw new ForbiddenException('Only the author can archive this thread');
+    await this.prisma.forumThread.update({
+      where: { id: thread.id },
+      data: { status: 'ARCHIVED' },
+    });
     return { message: 'Thread archived' };
   }
 
@@ -706,11 +781,7 @@ export class ForumService {
     return thread;
   }
 
-  private async findOwnedReply(
-    slug: string,
-    replyId: string,
-    userId: string,
-  ) {
+  private async findOwnedReply(slug: string, replyId: string, userId: string) {
     const thread = await this.prisma.forumThread.findUnique({
       where: { slug },
     });
@@ -853,12 +924,12 @@ export class ForumService {
 
   // ── Response Mappers ──
 
-  private toThreadSummary(thread: any, viewerId?: string | null) {
+  private toThreadSummary(thread: ThreadSummaryView, viewerId?: string | null) {
     const hasSolution =
       Array.isArray(thread.replies) && thread.replies.length > 0;
     const hasPoll = !!thread.poll;
     const userReaction = Array.isArray(thread.reactions)
-      ? thread.reactions.find((r: any) => r.userId === viewerId)
+      ? thread.reactions.find((r) => r.userId === viewerId)
       : null;
 
     return {
@@ -869,9 +940,7 @@ export class ForumService {
       status: thread.status,
       isPinned: thread.isPinned,
       viewsCount: thread.viewsCount,
-      tags: Array.isArray(thread.tags)
-        ? thread.tags.map((t: any) => t.tag)
-        : [],
+      tags: Array.isArray(thread.tags) ? thread.tags.map((t) => t.tag) : [],
       createdAt: thread.createdAt,
       updatedAt: thread.updatedAt,
       author: {
@@ -895,13 +964,13 @@ export class ForumService {
     };
   }
 
-  private toThreadDetail(thread: any, viewerId?: string | null) {
+  private toThreadDetail(thread: ThreadDetailView, viewerId?: string | null) {
     const summary = this.toThreadSummary(thread, viewerId);
 
     const repliesFormatted = Array.isArray(thread.replies)
-      ? thread.replies.map((reply: any) =>
-          this.toReplyResponse(reply, viewerId),
-        )
+      ? thread.replies
+          .filter((reply): reply is ReplyDetailView => 'content' in reply)
+          .map((reply) => this.toReplyResponse(reply, viewerId))
       : [];
 
     const reactionsAll = Array.isArray(thread.reactions)
@@ -909,7 +978,7 @@ export class ForumService {
       : [];
     const byType = this.countReactionsByType(reactionsAll);
     const userReaction = viewerId
-      ? reactionsAll.find((r: any) => r.userId === viewerId)
+      ? reactionsAll.find((r) => r.userId === viewerId)
       : null;
 
     return {
@@ -926,17 +995,15 @@ export class ForumService {
             }
           : null,
       },
-      poll: thread.poll
-        ? this.toPollResponse(thread.poll, viewerId)
-        : null,
+      poll: thread.poll ? this.toPollResponse(thread.poll, viewerId) : null,
     };
   }
 
-  private toReplyResponse(reply: any, viewerId?: string | null) {
+  private toReplyResponse(reply: ReplyDetailView, viewerId?: string | null) {
     const reactions = Array.isArray(reply.reactions) ? reply.reactions : [];
     const byType = this.countReactionsByType(reactions);
     const userReaction = viewerId
-      ? reactions.find((r: any) => r.userId === viewerId)
+      ? reactions.find((r) => r.userId === viewerId)
       : null;
 
     return {
@@ -948,8 +1015,7 @@ export class ForumService {
       updatedAt: reply.updatedAt,
       author: {
         username: reply.author.username,
-        displayName:
-          reply.author.profile?.displayName ?? reply.author.username,
+        displayName: reply.author.profile?.displayName ?? reply.author.username,
         avatarUrl: reply.author.profile?.avatarUrl ?? null,
       },
       reactions: {
@@ -965,20 +1031,20 @@ export class ForumService {
     };
   }
 
-  private toPollResponse(poll: any, viewerId?: string | null) {
+  private toPollResponse(poll: PollDetailView, viewerId?: string | null) {
     const isExpired = poll.closesAt && new Date(poll.closesAt) < new Date();
     const effectiveStatus = isExpired ? PollStatus.CLOSED : poll.status;
 
     const totalVotes =
-      poll._count?.votes ??
-      (Array.isArray(poll.votes) ? poll.votes.length : 0);
+      poll._count?.votes ?? (Array.isArray(poll.votes) ? poll.votes.length : 0);
 
-    const viewerVote = viewerId && Array.isArray(poll.votes)
-      ? poll.votes.find((v: any) => v.userId === viewerId)
-      : null;
+    const viewerVote =
+      viewerId && Array.isArray(poll.votes)
+        ? poll.votes.find((v) => v.userId === viewerId)
+        : null;
 
     const options = Array.isArray(poll.options)
-      ? poll.options.map((opt: any) => {
+      ? poll.options.map((opt) => {
           const votesCount =
             opt._count?.votes ??
             (Array.isArray(opt.votes) ? opt.votes.length : 0);
@@ -988,9 +1054,8 @@ export class ForumService {
             text: opt.text,
             order: opt.order,
             votesCount,
-            pct: totalVotes > 0
-              ? Math.round((votesCount / totalVotes) * 100)
-              : 0,
+            pct:
+              totalVotes > 0 ? Math.round((votesCount / totalVotes) * 100) : 0,
           };
         })
       : [];

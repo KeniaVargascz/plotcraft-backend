@@ -443,32 +443,42 @@ export class DiscoveryService {
       },
     });
     const byId = new Map(novels.map((novel) => [novel.id, novel]));
+    const latestPublishedChapters = await this.prisma.chapter.findMany({
+      where: {
+        novelId: { in: rows.map((row) => row.novelId) },
+        status: 'PUBLISHED',
+        publishedAt: {
+          gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+        },
+      },
+      orderBy: [{ novelId: 'asc' }, { publishedAt: 'desc' }],
+      select: {
+        novelId: true,
+        title: true,
+        slug: true,
+        publishedAt: true,
+      },
+    });
+    const latestChapterByNovelId = new Map<
+      string,
+      { title: string; slug: string; publishedAt: Date | null }
+    >();
 
-    return Promise.all(
-      rows.map(async (row) => {
-        const latestChapter = await this.prisma.chapter.findFirst({
-          where: {
-            novelId: row.novelId,
-            status: 'PUBLISHED',
-            publishedAt: {
-              gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
-            },
-          },
-          orderBy: { publishedAt: 'desc' },
-          select: {
-            title: true,
-            slug: true,
-            publishedAt: true,
-          },
+    for (const chapter of latestPublishedChapters) {
+      if (!latestChapterByNovelId.has(chapter.novelId)) {
+        latestChapterByNovelId.set(chapter.novelId, {
+          title: chapter.title,
+          slug: chapter.slug,
+          publishedAt: chapter.publishedAt,
         });
+      }
+    }
 
-        return {
-          novel: this.toNovelSummary(byId.get(row.novelId)!),
-          new_chapters_count: row._count._all,
-          latest_chapter: latestChapter,
-        };
-      }),
-    );
+    return rows.map((row) => ({
+      novel: this.toNovelSummary(byId.get(row.novelId)!),
+      new_chapters_count: row._count._all,
+      latest_chapter: latestChapterByNovelId.get(row.novelId) ?? null,
+    }));
   }
 
   private async computeGenresSpotlight(limit: number, topNovels: number) {

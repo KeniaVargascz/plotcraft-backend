@@ -19,21 +19,20 @@ type SearchSection = {
 
 @Injectable()
 export class SearchService {
-  constructor(
-    private readonly prisma: PrismaService,
-  ) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   async searchGlobal(query: SearchQueryDto, userId?: string | null) {
     this.recordHistoryAsync(userId, query.q);
 
-    const [novels, worlds, characters, users, posts, wbEntries] = await Promise.all([
-      this.searchNovelsSection({ ...query, limit: 5, sort: 'relevance' }),
-      this.searchWorldsSection({ ...query, limit: 5, sort: 'relevance' }),
-      this.searchCharactersSection({ ...query, limit: 5 }),
-      this.searchUsersSection({ ...query, limit: 5, sort: 'relevance' }),
-      this.searchPostsSection({ ...query, limit: 5, sort: 'relevance' }),
-      this.searchWbEntriesSection(query.q, 5),
-    ]);
+    const [novels, worlds, characters, users, posts, wbEntries] =
+      await Promise.all([
+        this.searchNovelsSection({ ...query, limit: 5, sort: 'relevance' }),
+        this.searchWorldsSection({ ...query, limit: 5, sort: 'relevance' }),
+        this.searchCharactersSection({ ...query, limit: 5 }),
+        this.searchUsersSection({ ...query, limit: 5, sort: 'relevance' }),
+        this.searchPostsSection({ ...query, limit: 5, sort: 'relevance' }),
+        this.searchWbEntriesSection(query.q, 5),
+      ]);
 
     return {
       query: query.q.trim(),
@@ -604,36 +603,42 @@ export class SearchService {
   ): Promise<SearchSection> {
     const limit = query.limit ?? 20;
     const search = buildSearchQuery(query.q);
-    const users = await this.prisma.user.findMany({
-      where: {
-        isActive: true,
-        NOT: { privacySettings: { searchable: false } },
-        OR: [
-          { username: { contains: search.normalized, mode: 'insensitive' } },
-          { email: { contains: search.normalized, mode: 'insensitive' } },
-          {
-            profile: {
-              displayName: { contains: search.normalized, mode: 'insensitive' },
-            },
-          },
-          {
-            profile: {
-              bio: { contains: search.normalized, mode: 'insensitive' },
-            },
-          },
-        ],
-      },
-      include: {
-        profile: true,
-        _count: {
-          select: {
-            followers: true,
-            novels: true,
-            worlds: true,
+    const where: Prisma.UserWhereInput = {
+      isActive: true,
+      NOT: { privacySettings: { searchable: false } },
+      OR: [
+        { username: { contains: search.normalized, mode: 'insensitive' } },
+        { email: { contains: search.normalized, mode: 'insensitive' } },
+        {
+          profile: {
+            displayName: { contains: search.normalized, mode: 'insensitive' },
           },
         },
-      },
-    });
+        {
+          profile: {
+            bio: { contains: search.normalized, mode: 'insensitive' },
+          },
+        },
+      ],
+    };
+
+    const [users, total] = await Promise.all([
+      this.prisma.user.findMany({
+        where,
+        include: {
+          profile: true,
+          _count: {
+            select: {
+              followers: true,
+              novels: true,
+              worlds: true,
+            },
+          },
+        },
+        take: Math.min(offset + limit + 20, 100),
+      }),
+      this.prisma.user.count({ where }),
+    ]);
 
     const ranked = users
       .map((user) => ({
@@ -661,7 +666,7 @@ export class SearchService {
       items: ranked
         .slice(offset, offset + limit)
         .map((entry) => this.toUserSearchResult(entry.user)),
-      total_hint: Math.min(ranked.length, 999),
+      total_hint: Math.min(total, 999),
     };
   }
 
@@ -779,7 +784,15 @@ export class SearchService {
         this.prisma.wbEntry.findMany({
           where,
           include: {
-            category: { select: { id: true, name: true, slug: true, icon: true, color: true } },
+            category: {
+              select: {
+                id: true,
+                name: true,
+                slug: true,
+                icon: true,
+                color: true,
+              },
+            },
             author: { include: { profile: true } },
             world: { select: { id: true, name: true, slug: true } },
           },
@@ -848,7 +861,9 @@ export class SearchService {
     const entries = await this.prisma.wbEntry.findMany({
       where: { id: { in: rows.map((r) => r.id) } },
       include: {
-        category: { select: { id: true, name: true, slug: true, icon: true, color: true } },
+        category: {
+          select: { id: true, name: true, slug: true, icon: true, color: true },
+        },
         author: { include: { profile: true } },
         world: { select: { id: true, name: true, slug: true } },
       },
@@ -867,7 +882,9 @@ export class SearchService {
   private toWbEntrySummary(
     entry: Prisma.WbEntryGetPayload<{
       include: {
-        category: { select: { id: true; name: true; slug: true; icon: true; color: true } };
+        category: {
+          select: { id: true; name: true; slug: true; icon: true; color: true };
+        };
         author: { include: { profile: true } };
         world: { select: { id: true; name: true; slug: true } };
       };

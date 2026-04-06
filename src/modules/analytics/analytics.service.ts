@@ -61,9 +61,7 @@ export class AnalyticsService {
     const prevEnd = new Date(currentStart.getTime() - 1);
     prevEnd.setHours(23, 59, 59, 999);
 
-    const prevStart = new Date(
-      prevEnd.getTime() - days * 24 * 60 * 60 * 1000,
-    );
+    const prevStart = new Date(prevEnd.getTime() - days * 24 * 60 * 60 * 1000);
     prevStart.setHours(0, 0, 0, 0);
 
     return { start: prevStart, end: prevEnd };
@@ -94,7 +92,12 @@ export class AnalyticsService {
     previous: number,
   ): { value: number; pct: number } {
     const value = current - previous;
-    const pct = previous === 0 ? (current > 0 ? 100 : 0) : +((value / previous) * 100).toFixed(1);
+    const pct =
+      previous === 0
+        ? current > 0
+          ? 100
+          : 0
+        : +((value / previous) * 100).toFixed(1);
     return { value, pct };
   }
 
@@ -155,7 +158,7 @@ export class AnalyticsService {
         ? 0
         : +((completedReadersCount / totalReaders) * 100).toFixed(1);
     const avgReadTimeMin =
-      totalWords === 0 ? 0 : +((totalWords / 250)).toFixed(1);
+      totalWords === 0 ? 0 : +(totalWords / 250).toFixed(1);
 
     // Period delta
     let periodDelta = null;
@@ -176,7 +179,13 @@ export class AnalyticsService {
 
       const sumField = (
         snapshots: typeof currentSnapshots,
-        field: 'views' | 'likes' | 'bookmarks' | 'newReaders' | 'chaptersRead' | 'wordsRead',
+        field:
+          | 'views'
+          | 'likes'
+          | 'bookmarks'
+          | 'newReaders'
+          | 'chaptersRead'
+          | 'wordsRead',
       ) => snapshots.reduce((acc, s) => acc + s[field], 0);
 
       const cur = {
@@ -205,47 +214,72 @@ export class AnalyticsService {
     }
 
     // Chapter-level stats
-    const chaptersWithStats = await Promise.all(
-      chapters.map(async (ch) => {
-        const [reads, uniqueReadsAgg, completedAgg] = await Promise.all([
-          this.prisma.readingHistory.count({
-            where: { chapterId: ch.id },
-          }),
-          this.prisma.readingHistory.findMany({
-            where: { chapterId: ch.id },
-            select: { userId: true },
-            distinct: ['userId'],
-          }),
-          this.prisma.readingProgress.count({
-            where: { chapterId: ch.id, scrollPct: { gte: 100 } },
-          }),
-        ]);
+    const chapterIds = chapters.map((chapter) => chapter.id);
+    const [chapterReadCounts, chapterReaderPairs, chapterCompletedCounts] =
+      await Promise.all([
+        this.prisma.readingHistory.groupBy({
+          by: ['chapterId'],
+          where: { chapterId: { in: chapterIds } },
+          _count: { _all: true },
+        }),
+        this.prisma.readingHistory.findMany({
+          where: { chapterId: { in: chapterIds } },
+          select: { chapterId: true, userId: true },
+          distinct: ['chapterId', 'userId'],
+        }),
+        this.prisma.readingProgress.groupBy({
+          by: ['chapterId'],
+          where: { chapterId: { in: chapterIds }, scrollPct: { gte: 100 } },
+          _count: { _all: true },
+        }),
+      ]);
 
-        const uniqueReads = uniqueReadsAgg.length;
-        const chCompletionRate =
-          uniqueReads === 0
-            ? 0
-            : +((completedAgg / uniqueReads) * 100).toFixed(1);
-        const avgChReadTime =
-          ch.wordCount === 0 ? 0 : +((ch.wordCount / 250)).toFixed(1);
-
-        return {
-          id: ch.id,
-          title: ch.title,
-          slug: ch.slug,
-          order: ch.order,
-          status: ch.status,
-          publishedAt: ch.publishedAt,
-          wordCount: ch.wordCount,
-          stats: {
-            reads,
-            uniqueReads,
-            completionRate: chCompletionRate,
-            avgReadTimeMin: avgChReadTime,
-          },
-        };
-      }),
+    const readsByChapterId = new Map(
+      chapterReadCounts.map((item) => [item.chapterId, item._count._all]),
     );
+    const completedByChapterId = new Map(
+      chapterCompletedCounts
+        .filter(
+          (
+            item,
+          ): item is typeof item & {
+            chapterId: string;
+          } => item.chapterId !== null,
+        )
+        .map((item) => [item.chapterId, item._count._all]),
+    );
+    const uniqueReadersByChapterId = new Map<string, number>();
+
+    for (const pair of chapterReaderPairs) {
+      const current = uniqueReadersByChapterId.get(pair.chapterId) ?? 0;
+      uniqueReadersByChapterId.set(pair.chapterId, current + 1);
+    }
+
+    const chaptersWithStats = chapters.map((chapter) => {
+      const reads = readsByChapterId.get(chapter.id) ?? 0;
+      const uniqueReads = uniqueReadersByChapterId.get(chapter.id) ?? 0;
+      const completed = completedByChapterId.get(chapter.id) ?? 0;
+      const chCompletionRate =
+        uniqueReads === 0 ? 0 : +((completed / uniqueReads) * 100).toFixed(1);
+      const avgChReadTime =
+        chapter.wordCount === 0 ? 0 : +(chapter.wordCount / 250).toFixed(1);
+
+      return {
+        id: chapter.id,
+        title: chapter.title,
+        slug: chapter.slug,
+        order: chapter.order,
+        status: chapter.status,
+        publishedAt: chapter.publishedAt,
+        wordCount: chapter.wordCount,
+        stats: {
+          reads,
+          uniqueReads,
+          completionRate: chCompletionRate,
+          avgReadTimeMin: avgChReadTime,
+        },
+      };
+    });
 
     return {
       novel: {
@@ -257,12 +291,12 @@ export class AnalyticsService {
       },
       totals: {
         views: novel.id
-          ? (
+          ? ((
               await this.prisma.novel.findUnique({
                 where: { id: novel.id },
                 select: { viewsCount: true },
               })
-            )?.viewsCount ?? 0
+            )?.viewsCount ?? 0)
           : 0,
         likes: totalLikes,
         bookmarks: totalBookmarks,
@@ -301,6 +335,7 @@ export class AnalyticsService {
   /* ------------------------------------------------------------------ */
 
   async getAuthorAnalytics(userId: string, period: Period) {
+    void period;
     const today = new Date();
     await this.snapshotService.ensureAuthorSnapshot(userId, today);
 
@@ -366,26 +401,37 @@ export class AnalyticsService {
       },
     });
 
-    const topNovelsWithStats = await Promise.all(
-      topNovels.map(async (n) => {
-        const completedReaders = await this.prisma.readingProgress.count({
-          where: { novelId: n.id, scrollPct: { gte: 100 } },
-        });
-        const readers = n._count.readingProgress;
-        const completionRate =
-          readers === 0
-            ? 0
-            : +((completedReaders / readers) * 100).toFixed(1);
-
-        return {
-          novel: { id: n.id, title: n.title, slug: n.slug },
-          views: n.viewsCount,
-          likes: n._count.likes,
-          readers,
-          completionRate,
-        };
-      }),
+    const completedReadersByNovel = new Map(
+      (
+        await this.prisma.readingProgress.groupBy({
+          by: ['novelId'],
+          where: {
+            novelId: { in: topNovels.map((novelItem) => novelItem.id) },
+            scrollPct: { gte: 100 },
+          },
+          _count: { _all: true },
+        })
+      ).map((item) => [item.novelId, item._count._all]),
     );
+
+    const topNovelsWithStats = topNovels.map((novelItem) => {
+      const readers = novelItem._count.readingProgress;
+      const completedReaders = completedReadersByNovel.get(novelItem.id) ?? 0;
+      const completionRate =
+        readers === 0 ? 0 : +((completedReaders / readers) * 100).toFixed(1);
+
+      return {
+        novel: {
+          id: novelItem.id,
+          title: novelItem.title,
+          slug: novelItem.slug,
+        },
+        views: novelItem.viewsCount,
+        likes: novelItem._count.likes,
+        readers,
+        completionRate,
+      };
+    });
 
     // Recent activity (last 7 days)
     const sevenDaysAgo = new Date();
@@ -503,7 +549,10 @@ export class AnalyticsService {
         ? followers30d > 0
           ? 100
           : 0
-        : +(((followers30d - followersPrev30d) / followersPrev30d) * 100).toFixed(1);
+        : +(
+            ((followers30d - followersPrev30d) / followersPrev30d) *
+            100
+          ).toFixed(1);
 
     // Readers
     const totalUniqueReaders = await this.prisma.readingProgress.findMany({
@@ -573,19 +622,34 @@ export class AnalyticsService {
     // Avg completion rate across novels
     let avgCompletionRate = 0;
     if (novelCount > 0) {
-      const completionRates = await Promise.all(
-        authorNovels.map(async (n) => {
-          const [readers, completed] = await Promise.all([
-            this.prisma.readingProgress.count({
-              where: { novelId: n.id },
-            }),
-            this.prisma.readingProgress.count({
-              where: { novelId: n.id, scrollPct: { gte: 100 } },
-            }),
-          ]);
-          return readers === 0 ? 0 : (completed / readers) * 100;
+      const [readerCountsByNovel, completedCountsByNovel] = await Promise.all([
+        this.prisma.readingProgress.groupBy({
+          by: ['novelId'],
+          where: {
+            novelId: { in: authorNovels.map((novelItem) => novelItem.id) },
+          },
+          _count: { _all: true },
         }),
+        this.prisma.readingProgress.groupBy({
+          by: ['novelId'],
+          where: {
+            novelId: { in: authorNovels.map((novelItem) => novelItem.id) },
+            scrollPct: { gte: 100 },
+          },
+          _count: { _all: true },
+        }),
+      ]);
+      const readersByNovelId = new Map(
+        readerCountsByNovel.map((item) => [item.novelId, item._count._all]),
       );
+      const completedByNovelId = new Map(
+        completedCountsByNovel.map((item) => [item.novelId, item._count._all]),
+      );
+      const completionRates = authorNovels.map((novelItem) => {
+        const readers = readersByNovelId.get(novelItem.id) ?? 0;
+        const completed = completedByNovelId.get(novelItem.id) ?? 0;
+        return readers === 0 ? 0 : (completed / readers) * 100;
+      });
       avgCompletionRate = +(
         completionRates.reduce((a, b) => a + b, 0) / novelCount
       ).toFixed(1);
@@ -604,9 +668,12 @@ export class AnalyticsService {
       },
       topGenres: topGenresResult,
       engagement: {
-        avgLikesPerNovel: novelCount === 0 ? 0 : +(totalLikes / novelCount).toFixed(1),
+        avgLikesPerNovel:
+          novelCount === 0 ? 0 : +(totalLikes / novelCount).toFixed(1),
         avgReadersPerNovel:
-          novelCount === 0 ? 0 : +(totalReadersAll.length / novelCount).toFixed(1),
+          novelCount === 0
+            ? 0
+            : +(totalReadersAll.length / novelCount).toFixed(1),
         avgCompletionRate,
       },
     };

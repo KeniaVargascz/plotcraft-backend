@@ -13,6 +13,54 @@ import { UpdateEventDto } from './dto/update-event.dto';
 import { EventQueryDto } from './dto/event-query.dto';
 import { ReorderEventsDto } from './dto/reorder-events.dto';
 
+type TimelineReferenceCategory = {
+  name: string;
+  icon: string | null;
+  color: string | null;
+};
+
+type TimelineEventView = {
+  id: string;
+  title: string;
+  description: string | null;
+  type: string;
+  relevance: string;
+  dateLabel: string | null;
+  sortOrder: number;
+  color: string | null;
+  tags: string[];
+  createdAt: Date;
+  updatedAt: Date;
+  chapter: { id: string; slug: string; title: string; order: number } | null;
+  character: {
+    id: string;
+    slug: string;
+    name: string;
+    avatarUrl: string | null;
+  } | null;
+  world: { id: string; slug: string; name: string } | null;
+  wbEntry: {
+    id: string;
+    slug: string;
+    name: string;
+    category: TimelineReferenceCategory;
+  } | null;
+};
+
+type TimelineSummaryView = {
+  id: string;
+  name: string;
+  description: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  novel: { id: string; slug: string; title: string } | null;
+  _count: { events: number };
+};
+
+type TimelineDetailView = TimelineSummaryView & {
+  events: TimelineEventView[];
+};
+
 @Injectable()
 export class TimelineService {
   constructor(private readonly prisma: PrismaService) {}
@@ -62,8 +110,12 @@ export class TimelineService {
         events: {
           orderBy: { sortOrder: 'asc' },
           include: {
-            chapter: { select: { id: true, slug: true, title: true, order: true } },
-            character: { select: { id: true, slug: true, name: true, avatarUrl: true } },
+            chapter: {
+              select: { id: true, slug: true, title: true, order: true },
+            },
+            character: {
+              select: { id: true, slug: true, name: true, avatarUrl: true },
+            },
             world: { select: { id: true, slug: true, name: true } },
             wbEntry: {
               select: {
@@ -148,8 +200,12 @@ export class TimelineService {
         events: {
           orderBy: { sortOrder: 'asc' },
           include: {
-            chapter: { select: { id: true, slug: true, title: true, order: true } },
-            character: { select: { id: true, slug: true, name: true, avatarUrl: true } },
+            chapter: {
+              select: { id: true, slug: true, title: true, order: true },
+            },
+            character: {
+              select: { id: true, slug: true, name: true, avatarUrl: true },
+            },
             world: { select: { id: true, slug: true, name: true } },
             wbEntry: {
               select: {
@@ -177,8 +233,12 @@ export class TimelineService {
           events: {
             orderBy: { sortOrder: 'asc' },
             include: {
-              chapter: { select: { id: true, slug: true, title: true, order: true } },
-              character: { select: { id: true, slug: true, name: true, avatarUrl: true } },
+              chapter: {
+                select: { id: true, slug: true, title: true, order: true },
+              },
+              character: {
+                select: { id: true, slug: true, name: true, avatarUrl: true },
+              },
               world: { select: { id: true, slug: true, name: true } },
               wbEntry: {
                 select: {
@@ -240,7 +300,9 @@ export class TimelineService {
       },
       include: {
         chapter: { select: { id: true, slug: true, title: true, order: true } },
-        character: { select: { id: true, slug: true, name: true, avatarUrl: true } },
+        character: {
+          select: { id: true, slug: true, name: true, avatarUrl: true },
+        },
         world: { select: { id: true, slug: true, name: true } },
         wbEntry: {
           select: {
@@ -300,13 +362,17 @@ export class TimelineService {
           ? { tags: dto.tags.map((t) => t.trim()).filter(Boolean) }
           : {}),
         ...(dto.chapterId !== undefined ? { chapterId: dto.chapterId } : {}),
-        ...(dto.characterId !== undefined ? { characterId: dto.characterId } : {}),
+        ...(dto.characterId !== undefined
+          ? { characterId: dto.characterId }
+          : {}),
         ...(dto.worldId !== undefined ? { worldId: dto.worldId } : {}),
         ...(dto.wbEntryId !== undefined ? { wbEntryId: dto.wbEntryId } : {}),
       },
       include: {
         chapter: { select: { id: true, slug: true, title: true, order: true } },
-        character: { select: { id: true, slug: true, name: true, avatarUrl: true } },
+        character: {
+          select: { id: true, slug: true, name: true, avatarUrl: true },
+        },
         world: { select: { id: true, slug: true, name: true } },
         wbEntry: {
           select: {
@@ -337,7 +403,11 @@ export class TimelineService {
     return { message: 'Event deleted successfully' };
   }
 
-  async reorderEvents(timelineId: string, userId: string, dto: ReorderEventsDto) {
+  async reorderEvents(
+    timelineId: string,
+    userId: string,
+    dto: ReorderEventsDto,
+  ) {
     await this.verifyTimelineOwnership(timelineId, userId);
 
     await this.prisma.$transaction(
@@ -365,14 +435,24 @@ export class TimelineService {
       ...(query.search
         ? {
             OR: [
-              { title: { contains: query.search, mode: 'insensitive' as const } },
-              { dateLabel: { contains: query.search, mode: 'insensitive' as const } },
+              {
+                title: { contains: query.search, mode: 'insensitive' as const },
+              },
+              {
+                dateLabel: {
+                  contains: query.search,
+                  mode: 'insensitive' as const,
+                },
+              },
             ],
           }
         : {}),
     };
 
-    const orderByMap: Record<string, Prisma.TimelineEventOrderByWithRelationInput> = {
+    const orderByMap: Record<
+      string,
+      Prisma.TimelineEventOrderByWithRelationInput
+    > = {
       order: { sortOrder: 'asc' },
       type: { type: 'asc' },
       relevance: { relevance: 'asc' },
@@ -383,7 +463,9 @@ export class TimelineService {
       orderBy: orderByMap[query.sort ?? 'order'],
       include: {
         chapter: { select: { id: true, slug: true, title: true, order: true } },
-        character: { select: { id: true, slug: true, name: true, avatarUrl: true } },
+        character: {
+          select: { id: true, slug: true, name: true, avatarUrl: true },
+        },
         world: { select: { id: true, slug: true, name: true } },
         wbEntry: {
           select: {
@@ -407,7 +489,9 @@ export class TimelineService {
         events: {
           orderBy: { sortOrder: 'asc' },
           include: {
-            chapter: { select: { id: true, slug: true, title: true, order: true } },
+            chapter: {
+              select: { id: true, slug: true, title: true, order: true },
+            },
             character: { select: { id: true, slug: true, name: true } },
             world: { select: { id: true, slug: true, name: true } },
             wbEntry: {
@@ -434,7 +518,11 @@ export class TimelineService {
         name: timeline.name,
         description: timeline.description,
         novel: timeline.novel
-          ? { id: timeline.novel.id, slug: timeline.novel.slug, title: timeline.novel.title }
+          ? {
+              id: timeline.novel.id,
+              slug: timeline.novel.slug,
+              title: timeline.novel.title,
+            }
           : null,
       },
       events: timeline.events.map((e) => ({
@@ -450,7 +538,11 @@ export class TimelineService {
             ? { id: e.chapter.id, slug: e.chapter.slug, title: e.chapter.title }
             : null,
           character: e.character
-            ? { id: e.character.id, slug: e.character.slug, name: e.character.name }
+            ? {
+                id: e.character.id,
+                slug: e.character.slug,
+                name: e.character.name,
+              }
             : null,
           world: e.world
             ? { id: e.world.id, slug: e.world.slug, name: e.world.name }
@@ -470,7 +562,7 @@ export class TimelineService {
 
   // ── Helpers ──
 
-  private toEventResponse(event: any) {
+  private toEventResponse(event: TimelineEventView) {
     return {
       id: event.id,
       title: event.title,
@@ -517,7 +609,7 @@ export class TimelineService {
     };
   }
 
-  private toTimelineSummary(timeline: any) {
+  private toTimelineSummary(timeline: TimelineSummaryView) {
     return {
       id: timeline.id,
       name: timeline.name,
@@ -525,16 +617,20 @@ export class TimelineService {
       createdAt: timeline.createdAt,
       updatedAt: timeline.updatedAt,
       novel: timeline.novel
-        ? { id: timeline.novel.id, slug: timeline.novel.slug, title: timeline.novel.title }
+        ? {
+            id: timeline.novel.id,
+            slug: timeline.novel.slug,
+            title: timeline.novel.title,
+          }
         : null,
       eventsCount: timeline._count.events,
     };
   }
 
-  private toTimelineDetail(timeline: any) {
+  private toTimelineDetail(timeline: TimelineDetailView) {
     return {
       ...this.toTimelineSummary(timeline),
-      events: timeline.events.map((e: any) => this.toEventResponse(e)),
+      events: timeline.events.map((event) => this.toEventResponse(event)),
     };
   }
 
