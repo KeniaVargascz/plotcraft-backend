@@ -170,7 +170,7 @@ async function upsertUsers() {
         displayName: entry.profile.displayName,
         bio: entry.profile.bio,
         website: entry.profile.website,
-        avatarUrl: entry.profile.avatarUrl,
+        avatarUrl: 'avatarUrl' in entry.profile ? entry.profile.avatarUrl : undefined,
         isPublic: true,
       },
       create: {
@@ -178,7 +178,7 @@ async function upsertUsers() {
         displayName: entry.profile.displayName,
         bio: entry.profile.bio,
         website: entry.profile.website,
-        avatarUrl: entry.profile.avatarUrl,
+        avatarUrl: 'avatarUrl' in entry.profile ? entry.profile.avatarUrl : undefined,
         isPublic: true,
       },
     });
