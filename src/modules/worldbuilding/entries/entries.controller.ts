@@ -32,10 +32,7 @@ export class EntriesController {
   @Public()
   @Get('entries')
   @ApiOperation({ summary: 'Listar entradas de un mundo' })
-  listEntries(
-    @Param('slug') slug: string,
-    @Query() query: EntryQueryDto,
-  ) {
+  listEntries(@Param('slug') slug: string, @Query() query: EntryQueryDto) {
     return this.entriesService.listEntries(slug, query);
   }
 

@@ -29,12 +29,21 @@ export class EntriesService {
       worldId: world.id,
       ...(query.categoryId ? { categoryId: query.categoryId } : {}),
       ...(query.isPublic !== undefined ? { isPublic: query.isPublic } : {}),
-      ...(query.tags && query.tags.length > 0 ? { tags: { hasSome: query.tags } } : {}),
+      ...(query.tags && query.tags.length > 0
+        ? { tags: { hasSome: query.tags } }
+        : {}),
       ...(query.search
         ? {
             OR: [
-              { name: { contains: query.search, mode: 'insensitive' as const } },
-              { summary: { contains: query.search, mode: 'insensitive' as const } },
+              {
+                name: { contains: query.search, mode: 'insensitive' as const },
+              },
+              {
+                summary: {
+                  contains: query.search,
+                  mode: 'insensitive' as const,
+                },
+              },
               { tags: { hasSome: query.search.split(' ').filter(Boolean) } },
             ],
           }
@@ -44,12 +53,12 @@ export class EntriesService {
     const entries = await this.prisma.wbEntry.findMany({
       where,
       take: limit + 1,
-      ...(query.cursor
-        ? { skip: 1, cursor: { id: query.cursor } }
-        : {}),
+      ...(query.cursor ? { skip: 1, cursor: { id: query.cursor } } : {}),
       orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
       include: {
-        category: { select: { id: true, name: true, slug: true, icon: true, color: true } },
+        category: {
+          select: { id: true, name: true, slug: true, icon: true, color: true },
+        },
         author: { include: { profile: true } },
         _count: { select: { linksAsSource: true, linksAsTarget: true } },
       },
@@ -68,13 +77,26 @@ export class EntriesService {
     };
   }
 
-  async getEntry(worldSlug: string, entrySlug: string, viewerId?: string | null) {
+  async getEntry(
+    worldSlug: string,
+    entrySlug: string,
+    viewerId?: string | null,
+  ) {
     const world = await this.getWorldBySlug(worldSlug);
 
     const entry = await this.prisma.wbEntry.findUnique({
       where: { worldId_slug: { worldId: world.id, slug: entrySlug } },
       include: {
-        category: { select: { id: true, name: true, slug: true, icon: true, color: true, fieldSchema: true } },
+        category: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            icon: true,
+            color: true,
+            fieldSchema: true,
+          },
+        },
         author: { include: { profile: true } },
         linksAsSource: {
           include: {
@@ -125,9 +147,7 @@ export class EntriesService {
         displayName: entry.author.profile?.displayName ?? entry.author.username,
         avatarUrl: entry.author.profile?.avatarUrl ?? null,
       },
-      viewerContext: viewerId
-        ? { isOwner: entry.authorId === viewerId }
-        : null,
+      viewerContext: viewerId ? { isOwner: entry.authorId === viewerId } : null,
       links: [
         ...entry.linksAsSource.map((link) => ({
           id: link.id,
@@ -149,7 +169,11 @@ export class EntriesService {
     };
   }
 
-  async listEntriesByCategory(worldSlug: string, catSlug: string, query: EntryQueryDto) {
+  async listEntriesByCategory(
+    worldSlug: string,
+    catSlug: string,
+    query: EntryQueryDto,
+  ) {
     const world = await this.getWorldBySlug(worldSlug);
 
     const category = await this.prisma.wbCategory.findUnique({
@@ -202,7 +226,9 @@ export class EntriesService {
         sortOrder: (maxOrder._max.sortOrder ?? 0) + 1,
       },
       include: {
-        category: { select: { id: true, name: true, slug: true, icon: true, color: true } },
+        category: {
+          select: { id: true, name: true, slug: true, icon: true, color: true },
+        },
         author: { include: { profile: true } },
         _count: { select: { linksAsSource: true, linksAsTarget: true } },
       },
@@ -236,7 +262,11 @@ export class EntriesService {
 
     let newSlug = entry.slug;
     if (dto.name !== undefined && dto.name.trim() !== entry.name) {
-      newSlug = await this.generateUniqueEntrySlug(world.id, dto.name, entry.id);
+      newSlug = await this.generateUniqueEntrySlug(
+        world.id,
+        dto.name,
+        entry.id,
+      );
     }
 
     const updated = await this.prisma.wbEntry.update({
@@ -261,7 +291,9 @@ export class EntriesService {
         ...(dto.isPublic !== undefined ? { isPublic: dto.isPublic } : {}),
       },
       include: {
-        category: { select: { id: true, name: true, slug: true, icon: true, color: true } },
+        category: {
+          select: { id: true, name: true, slug: true, icon: true, color: true },
+        },
         author: { include: { profile: true } },
         _count: { select: { linksAsSource: true, linksAsTarget: true } },
       },
@@ -334,11 +366,15 @@ export class EntriesService {
     });
 
     if (!targetEntry) {
-      throw new NotFoundException('Entrada de destino no encontrada en este mundo');
+      throw new NotFoundException(
+        'Entrada de destino no encontrada en este mundo',
+      );
     }
 
     if (sourceEntry.id === targetEntry.id) {
-      throw new BadRequestException('Una entrada no puede vincularse consigo misma');
+      throw new BadRequestException(
+        'Una entrada no puede vincularse consigo misma',
+      );
     }
 
     const link = await this.prisma.wbEntryLink.create({
@@ -513,7 +549,15 @@ export class EntriesService {
         take: limit,
         orderBy: { createdAt: 'desc' },
         include: {
-          category: { select: { id: true, name: true, slug: true, icon: true, color: true } },
+          category: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+              icon: true,
+              color: true,
+            },
+          },
           author: { include: { profile: true } },
           _count: { select: { linksAsSource: true, linksAsTarget: true } },
         },
@@ -527,7 +571,9 @@ export class EntriesService {
     const tsquery = terms.join(' & ');
     const ilike = `%${sanitized}%`;
 
-    const rows = await this.prisma.$queryRawUnsafe<Array<{ id: string; score: number }>>(
+    const rows = await this.prisma.$queryRawUnsafe<
+      Array<{ id: string; score: number }>
+    >(
       `
       SELECT e.id,
              CASE
@@ -558,7 +604,9 @@ export class EntriesService {
     const entries = await this.prisma.wbEntry.findMany({
       where: { id: { in: rows.map((r) => r.id) } },
       include: {
-        category: { select: { id: true, name: true, slug: true, icon: true, color: true } },
+        category: {
+          select: { id: true, name: true, slug: true, icon: true, color: true },
+        },
         author: { include: { profile: true } },
         _count: { select: { linksAsSource: true, linksAsTarget: true } },
       },
@@ -605,8 +653,7 @@ export class EntriesService {
         displayName: entry.author.profile?.displayName ?? entry.author.username,
         avatarUrl: entry.author.profile?.avatarUrl ?? null,
       },
-      linksCount:
-        entry._count.linksAsSource + entry._count.linksAsTarget,
+      linksCount: entry._count.linksAsSource + entry._count.linksAsTarget,
     };
   }
 

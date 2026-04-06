@@ -39,10 +39,7 @@ export class CategoriesController {
   @Public()
   @Get('worlds/:slug/wb/categories/:catSlug')
   @ApiOperation({ summary: 'Obtener una categoria por slug' })
-  getCategory(
-    @Param('slug') slug: string,
-    @Param('catSlug') catSlug: string,
-  ) {
+  getCategory(@Param('slug') slug: string, @Param('catSlug') catSlug: string) {
     return this.categoriesService.getCategory(slug, catSlug);
   }
 

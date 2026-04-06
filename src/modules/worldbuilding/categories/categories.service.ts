@@ -127,7 +127,8 @@ export class CategoriesService {
       throw new NotFoundException('Categoria no encontrada');
     }
 
-    const existingSchema = (category.fieldSchema as unknown as FieldDefinition[]) || [];
+    const existingSchema =
+      (category.fieldSchema as unknown as FieldDefinition[]) || [];
 
     let mergedSchema = existingSchema;
     if (dto.newFields && dto.newFields.length > 0) {
@@ -205,7 +206,7 @@ export class CategoriesService {
     return this.listCategories(worldSlug);
   }
 
-  async listTemplates() {
+  listTemplates() {
     return Object.entries(CATEGORY_TEMPLATES).map(([key, template]) => ({
       key,
       name: template.name,

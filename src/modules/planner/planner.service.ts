@@ -432,9 +432,7 @@ export class PlannerService {
     const diffDays = diffMs / (1000 * 60 * 60 * 24);
 
     if (diffDays > 90 || diffDays < 0) {
-      throw new BadRequestException(
-        'El rango maximo permitido es de 90 dias',
-      );
+      throw new BadRequestException('El rango maximo permitido es de 90 dias');
     }
 
     const activeProjects = await this.prisma.writingProject.findMany({
@@ -622,10 +620,7 @@ export class PlannerService {
       throw new ForbiddenException('No puedes vincular este capitulo');
   }
 
-  private async assertCharacterOwnership(
-    characterId: string,
-    userId: string,
-  ) {
+  private async assertCharacterOwnership(characterId: string, userId: string) {
     const character = await this.prisma.character.findUnique({
       where: { id: characterId },
       select: { authorId: true },

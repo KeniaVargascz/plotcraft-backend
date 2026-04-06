@@ -33,16 +33,23 @@ export class EntryQueryDto {
 
   @IsOptional()
   @IsString({ each: true })
-  @Transform(({ value }) =>
-    typeof value === 'string' ? value.split(',').map((t: string) => t.trim()) : value,
-  )
+  @Transform(({ value }): string[] | undefined => {
+    if (typeof value !== 'string') {
+      return undefined;
+    }
+
+    return value
+      .split(',')
+      .map((t: string) => t.trim())
+      .filter(Boolean);
+  })
   tags?: string[];
 
   @IsOptional()
-  @Transform(({ value }) => {
+  @Transform(({ value }): boolean | undefined => {
     if (value === 'true') return true;
     if (value === 'false') return false;
-    return value;
+    return undefined;
   })
   @IsBoolean()
   isPublic?: boolean;

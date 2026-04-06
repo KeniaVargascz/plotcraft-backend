@@ -13,7 +13,7 @@ export type FieldDefinition = {
   required: boolean;
   placeholder: string | null;
   options: string[] | null;
-  default: unknown | null;
+  default: unknown;
   sortOrder: number;
 };
 

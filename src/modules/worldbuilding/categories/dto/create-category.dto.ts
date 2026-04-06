@@ -43,9 +43,7 @@ export class CreateCategoryDto {
     const keys = this.fieldSchema.map((field) => field.key);
     const unique = new Set(keys);
     if (unique.size !== keys.length) {
-      throw new BadRequestException(
-        'fieldSchema contiene claves duplicadas',
-      );
+      throw new BadRequestException('fieldSchema contiene claves duplicadas');
     }
   }
 }

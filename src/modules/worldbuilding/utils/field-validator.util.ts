@@ -8,7 +8,10 @@ export function validateFields(
   for (const definition of schema) {
     const value = fields[definition.key];
 
-    if (definition.required && (value === undefined || value === null || value === '')) {
+    if (
+      definition.required &&
+      (value === undefined || value === null || value === '')
+    ) {
       throw new BadRequestException(
         `El campo "${definition.label}" (${definition.key}) es obligatorio`,
       );
@@ -71,7 +74,10 @@ export function validateFields(
         }
         if (definition.options && definition.options.length > 0) {
           for (const item of value) {
-            if (typeof item !== 'string' || !definition.options.includes(item)) {
+            if (
+              typeof item !== 'string' ||
+              !definition.options.includes(item)
+            ) {
               throw new BadRequestException(
                 `El campo "${definition.key}" contiene un valor invalido: ${String(item)}`,
               );
