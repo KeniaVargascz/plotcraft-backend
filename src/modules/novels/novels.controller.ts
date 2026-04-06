@@ -17,6 +17,7 @@ import type { JwtPayload } from '../auth/strategies/jwt.strategy';
 import { CreateNovelDto } from './dto/create-novel.dto';
 import { NovelQueryDto } from './dto/novel-query.dto';
 import { UpdateNovelDto } from './dto/update-novel.dto';
+import { KudosService } from './kudos.service';
 import { NovelsService } from './novels.service';
 import { TimelineService } from '../timeline/timeline.service';
 import { PlannerService } from '../planner/planner.service';
@@ -26,6 +27,7 @@ import { PlannerService } from '../planner/planner.service';
 export class NovelsController {
   constructor(
     private readonly novelsService: NovelsService,
+    private readonly kudosService: KudosService,
     private readonly authService: AuthService,
     private readonly timelineService: TimelineService,
     private readonly plannerService: PlannerService,
@@ -146,5 +148,19 @@ export class NovelsController {
   @ApiOperation({ summary: 'Toggle bookmark sobre una novela' })
   toggleBookmark(@Param('slug') slug: string, @CurrentUser() user: JwtPayload) {
     return this.novelsService.toggleBookmark(slug, user.sub);
+  }
+
+  @ApiBearerAuth()
+  @Post(':slug/kudos')
+  @ApiOperation({ summary: 'Dar kudo a una novela' })
+  addKudo(@Param('slug') slug: string, @CurrentUser() user: JwtPayload) {
+    return this.kudosService.addKudo(slug, user.sub);
+  }
+
+  @ApiBearerAuth()
+  @Delete(':slug/kudos')
+  @ApiOperation({ summary: 'Quitar kudo de una novela' })
+  removeKudo(@Param('slug') slug: string, @CurrentUser() user: JwtPayload) {
+    return this.kudosService.removeKudo(slug, user.sub);
   }
 }

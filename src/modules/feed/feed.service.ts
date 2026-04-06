@@ -27,4 +27,22 @@ export class FeedService {
       viewerId,
     });
   }
+
+  async searchFeed(userId: string, query: FeedQueryDto) {
+    const followingIds = await this.followsService.getFollowingIds(userId);
+    const authorIds = [userId, ...followingIds];
+
+    return this.postsService.listPosts({
+      query,
+      viewerId: userId,
+      authorIds,
+    });
+  }
+
+  async searchExplore(query: FeedQueryDto, viewerId?: string | null) {
+    return this.postsService.listPosts({
+      query,
+      viewerId,
+    });
+  }
 }

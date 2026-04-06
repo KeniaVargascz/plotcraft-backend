@@ -52,6 +52,10 @@ model User {
   notifications          Notification[]     @relation("NotificationRecipient")
   sentNotifications      Notification[]     @relation("NotificationActor")
   authorDailySnapshots   AuthorDailySnapshot[]
+  novelKudos             NovelKudo[]
+  characterKudos         CharacterKudo[]
+  worldKudos             WorldKudo[]
+  chapterVotes           ChapterVote[]
 
   @@index([email])
   @@index([username])
@@ -120,6 +124,8 @@ model Post {
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime  @updatedAt @map("updated_at")
   deletedAt DateTime? @map("deleted_at")
+  imageUrls String[]  @default([]) @map("image_urls")
+  tags      String[]  @default([])
 
   author    User        @relation(fields: [authorId], references: [id], onDelete: Cascade)
   comments  Comment[]
@@ -336,6 +342,7 @@ model Novel {
   isPublic   Boolean     @default(false) @map("is_public")
   wordCount  Int         @default(0) @map("word_count")
   viewsCount Int         @default(0) @map("views_count")
+  kudosCount Int         @default(0) @map("kudos_count")
   createdAt  DateTime    @default(now()) @map("created_at")
   updatedAt  DateTime    @updatedAt @map("updated_at")
 
@@ -354,6 +361,7 @@ model Novel {
   timelines            Timeline[]
   writingProjects      WritingProject[]
   novelDailySnapshots  NovelDailySnapshot[]
+  kudos                NovelKudo[]
 
   @@index([authorId])
   @@index([slug])
@@ -386,6 +394,7 @@ model Chapter {
   scheduledAt     DateTime?     @map("scheduled_at")
   publishedAt     DateTime?     @map("published_at")
   contentSnapshot Json?         @map("content_snapshot")
+  votesCount      Int           @default(0) @map("votes_count")
   createdAt       DateTime      @default(now()) @map("created_at")
   updatedAt       DateTime      @updatedAt @map("updated_at")
 
@@ -397,6 +406,7 @@ model Chapter {
   highlights       Highlight[]
   timelineEvents   TimelineEvent[]
   writingTasks     WritingTask[]
+  chapterVotes     ChapterVote[]
 
   @@unique([novelId, slug])
   @@unique([novelId, order])
@@ -433,6 +443,66 @@ model NovelBookmark {
   @@unique([novelId, userId])
   @@index([userId])
   @@map("novel_bookmarks")
+}
+
+model NovelKudo {
+  id        String   @id @default(uuid()) @db.Uuid
+  novelId   String   @map("novel_id") @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at")
+
+  novel Novel @relation(fields: [novelId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([novelId, userId])
+  @@index([novelId])
+  @@index([userId])
+  @@map("novel_kudos")
+}
+
+model CharacterKudo {
+  id          String   @id @default(uuid()) @db.Uuid
+  characterId String   @map("character_id") @db.Uuid
+  userId      String   @map("user_id") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  character Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([characterId, userId])
+  @@index([characterId])
+  @@index([userId])
+  @@map("character_kudos")
+}
+
+model WorldKudo {
+  id        String   @id @default(uuid()) @db.Uuid
+  worldId   String   @map("world_id") @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at")
+
+  world World @relation(fields: [worldId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([worldId, userId])
+  @@index([worldId])
+  @@index([userId])
+  @@map("world_kudos")
+}
+
+model ChapterVote {
+  id        String   @id @default(uuid()) @db.Uuid
+  chapterId String   @map("chapter_id") @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at")
+
+  chapter Chapter @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([chapterId, userId])
+  @@index([chapterId])
+  @@index([userId])
+  @@map("chapter_votes")
 }
 
 model ReaderPreferences {
@@ -587,6 +657,7 @@ model World {
   visibility  WorldVisibility @default(PRIVATE)
   tags        String[]
   metadata    Json?
+  kudosCount  Int             @default(0) @map("kudos_count")
   createdAt   DateTime        @default(now()) @map("created_at")
   updatedAt   DateTime        @updatedAt @map("updated_at")
 
@@ -598,6 +669,7 @@ model World {
   wbEntries      WbEntry[]
   timelineEvents TimelineEvent[]
   worldMap       WorldMap?
+  kudos        WorldKudo[]
 
   @@index([authorId])
   @@index([slug])
@@ -657,6 +729,7 @@ model Character {
   isPublic    Boolean         @default(false) @map("is_public")
   tags        String[]
   metadata    Json?
+  kudosCount  Int             @default(0) @map("kudos_count")
   createdAt   DateTime        @default(now()) @map("created_at")
   updatedAt   DateTime        @updatedAt @map("updated_at")
 
@@ -667,6 +740,7 @@ model Character {
   relationshipsAsTarget CharacterRelationship[] @relation("RelationshipTarget")
   timelineEvents        TimelineEvent[]
   writingTasks          WritingTask[]
+  kudos                 CharacterKudo[]
 
   @@unique([authorId, slug])
   @@index([authorId])

@@ -109,7 +109,17 @@ export class CharactersService {
     viewerId?: string | null,
   ) {
     const character = await this.findCharacter(authorUsername, slug, viewerId);
-    return this.toCharacterResponse(character, viewerId, true);
+    const response = this.toCharacterResponse(character, viewerId, true);
+    const isOwner = character.authorId === viewerId;
+
+    if (viewerId && !isOwner && response.viewerContext) {
+      const kudo = await this.prisma.characterKudo.findUnique({
+        where: { characterId_userId: { characterId: character.id, userId: viewerId } },
+      });
+      (response.viewerContext as any).hasKudo = !!kudo;
+    }
+
+    return response;
   }
 
   async update(
@@ -706,10 +716,12 @@ export class CharactersService {
       stats: {
         relationshipsCount: character._count.relationshipsAsSource,
         novelsCount: linkedNovels.length,
+        kudosCount: character.kudosCount,
       },
       viewerContext: viewerId
         ? {
             isOwner,
+            hasKudo: false,
           }
         : null,
       ...(includeRelations

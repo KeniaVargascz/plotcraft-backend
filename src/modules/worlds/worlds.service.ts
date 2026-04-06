@@ -89,7 +89,17 @@ export class WorldsService {
       throw new NotFoundException('Mundo no encontrado');
     }
 
-    return this.toWorldResponse(world, viewerId, true);
+    const response = this.toWorldResponse(world, viewerId, true);
+    const isOwner = world.authorId === viewerId;
+
+    if (viewerId && !isOwner && response.viewerContext) {
+      const kudo = await this.prisma.worldKudo.findUnique({
+        where: { worldId_userId: { worldId: world.id, userId: viewerId } },
+      });
+      (response.viewerContext as any).hasKudo = !!kudo;
+    }
+
+    return response;
   }
 
   async update(userId: string, slug: string, dto: UpdateWorldDto) {
@@ -496,6 +506,7 @@ export class WorldsService {
         locationsCount: world._count.locations,
         charactersCount: world._count.characters,
         novelsCount: linkedNovels.length,
+        kudosCount: world.kudosCount,
       },
       wbSummary: {
         categoriesCount: world.wbCategories.length,
@@ -516,6 +527,7 @@ export class WorldsService {
       viewerContext: viewerId
         ? {
             isOwner,
+            hasKudo: false,
           }
         : null,
       ...(includeRelations

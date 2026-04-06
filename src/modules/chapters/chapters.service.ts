@@ -527,6 +527,7 @@ export class ChaptersService {
       wordCount: chapter.wordCount,
       scheduledAt: chapter.scheduledAt,
       publishedAt: chapter.publishedAt,
+      votesCount: chapter.votesCount,
       contentSnapshot: chapter.contentSnapshot,
       createdAt: chapter.createdAt,
       updatedAt: chapter.updatedAt,

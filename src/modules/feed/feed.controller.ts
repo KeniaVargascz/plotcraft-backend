@@ -22,6 +22,13 @@ export class FeedController {
     return this.feedService.getPersonalizedFeed(user.sub, query);
   }
 
+  @ApiBearerAuth()
+  @Get('search')
+  @ApiOperation({ summary: 'Buscar en el feed de seguidos' })
+  searchFeed(@CurrentUser() user: JwtPayload, @Query() query: FeedQueryDto) {
+    return this.feedService.searchFeed(user.sub, query);
+  }
+
   @Public()
   @Get('explore')
   @ApiOperation({ summary: 'Feed publico de exploracion' })
@@ -32,5 +39,17 @@ export class FeedController {
     const viewer =
       await this.authService.getOptionalJwtPayloadFromAuthHeader(authorization);
     return this.feedService.getExploreFeed(query, viewer?.sub ?? null);
+  }
+
+  @Public()
+  @Get('explore/search')
+  @ApiOperation({ summary: 'Buscar en el feed publico de exploracion' })
+  async searchExplore(
+    @Query() query: FeedQueryDto,
+    @Headers('authorization') authorization?: string,
+  ) {
+    const viewer =
+      await this.authService.getOptionalJwtPayloadFromAuthHeader(authorization);
+    return this.feedService.searchExplore(query, viewer?.sub ?? null);
   }
 }

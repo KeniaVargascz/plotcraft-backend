@@ -1,5 +1,7 @@
 import { PostType } from '@prisma/client';
 import {
+  ArrayMaxSize,
+  IsArray,
   IsEnum,
   IsNotEmpty,
   IsOptional,
@@ -18,4 +20,17 @@ export class CreatePostDto {
   @IsOptional()
   @IsEnum(PostType)
   type?: PostType;
+
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(4)
+  @IsString({ each: true })
+  image_urls?: string[];
+
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(10)
+  @IsString({ each: true })
+  @MaxLength(50, { each: true })
+  tags?: string[];
 }

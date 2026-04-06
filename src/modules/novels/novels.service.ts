@@ -136,7 +136,23 @@ export class NovelsService {
       include: this.novelInclude(viewerId, true, isAuthor),
     });
 
-    return this.toNovelResponse(novel, viewerId, true);
+    const response = this.toNovelResponse(novel, viewerId, true);
+
+    // Aggregate votes from all chapters
+    const totalVotes = await this.prisma.chapter.aggregate({
+      where: { novelId: baseNovel.id },
+      _sum: { votesCount: true },
+    });
+    response.stats.votesCount = totalVotes._sum.votesCount ?? 0;
+
+    if (viewerId && viewerId !== baseNovel.authorId && response.viewerContext) {
+      const kudo = await this.prisma.novelKudo.findUnique({
+        where: { novelId_userId: { novelId: baseNovel.id, userId: viewerId } },
+      });
+      response.viewerContext.hasKudo = !!kudo;
+    }
+
+    return response;
   }
 
   async updateNovel(slug: string, userId: string, dto: UpdateNovelDto) {
@@ -636,11 +652,14 @@ export class NovelsService {
         bookmarksCount: novel._count.bookmarks,
         worldsCount: novel._count.novelWorlds,
         charactersCount: novel._count.novelCharacters,
+        kudosCount: novel.kudosCount,
+        votesCount: 0,
       },
       viewerContext: viewerId
         ? {
             hasLiked: Boolean(likes.length),
             hasBookmarked: Boolean(bookmarks.length),
+            hasKudo: false,
             isAuthor: novel.authorId === viewerId,
             reading_progress: readingProgressItem
               ? {

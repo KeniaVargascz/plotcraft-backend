@@ -26,6 +26,11 @@ export class PostsService {
         authorId: userId,
         content: dto.content.trim(),
         type: dto.type ?? PostType.TEXT,
+        imageUrls: dto.image_urls ?? [],
+        tags:
+          dto.tags
+            ?.map((t) => t.trim().toLowerCase().replace(/\s+/g, '-'))
+            .filter(Boolean) ?? [],
       },
     });
 
@@ -45,11 +50,23 @@ export class PostsService {
       ...(options.query.type ? { type: options.query.type } : {}),
       ...(options.query.search
         ? {
-            content: {
-              contains: options.query.search,
-              mode: 'insensitive',
-            },
+            OR: [
+              {
+                content: {
+                  contains: options.query.search,
+                  mode: 'insensitive' as const,
+                },
+              },
+              {
+                tags: {
+                  has: options.query.search.toLowerCase().replace(/\s+/g, '-'),
+                },
+              },
+            ],
           }
+        : {}),
+      ...(options.query.tags?.length
+        ? { tags: { hasEvery: options.query.tags } }
         : {}),
       ...(options.authorIds ? { authorId: { in: options.authorIds } } : {}),
       ...(options.onlySavedByUserId
@@ -260,6 +277,8 @@ export class PostsService {
       content:
         post.deletedAt && hasComments ? '[Post eliminado]' : post.content,
       type: post.type,
+      imageUrls: post.imageUrls,
+      tags: post.tags,
       createdAt: post.createdAt,
       updatedAt: post.updatedAt,
       author: {

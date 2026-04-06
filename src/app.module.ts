@@ -30,6 +30,8 @@ import { MapsModule } from './modules/maps/maps.module';
 import { WorldsModule } from './modules/worlds/worlds.module';
 import { ExportsModule } from './modules/exports/exports.module';
 import { AnalyticsModule } from './modules/analytics/analytics.module';
+import { VotesModule } from './modules/votes/votes.module';
+import { KudosModule } from './modules/kudos/kudos.module';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
 import { ValidationPipe } from './common/pipes/validation.pipe';
@@ -71,6 +73,8 @@ import { PrismaModule } from './prisma/prisma.module';
     ExportsModule,
     MapsModule,
     AnalyticsModule,
+    VotesModule,
+    KudosModule,
   ],
   providers: [
     { provide: APP_PIPE, useClass: ValidationPipe },
