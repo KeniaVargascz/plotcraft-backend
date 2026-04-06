@@ -128,6 +128,7 @@ model Post {
 
   @@index([authorId])
   @@index([createdAt])
+  @@index([authorId, createdAt(sort: Desc)]) // feed pagination: author posts ordered by date
   @@map("posts")
 }
 
@@ -401,6 +402,7 @@ model Chapter {
   @@unique([novelId, order])
   @@index([novelId, status])
   @@index([novelId, order])
+  @@index([slug])             // chapter slug lookups
   @@map("chapters")
 }
 
@@ -789,6 +791,7 @@ model WbEntry {
   @@index([worldId, categoryId])
   @@index([authorId])
   @@index([worldId, isPublic])
+  @@index([worldId, slug])    // world entry lookup by slug
   @@map("wb_entries")
 }
 

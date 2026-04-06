@@ -1,19 +1,15 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
-
-type CacheEntry<T> = {
-  value: T;
-  expiresAt: number;
-};
+import { APP_CONFIG } from '../../config/constants';
+import { CacheService, CACHE_SERVICE } from '../../common/services/cache.service';
 
 @Injectable()
 export class DiscoveryService {
-  // Cache TTL: 5min. In production, replace with Redis.
-  private readonly cache = new Map<string, CacheEntry<unknown>>();
-  private readonly ttlMs = 5 * 60 * 1000;
-
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Inject(CACHE_SERVICE) private readonly cache: CacheService,
+  ) {}
 
   async getSnapshot(refresh = false) {
     return this.fromCache('snapshot', refresh, async () => {
@@ -570,19 +566,13 @@ export class DiscoveryService {
     refresh: boolean,
     factory: () => Promise<T>,
   ): Promise<T> {
-    const now = Date.now();
-    const cached = this.cache.get(key);
-
-    if (!refresh && cached && cached.expiresAt > now) {
-      return cached.value as T;
+    if (!refresh) {
+      const cached = await this.cache.get<T>(key);
+      if (cached !== null) return cached;
     }
 
     const value = await factory();
-    this.cache.set(key, {
-      value,
-      expiresAt: now + this.ttlMs,
-    });
-
+    await this.cache.set(key, value, APP_CONFIG.cache.discoveryTtl);
     return value;
   }
 

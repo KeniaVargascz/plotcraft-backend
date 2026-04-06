@@ -13,12 +13,13 @@ import { LoginDto } from './dto/login.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { RegisterDto } from './dto/register.dto';
 import type { JwtPayload } from './strategies/jwt.strategy';
+import { APP_CONFIG } from '../../config/constants';
 
 type SessionUser = Prisma.UserGetPayload<{ include: { profile: true } }>;
 
 @Injectable()
 export class AuthService {
-  private readonly saltRounds = 12;
+  private readonly saltRounds = APP_CONFIG.auth.saltRounds;
 
   constructor(
     private readonly prisma: PrismaService,

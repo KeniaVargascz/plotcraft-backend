@@ -14,6 +14,7 @@ import { ReorderChaptersDto } from './dto/reorder-chapters.dto';
 import { UpdateChapterDto } from './dto/update-chapter.dto';
 import { countWords, stripMarkdown } from '../novels/utils/word-count.util';
 import { createSlug } from '../novels/utils/slugify.util';
+import { APP_CONFIG } from '../../config/constants';
 
 @Injectable()
 export class ChaptersService {
@@ -214,21 +215,24 @@ export class ChaptersService {
 
     await this.novelsService.recalculateNovelWordCount(chapter.novelId);
 
-    // Notify followers of the author about the new chapter
+    // Notify followers of the author about the new chapter via bulk insert
+    // TODO: In production, enqueue this with Bull/BullMQ for large follower counts
     const followers = await this.prisma.follow.findMany({
       where: { followingId: userId },
       select: { followerId: true },
-      take: 100,
     });
-    // TODO: In production, use a queue system for large follower counts
-    for (const f of followers) {
-      void this.notificationsService.createNotification({
-        userId: f.followerId,
-        type: 'NEW_CHAPTER' as any,
-        title: `Nuevo capitulo publicado`,
-        body: `${updated.title} en ${updated.novel.title}`,
-        url: `/novelas/${updated.novel.slug}/${updated.slug}`,
-        actorId: userId,
+
+    if (followers.length) {
+      await this.prisma.notification.createMany({
+        data: followers.map((f) => ({
+          userId: f.followerId,
+          type: 'NEW_CHAPTER' as any,
+          title: `Nuevo capitulo publicado`,
+          body: `${updated.title} en ${updated.novel.title}`,
+          url: `/novelas/${updated.novel.slug}/${updated.slug}`,
+          actorId: userId,
+        })),
+        skipDuplicates: true,
       });
     }
 
@@ -350,7 +354,7 @@ export class ChaptersService {
     query: ChapterQueryDto,
     includeDrafts: boolean,
   ) {
-    const limit = query.limit ?? 50;
+    const limit = query.limit ?? APP_CONFIG.pagination.chapterLimit;
     const where: Prisma.ChapterWhereInput = {
       novelId,
       ...(includeDrafts
@@ -411,30 +415,35 @@ export class ChaptersService {
     return chapter;
   }
 
+  /**
+   * Genera slug único con un solo lookup O(1) en lugar de loop O(n).
+   * Busca todos los slugs con el mismo prefijo dentro de la novela y calcula el siguiente sufijo.
+   */
   private async generateUniqueChapterSlug(
     novelId: string,
     title: string,
     ignoreChapterId?: string,
   ) {
-    const baseSlug = createSlug(title);
-    let candidate = baseSlug;
-    let suffix = 2;
-
-    while (true) {
-      const existing = await this.prisma.chapter.findFirst({
-        where: {
-          novelId,
-          slug: candidate,
-        },
-      });
-
-      if (!existing || existing.id === ignoreChapterId) {
-        return candidate;
-      }
-
-      candidate = `${baseSlug}-${suffix}`;
-      suffix += 1;
-    }
+    const slug = createSlug(title);
+    const existing = await this.prisma.chapter.findMany({
+      where: {
+        novelId,
+        slug: { startsWith: slug },
+        ...(ignoreChapterId ? { id: { not: ignoreChapterId } } : {}),
+      },
+      select: { slug: true },
+    });
+    if (!existing.length) return slug;
+    const slugSet = new Set(existing.map((e) => e.slug));
+    if (!slugSet.has(slug)) return slug;
+    const max = Math.max(
+      0,
+      ...existing.map((e) => {
+        const suffix = e.slug.slice(slug.length + 1);
+        return suffix ? parseInt(suffix, 10) || 0 : 0;
+      }),
+    );
+    return `${slug}-${max + 1}`;
   }
 
   private assertChapterContent(content: string) {

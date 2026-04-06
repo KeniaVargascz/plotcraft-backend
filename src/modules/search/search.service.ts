@@ -148,6 +148,8 @@ export class SearchService {
   async getSuggestions(query: SearchSuggestionsQueryDto) {
     const normalized = query.q.trim();
     const prefix = normalized.toLowerCase();
+    // Max 10 results per category before merge, capped to 3 per type in final output
+    const perCategoryLimit = 10;
 
     const [novels, users, worlds, characters, genres] = await Promise.all([
       this.prisma.novel.findMany({
@@ -158,7 +160,7 @@ export class SearchService {
         include: {
           author: { include: { profile: true } },
         },
-        take: 6,
+        take: perCategoryLimit,
         orderBy: { updatedAt: 'desc' },
       }),
       this.prisma.user.findMany({
@@ -175,7 +177,7 @@ export class SearchService {
           ],
         },
         include: { profile: true },
-        take: 6,
+        take: perCategoryLimit,
         orderBy: { createdAt: 'desc' },
       }),
       this.prisma.world.findMany({
@@ -186,7 +188,7 @@ export class SearchService {
         include: {
           author: { include: { profile: true } },
         },
-        take: 6,
+        take: perCategoryLimit,
         orderBy: { updatedAt: 'desc' },
       }),
       this.prisma.character.findMany({
@@ -196,9 +198,11 @@ export class SearchService {
         },
         include: {
           author: { include: { profile: true } },
-          world: true,
+          world: {
+            select: { id: true, name: true, slug: true, visibility: true },
+          },
         },
-        take: 6,
+        take: perCategoryLimit,
         orderBy: { updatedAt: 'desc' },
       }),
       this.prisma.genre.findMany({
@@ -208,7 +212,7 @@ export class SearchService {
             { slug: { contains: normalized, mode: 'insensitive' } },
           ],
         },
-        take: 6,
+        take: perCategoryLimit,
       }),
     ]);
 
