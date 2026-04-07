@@ -183,6 +183,7 @@ export class AuthService {
       sub: user.id,
       username: user.username,
       email: user.email,
+      isAdmin: user.isAdmin,
     };
 
     const accessToken = await this.jwtService.signAsync(payload, {

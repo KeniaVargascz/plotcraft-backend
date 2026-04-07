@@ -36,6 +36,9 @@ export class NotificationsService {
       NOVEL_MILESTONE: prefs.novelMilestone,
       CHAPTER_PUBLISHED: prefs.newChapterFromFollowed,
       SYSTEM: true,
+      COMMUNITY_APPROVED: true,
+      COMMUNITY_REJECTED: true,
+      COMMUNITY_REVIEW: true,
     };
 
     if (!typeEnabledMap[dto.type]) {

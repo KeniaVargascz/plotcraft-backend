@@ -34,6 +34,7 @@ import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { VotesModule } from './modules/votes/votes.module';
 import { KudosModule } from './modules/kudos/kudos.module';
 import { SeriesModule } from './modules/series/series.module';
+import { CommunitiesModule } from './modules/communities/communities.module';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
 import { ValidationPipe } from './common/pipes/validation.pipe';
@@ -79,6 +80,7 @@ import { PrismaModule } from './prisma/prisma.module';
     VotesModule,
     KudosModule,
     SeriesModule,
+    CommunitiesModule,
   ],
   providers: [
     { provide: APP_PIPE, useClass: ValidationPipe },

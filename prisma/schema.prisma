@@ -13,6 +13,7 @@ model User {
   username          String             @unique @db.VarChar(30)
   passwordHash      String             @map("password_hash")
   isActive          Boolean            @default(true) @map("is_active")
+  isAdmin           Boolean            @default(false) @map("is_admin")
   createdAt         DateTime           @default(now()) @map("created_at")
   updatedAt         DateTime           @updatedAt @map("updated_at")
   profile           Profile?
@@ -58,6 +59,9 @@ model User {
   chapterVotes           ChapterVote[]
   series                 Series[]
   novelSubscriptions     NovelSubscription[]
+  ownedCommunities       Community[]        @relation("OwnedCommunities")
+  communityMembers       CommunityMember[]
+  communityFollows       CommunityFollow[]
 
   @@index([email])
   @@index([username])
@@ -408,6 +412,7 @@ model Novel {
   seriesNovels         SeriesNovel[]
   subscriptions        NovelSubscription[]
   pairings             NovelPairing[]
+  linkedCommunities    Community[]        @relation("CommunityLinkedNovel")
 
   @@index([authorId])
   @@index([slug])
@@ -1285,6 +1290,9 @@ enum NotificationType {
   NOVEL_MILESTONE
   SYSTEM
   CHAPTER_PUBLISHED
+  COMMUNITY_APPROVED
+  COMMUNITY_REJECTED
+  COMMUNITY_REVIEW
 }
 
 model PrivacySettings {
@@ -1447,4 +1455,99 @@ model MapRegion {
 
   @@index([mapId])
   @@map("map_regions")
+}
+
+// ── Communities ──
+
+enum CommunityType {
+  PRIVATE
+  PUBLIC
+  FANDOM
+}
+
+enum CommunityStatus {
+  PENDING
+  ACTIVE
+  REJECTED
+  SUSPENDED
+}
+
+enum CommunityMemberRole {
+  MEMBER
+  MODERATOR
+  ADMIN
+}
+
+enum CommunityMemberStatus {
+  ACTIVE
+  BANNED
+}
+
+model Community {
+  id              String          @id @default(uuid()) @db.Uuid
+  ownerId         String          @map("owner_id") @db.Uuid
+  type            CommunityType
+  status          CommunityStatus @default(PENDING)
+  name            String          @db.VarChar(200)
+  slug            String          @unique @db.VarChar(220)
+  description     String?         @db.Text
+  coverUrl        String?         @map("cover_url")
+  bannerUrl       String?         @map("banner_url")
+  linkedNovelId   String?         @map("linked_novel_id") @db.Uuid
+  rules           String?         @db.Text
+  rejectionReason String?         @map("rejection_reason") @db.VarChar(500)
+  membersCount    Int             @default(0) @map("members_count")
+  followersCount  Int             @default(0) @map("followers_count")
+  createdAt       DateTime        @default(now()) @map("created_at")
+  updatedAt       DateTime        @updatedAt @map("updated_at")
+
+  owner       User              @relation("OwnedCommunities", fields: [ownerId], references: [id], onDelete: Cascade)
+  linkedNovel Novel?            @relation("CommunityLinkedNovel", fields: [linkedNovelId], references: [id], onDelete: SetNull)
+  members     CommunityMember[]
+  follows     CommunityFollow[]
+
+  @@index([ownerId])
+  @@index([type, status])
+  @@index([slug])
+  @@map("communities")
+}
+
+model CommunityMember {
+  id          String                @id @default(uuid()) @db.Uuid
+  communityId String                @map("community_id") @db.Uuid
+  userId      String                @map("user_id") @db.Uuid
+  role        CommunityMemberRole   @default(MEMBER)
+  status      CommunityMemberStatus @default(ACTIVE)
+  joinedAt    DateTime              @default(now()) @map("joined_at")
+
+  community Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([communityId, userId])
+  @@index([communityId])
+  @@index([userId])
+  @@map("community_members")
+}
+
+model CommunityFollow {
+  id          String   @id @default(uuid()) @db.Uuid
+  communityId String   @map("community_id") @db.Uuid
+  userId      String   @map("user_id") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  community Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([communityId, userId])
+  @@index([communityId])
+  @@index([userId])
+  @@map("community_follows")
+}
+
+model AppSetting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("app_settings")
 }
