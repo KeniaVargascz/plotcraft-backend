@@ -1172,18 +1172,32 @@ model ForumThread {
   updatedAt      DateTime      @updatedAt @map("updated_at")
   deletedAt      DateTime?     @map("deleted_at")
 
-  author    User              @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  forum     CommunityForum?   @relation(fields: [forumId], references: [id], onDelete: SetNull)
-  replies   ForumReply[]
-  reactions ForumReaction[]
-  poll      ForumPoll?
-  tags      ForumThreadTag[]
+  author             User                     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  forum              CommunityForum?          @relation(fields: [forumId], references: [id], onDelete: SetNull)
+  replies            ForumReply[]
+  reactions          ForumReaction[]
+  poll               ForumPoll?
+  tags               ForumThreadTag[]
+  linkedCommunities  ThreadCommunityLink[]
 
   @@index([category, status, createdAt])
   @@index([authorId])
   @@index([slug])
   @@index([forumId])
   @@map("forum_threads")
+}
+
+model ThreadCommunityLink {
+  threadId    String   @map("thread_id") @db.Uuid
+  communityId String   @map("community_id") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  thread    ForumThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  community Community   @relation(fields: [communityId], references: [id], onDelete: Cascade)
+
+  @@id([threadId, communityId])
+  @@index([communityId])
+  @@map("thread_community_links")
 }
 
 model CommunityForum {
@@ -1546,9 +1560,10 @@ model Community {
 
   owner       User              @relation("OwnedCommunities", fields: [ownerId], references: [id], onDelete: Cascade)
   linkedNovel Novel?            @relation("CommunityLinkedNovel", fields: [linkedNovelId], references: [id], onDelete: SetNull)
-  members     CommunityMember[]
-  follows     CommunityFollow[]
-  forums      CommunityForum[]
+  members        CommunityMember[]
+  follows        CommunityFollow[]
+  forums         CommunityForum[]
+  linkedThreads  ThreadCommunityLink[]
 
   @@index([ownerId])
   @@index([type, status])

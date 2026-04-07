@@ -125,6 +125,31 @@ export class ForumService {
       });
     }
 
+    if (query.relevant && viewerId) {
+      const [follows, memberships] = await Promise.all([
+        this.prisma.follow.findMany({
+          where: { followerId: viewerId },
+          select: { followingId: true },
+        }),
+        this.prisma.communityMember.findMany({
+          where: { userId: viewerId, status: 'ACTIVE' },
+          select: { communityId: true },
+        }),
+      ]);
+      const followedAuthorIds = follows.map((f) => f.followingId);
+      const communityIds = memberships.map((m) => m.communityId);
+      andConditions.push({
+        OR: [
+          { authorId: { in: [viewerId, ...followedAuthorIds] } },
+          {
+            linkedCommunities: {
+              some: { communityId: { in: communityIds } },
+            },
+          },
+        ],
+      });
+    }
+
     const where: Prisma.ForumThreadWhereInput = {
       AND: andConditions,
       ...statusFilter,
@@ -286,6 +311,23 @@ export class ForumService {
   async createThread(userId: string, dto: CreateThreadDto) {
     const slug = await this.generateUniqueSlug(dto.title);
 
+    const linkedIds = Array.from(new Set(dto.linkedCommunityIds ?? []));
+    if (linkedIds.length) {
+      const memberships = await this.prisma.communityMember.findMany({
+        where: {
+          userId,
+          communityId: { in: linkedIds },
+          status: 'ACTIVE',
+        },
+        select: { communityId: true },
+      });
+      if (memberships.length !== linkedIds.length) {
+        throw new ForbiddenException(
+          'Solo puedes vincular hilos a comunidades a las que perteneces.',
+        );
+      }
+    }
+
     const thread = await this.prisma.$transaction(async (tx) => {
       const created = await tx.forumThread.create({
         data: {
@@ -300,6 +342,9 @@ export class ForumService {
                   tag: tag.trim().toLowerCase(),
                 })),
               }
+            : undefined,
+          linkedCommunities: linkedIds.length
+            ? { create: linkedIds.map((communityId) => ({ communityId })) }
             : undefined,
         },
         include: {

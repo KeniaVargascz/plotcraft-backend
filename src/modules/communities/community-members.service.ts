@@ -249,15 +249,13 @@ export class CommunityMembersService {
       },
     });
 
-    return {
-      data: rows.map((m) =>
-        this.communitiesService.toResponse(m.community, {
-          isMember: true,
-          isFollowing: false,
-          isOwner: m.community.ownerId === userId,
-        }),
-      ),
-    };
+    return rows.map((m) =>
+      this.communitiesService.toResponse(m.community, {
+        isMember: true,
+        isFollowing: false,
+        isOwner: m.community.ownerId === userId,
+      }),
+    );
   }
 
   async getMyFollowed(userId: string) {

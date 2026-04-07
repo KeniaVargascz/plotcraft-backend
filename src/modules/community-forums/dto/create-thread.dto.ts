@@ -4,6 +4,7 @@ import {
   IsBoolean,
   IsOptional,
   IsString,
+  IsUUID,
   MaxLength,
   MinLength,
 } from 'class-validator';
@@ -29,4 +30,10 @@ export class CreateForumThreadDto {
   @IsOptional()
   @IsBoolean()
   hasPoll?: boolean;
+
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(10)
+  @IsUUID('all', { each: true })
+  linkedCommunityIds?: string[];
 }

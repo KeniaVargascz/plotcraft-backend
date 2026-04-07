@@ -44,6 +44,21 @@ export class CommunityForumsController {
     return this.forumsService.listForums(slug, viewer?.sub ?? null);
   }
 
+  @Public()
+  @Get('communities/:slug/discussed-threads')
+  @ApiOperation({
+    summary: 'Hilos de foros mas comentados/votados que mencionan la comunidad',
+  })
+  listDiscussedThreads(
+    @Param('slug') slug: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.threadsService.listDiscussedThreadsForCommunity(
+      slug,
+      limit ? Number.parseInt(limit, 10) : 5,
+    );
+  }
+
   @ApiBearerAuth()
   @Post('communities/:slug/forums')
   @ApiOperation({ summary: 'Crear foro en una comunidad' })

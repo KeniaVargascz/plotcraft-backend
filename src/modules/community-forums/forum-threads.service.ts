@@ -1,5 +1,9 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { Prisma, ThreadStatus } from '@prisma/client';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { CommunityMemberStatus, Prisma, ThreadStatus } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { createSlug } from '../novels/utils/slugify.util';
 import { CommunityForumsService } from './community-forums.service';
@@ -215,6 +219,23 @@ export class ForumThreadsService {
 
     const slug = await this.generateUniqueSlug(dto.title);
 
+    const linkedIds = Array.from(new Set(dto.linkedCommunityIds ?? []));
+    if (linkedIds.length) {
+      const memberships = await this.prisma.communityMember.findMany({
+        where: {
+          userId,
+          communityId: { in: linkedIds },
+          status: CommunityMemberStatus.ACTIVE,
+        },
+        select: { communityId: true },
+      });
+      if (memberships.length !== linkedIds.length) {
+        throw new ForbiddenException(
+          'Solo puedes vincular hilos a comunidades a las que perteneces.',
+        );
+      }
+    }
+
     const thread = await this.prisma.$transaction(async (tx) => {
       const created = await tx.forumThread.create({
         data: {
@@ -229,6 +250,11 @@ export class ForumThreadsService {
                 create: dto.tags.map((tag) => ({
                   tag: tag.trim().toLowerCase(),
                 })),
+              }
+            : undefined,
+          linkedCommunities: linkedIds.length
+            ? {
+                create: linkedIds.map((communityId) => ({ communityId })),
               }
             : undefined,
         },
@@ -261,6 +287,66 @@ export class ForumThreadsService {
       },
       tags: thread.tags.map((t) => t.tag),
     };
+  }
+
+  async listDiscussedThreadsForCommunity(communitySlug: string, limit = 5) {
+    const safeLimit = Math.max(1, Math.min(20, Number.isFinite(limit) ? limit : 5));
+    const community = await this.prisma.community.findUnique({
+      where: { slug: communitySlug },
+      select: { id: true },
+    });
+    if (!community) throw new NotFoundException('Comunidad no encontrada.');
+
+    const links = await this.prisma.threadCommunityLink.findMany({
+      where: {
+        communityId: community.id,
+        thread: {
+          deletedAt: null,
+          OR: [{ forumId: null }, { forum: { isPublic: true } }],
+        },
+      },
+      include: {
+        thread: {
+          include: {
+            author: { include: { profile: true } },
+            forum: { include: { community: true } },
+          },
+        },
+      },
+    });
+
+    const sorted = links
+      .map((l) => l.thread)
+      .sort(
+        (a, b) =>
+          b.repliesCount + b.reactionsCount - (a.repliesCount + a.reactionsCount),
+      )
+      .slice(0, safeLimit);
+
+    return sorted.map((t) => ({
+      id: t.id,
+      title: t.title,
+      slug: t.slug,
+      repliesCount: t.repliesCount,
+      reactionsCount: t.reactionsCount,
+      createdAt: t.createdAt,
+      author: {
+        username: t.author.username,
+        displayName: t.author.profile?.displayName ?? t.author.username,
+        avatarUrl: t.author.profile?.avatarUrl ?? null,
+      },
+      forum: t.forum
+        ? {
+            name: t.forum.name,
+            slug: t.forum.slug,
+            communitySlug: t.forum.community.slug,
+            communityName: t.forum.community.name,
+          }
+        : null,
+      url: t.forum
+        ? `/comunidades/${t.forum.community.slug}/foros/${t.forum.slug}/hilos/${t.slug}`
+        : `/foro/${t.slug}`,
+    }));
   }
 
   private async generateUniqueSlug(title: string) {

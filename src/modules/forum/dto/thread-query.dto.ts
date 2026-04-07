@@ -1,6 +1,7 @@
 import { ForumCategory, ThreadStatus } from '@prisma/client';
 import { Transform } from 'class-transformer';
 import {
+  IsBoolean,
   IsEnum,
   IsIn,
   IsInt,
@@ -43,4 +44,9 @@ export class ThreadQueryDto {
   @IsOptional()
   @IsString()
   tags?: string;
+
+  @IsOptional()
+  @Transform(({ value }) => value === 'true' || value === true)
+  @IsBoolean()
+  relevant?: boolean;
 }
