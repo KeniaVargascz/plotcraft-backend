@@ -454,12 +454,23 @@ export class ForumService {
       );
     }
 
+    if (dto.parentReplyId) {
+      const parent = await this.prisma.forumReply.findUnique({
+        where: { id: dto.parentReplyId },
+        select: { id: true, threadId: true, deletedAt: true },
+      });
+      if (!parent || parent.deletedAt || parent.threadId !== thread.id) {
+        throw new NotFoundException('Parent reply not found in this thread');
+      }
+    }
+
     const reply = await this.prisma.$transaction(async (tx) => {
       const created = await tx.forumReply.create({
         data: {
           threadId: thread.id,
           authorId: userId,
           content: dto.content.trim(),
+          parentReplyId: dto.parentReplyId ?? null,
         },
         include: {
           author: { include: { profile: true } },
@@ -1077,6 +1088,7 @@ export class ForumService {
     return {
       id: reply.id,
       content: reply.content,
+      parentReplyId: (reply as { parentReplyId?: string | null }).parentReplyId ?? null,
       isSolution: reply.isSolution,
       isDeleted: !!reply.deletedAt,
       createdAt: reply.createdAt,

@@ -1249,21 +1249,25 @@ model ForumThreadTag {
 }
 
 model ForumReply {
-  id         String    @id @default(uuid()) @db.Uuid
-  threadId   String    @map("thread_id") @db.Uuid
-  authorId   String    @map("author_id") @db.Uuid
-  content    String    @db.Text
-  isSolution Boolean   @default(false) @map("is_solution")
-  createdAt  DateTime  @default(now()) @map("created_at")
-  updatedAt  DateTime  @updatedAt @map("updated_at")
-  deletedAt  DateTime? @map("deleted_at")
+  id            String    @id @default(uuid()) @db.Uuid
+  threadId      String    @map("thread_id") @db.Uuid
+  authorId      String    @map("author_id") @db.Uuid
+  parentReplyId String?   @map("parent_reply_id") @db.Uuid
+  content       String    @db.Text
+  isSolution    Boolean   @default(false) @map("is_solution")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  deletedAt     DateTime? @map("deleted_at")
 
-  thread    ForumThread      @relation(fields: [threadId], references: [id], onDelete: Cascade)
-  author    User             @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  reactions ForumReaction[]
+  thread       ForumThread      @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  author       User             @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  reactions    ForumReaction[]
+  parentReply  ForumReply?      @relation("ReplyChildren", fields: [parentReplyId], references: [id], onDelete: Cascade)
+  childReplies ForumReply[]     @relation("ReplyChildren")
 
   @@index([threadId, createdAt])
   @@index([authorId])
+  @@index([parentReplyId])
   @@map("forum_replies")
 }
 
