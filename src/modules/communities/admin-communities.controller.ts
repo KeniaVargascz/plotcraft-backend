@@ -43,15 +43,13 @@ export class AdminCommunitiesController {
       },
     });
 
-    return {
-      data: rows.map((c) =>
-        this.communitiesService.toResponse(c, {
-          isMember: false,
-          isFollowing: false,
-          isOwner: false,
-        }),
-      ),
-    };
+    return rows.map((c) =>
+      this.communitiesService.toResponse(c, {
+        isMember: false,
+        isFollowing: false,
+        isOwner: false,
+      }),
+    );
   }
 
   @Post(':slug/approve')
