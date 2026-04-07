@@ -249,7 +249,35 @@ export class ForumService {
       `;
     }
 
-    return this.toThreadDetail(thread, viewerId);
+    let canReply = false;
+    if (viewerId) {
+      if (viewerId === thread.authorId) {
+        canReply = true;
+      } else {
+        const [follow, communityMembership] = await Promise.all([
+          this.prisma.follow.findUnique({
+            where: {
+              followerId_followingId: {
+                followerId: viewerId,
+                followingId: thread.authorId,
+              },
+            },
+            select: { followerId: true },
+          }),
+          this.prisma.communityMember.findFirst({
+            where: {
+              userId: viewerId,
+              status: 'ACTIVE',
+              community: { linkedThreads: { some: { threadId: thread.id } } },
+            },
+            select: { id: true },
+          }),
+        ]);
+        canReply = !!follow || !!communityMembership;
+      }
+    }
+
+    return { ...this.toThreadDetail(thread, viewerId), canReply };
   }
 
   async getCategories() {
@@ -452,6 +480,35 @@ export class ForumService {
       throw new BadRequestException(
         'Cannot reply to a closed or archived thread',
       );
+    }
+
+    if (thread.authorId !== userId) {
+      const [follow, communityMembership] = await Promise.all([
+        this.prisma.follow.findUnique({
+          where: {
+            followerId_followingId: {
+              followerId: userId,
+              followingId: thread.authorId,
+            },
+          },
+          select: { followerId: true },
+        }),
+        this.prisma.communityMember.findFirst({
+          where: {
+            userId,
+            status: 'ACTIVE',
+            community: {
+              linkedThreads: { some: { threadId: thread.id } },
+            },
+          },
+          select: { id: true },
+        }),
+      ]);
+      if (!follow && !communityMembership) {
+        throw new ForbiddenException(
+          'Solo puedes comentar en hilos de autores que sigues o de comunidades a las que perteneces.',
+        );
+      }
     }
 
     if (dto.parentReplyId) {
