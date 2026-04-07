@@ -19,6 +19,7 @@ import { NovelQueryDto } from './dto/novel-query.dto';
 import { UpdateNovelDto } from './dto/update-novel.dto';
 import { KudosService } from './kudos.service';
 import { NovelsService } from './novels.service';
+import { SubscriptionsService } from './subscriptions.service';
 import { TimelineService } from '../timeline/timeline.service';
 import { PlannerService } from '../planner/planner.service';
 
@@ -31,6 +32,7 @@ export class NovelsController {
     private readonly authService: AuthService,
     private readonly timelineService: TimelineService,
     private readonly plannerService: PlannerService,
+    private readonly subscriptionsService: SubscriptionsService,
   ) {}
 
   @Public()
@@ -68,6 +70,22 @@ export class NovelsController {
       username,
       query,
       viewer?.sub ?? null,
+    );
+  }
+
+  @ApiBearerAuth()
+  @Get('me/subscriptions')
+  @ApiOperation({ summary: 'Listado de mis suscripciones a novelas' })
+  listMySubscriptions(
+    @CurrentUser() user: JwtPayload,
+    @Query('cursor') cursor?: string,
+    @Query('limit') limit?: string,
+  ) {
+    const parsed = limit ? Number(limit) : 20;
+    return this.subscriptionsService.listMySubscriptions(
+      user.sub,
+      cursor,
+      Number.isFinite(parsed) ? parsed : 20,
     );
   }
 
@@ -162,5 +180,19 @@ export class NovelsController {
   @ApiOperation({ summary: 'Quitar kudo de una novela' })
   removeKudo(@Param('slug') slug: string, @CurrentUser() user: JwtPayload) {
     return this.kudosService.removeKudo(slug, user.sub);
+  }
+
+  @ApiBearerAuth()
+  @Post(':slug/subscribe')
+  @ApiOperation({ summary: 'Suscribirse a una novela' })
+  subscribe(@Param('slug') slug: string, @CurrentUser() user: JwtPayload) {
+    return this.subscriptionsService.subscribe(slug, user.sub);
+  }
+
+  @ApiBearerAuth()
+  @Delete(':slug/subscribe')
+  @ApiOperation({ summary: 'Cancelar suscripcion a una novela' })
+  unsubscribe(@Param('slug') slug: string, @CurrentUser() user: JwtPayload) {
+    return this.subscriptionsService.unsubscribe(slug, user.sub);
   }
 }

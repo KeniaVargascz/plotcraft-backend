@@ -7,6 +7,7 @@ import {
   IsOptional,
   IsString,
   IsUUID,
+  Length,
   MaxLength,
 } from 'class-validator';
 import { NovelRating, NovelStatus } from '@prisma/client';
@@ -56,4 +57,9 @@ export class CreateNovelDto {
   @IsOptional()
   @IsBoolean()
   isPublic?: boolean;
+
+  @IsOptional()
+  @IsString()
+  @Length(2, 10)
+  language?: string;
 }

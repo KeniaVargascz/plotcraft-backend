@@ -47,6 +47,7 @@ export class NovelsService {
       warnings:
         dto.warnings?.map((warning) => warning.trim()).filter(Boolean) ?? [],
       isPublic: dto.isPublic ?? false,
+      language: dto.language ?? 'es',
       author: {
         connect: { id: userId },
       },
@@ -150,6 +151,13 @@ export class NovelsService {
         where: { novelId_userId: { novelId: baseNovel.id, userId: viewerId } },
       });
       response.viewerContext.hasKudo = !!kudo;
+
+      const sub = await this.prisma.novelSubscription.findUnique({
+        where: {
+          novelId_userId: { novelId: baseNovel.id, userId: viewerId },
+        },
+      });
+      response.viewerContext.isSubscribed = !!sub;
     }
 
     return response;
@@ -203,6 +211,7 @@ export class NovelsService {
               }
             : {}),
           ...(dto.isPublic !== undefined ? { isPublic: dto.isPublic } : {}),
+          ...(dto.language !== undefined ? { language: dto.language } : {}),
           ...(dto.genreIds
             ? {
                 genres: {
@@ -313,12 +322,16 @@ export class NovelsService {
       _sum: {
         wordCount: true,
       },
+      _count: true,
     });
 
+    const total = aggregate._sum.wordCount ?? 0;
     await this.prisma.novel.update({
       where: { id: novelId },
       data: {
-        wordCount: aggregate._sum.wordCount ?? 0,
+        wordCount: total,
+        totalWordsCount: total,
+        chaptersCount: aggregate._count,
       },
     });
   }
@@ -411,7 +424,27 @@ export class NovelsService {
             ],
           }
         : {}),
+      ...(options.query.language ? { language: options.query.language } : {}),
     };
+
+    if (options.query.updatedAfter || options.query.updatedBefore) {
+      const range: Prisma.DateTimeFilter = {};
+      if (options.query.updatedAfter) {
+        range.gte = new Date(options.query.updatedAfter);
+      }
+      if (options.query.updatedBefore) {
+        range.lte = new Date(options.query.updatedBefore);
+      }
+      where.updatedAt = range;
+    }
+
+    const combinedTags = [
+      ...(options.query.tags ?? []),
+      ...(options.query.ships ?? []).map((s) => `ship:${s}`),
+    ];
+    if (combinedTags.length) {
+      where.tags = { hasEvery: combinedTags };
+    }
 
     const novels = await this.prisma.novel.findMany({
       where,
@@ -422,7 +455,7 @@ export class NovelsService {
             cursor: { id: options.query.cursor },
           }
         : {}),
-      orderBy: this.resolveOrderBy(options.query.sort),
+      orderBy: this.resolveOrderBy(options.query.sortBy ?? options.query.sort),
       include: this.novelInclude(options.viewerId, false),
     });
 
@@ -440,17 +473,28 @@ export class NovelsService {
   }
 
   private resolveOrderBy(
-    sort?: NovelQueryDto['sort'],
+    sort?: NovelQueryDto['sort'] | NovelQueryDto['sortBy'],
   ): Prisma.NovelOrderByWithRelationInput[] {
-    if (sort === 'views') {
-      return [{ viewsCount: 'desc' }, { createdAt: 'desc' }];
+    switch (sort) {
+      case 'views':
+        return [{ viewsCount: 'desc' }, { createdAt: 'desc' }];
+      case 'popular':
+        return [{ likes: { _count: 'desc' } }, { createdAt: 'desc' }];
+      case 'recently_updated':
+        return [{ updatedAt: 'desc' }];
+      case 'most_voted':
+        return [{ votesCount: 'desc' }, { createdAt: 'desc' }];
+      case 'most_kudos':
+        return [{ kudosCount: 'desc' }, { createdAt: 'desc' }];
+      case 'most_chapters':
+        return [{ chaptersCount: 'desc' }, { createdAt: 'desc' }];
+      case 'most_words':
+        return [{ totalWordsCount: 'desc' }, { createdAt: 'desc' }];
+      case 'newest':
+      case 'recent':
+      default:
+        return [{ createdAt: 'desc' }];
     }
-
-    if (sort === 'popular') {
-      return [{ likes: { _count: 'desc' } }, { createdAt: 'desc' }];
-    }
-
-    return [{ createdAt: 'desc' }];
   }
 
   private novelInclude(
@@ -557,6 +601,20 @@ export class NovelsService {
           },
         },
       },
+      seriesNovels: {
+        include: {
+          series: {
+            select: {
+              id: true,
+              title: true,
+              slug: true,
+              type: true,
+              status: true,
+              _count: { select: { novels: true } },
+            },
+          },
+        },
+      },
       _count: {
         select: {
           chapters: true,
@@ -619,6 +677,19 @@ export class NovelsService {
         )
       : [];
 
+    const seriesNovel = novel.seriesNovels?.[0];
+    const series = seriesNovel
+      ? {
+          id: seriesNovel.series.id,
+          title: seriesNovel.series.title,
+          slug: seriesNovel.series.slug,
+          type: seriesNovel.series.type,
+          status: seriesNovel.series.status,
+          novelsCount: seriesNovel.series._count.novels,
+          orderIndex: seriesNovel.orderIndex,
+        }
+      : null;
+
     return {
       id: novel.id,
       title: novel.title,
@@ -630,10 +701,15 @@ export class NovelsService {
       tags: novel.tags,
       warnings: novel.warnings,
       isPublic: novel.isPublic,
+      language: novel.language,
       wordCount: novel.wordCount,
+      totalWordsCount: novel.totalWordsCount,
+      chaptersCount: novel.chaptersCount,
+      subscribersCount: novel.subscribersCount,
       viewsCount: novel.viewsCount,
       createdAt: novel.createdAt,
       updatedAt: novel.updatedAt,
+      series,
       author: {
         id: novel.author.id,
         username: novel.author.username,
@@ -660,6 +736,7 @@ export class NovelsService {
             hasLiked: Boolean(likes.length),
             hasBookmarked: Boolean(bookmarks.length),
             hasKudo: false,
+            isSubscribed: false,
             isAuthor: novel.authorId === viewerId,
             reading_progress: readingProgressItem
               ? {

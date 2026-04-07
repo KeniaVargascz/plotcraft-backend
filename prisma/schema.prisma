@@ -56,6 +56,8 @@ model User {
   characterKudos         CharacterKudo[]
   worldKudos             WorldKudo[]
   chapterVotes           ChapterVote[]
+  series                 Series[]
+  novelSubscriptions     NovelSubscription[]
 
   @@index([email])
   @@index([username])
@@ -196,6 +198,21 @@ enum NovelStatus {
   IN_PROGRESS
   COMPLETED
   ARCHIVED
+  HIATUS
+}
+
+enum SeriesType {
+  SAGA
+  TRILOGY
+  DILOGY
+  SERIES
+}
+
+enum SeriesStatus {
+  IN_PROGRESS
+  COMPLETED
+  ABANDONED
+  HIATUS
 }
 
 enum NovelRating {
@@ -343,6 +360,11 @@ model Novel {
   wordCount  Int         @default(0) @map("word_count")
   viewsCount Int         @default(0) @map("views_count")
   kudosCount Int         @default(0) @map("kudos_count")
+  votesCount Int         @default(0) @map("votes_count")
+  language          String @default("es") @db.VarChar(10)
+  totalWordsCount   Int    @default(0) @map("total_words_count")
+  chaptersCount     Int    @default(0) @map("chapters_count")
+  subscribersCount  Int    @default(0) @map("subscribers_count")
   createdAt  DateTime    @default(now()) @map("created_at")
   updatedAt  DateTime    @updatedAt @map("updated_at")
 
@@ -362,12 +384,65 @@ model Novel {
   writingProjects      WritingProject[]
   novelDailySnapshots  NovelDailySnapshot[]
   kudos                NovelKudo[]
+  seriesNovels         SeriesNovel[]
+  subscriptions        NovelSubscription[]
 
   @@index([authorId])
   @@index([slug])
   @@index([status, isPublic])
   @@index([createdAt])
+  @@index([language])
   @@map("novels")
+}
+
+model Series {
+  id          String       @id @default(uuid()) @db.Uuid
+  authorId    String       @map("author_id") @db.Uuid
+  title       String       @db.VarChar(300)
+  slug        String       @unique @db.VarChar(320)
+  description String?      @db.Text
+  type        SeriesType   @default(SAGA)
+  status      SeriesStatus @default(IN_PROGRESS)
+  coverUrl    String?      @map("cover_url")
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
+
+  author User          @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  novels SeriesNovel[]
+
+  @@index([authorId])
+  @@index([slug])
+  @@index([type, status])
+  @@map("series")
+}
+
+model SeriesNovel {
+  seriesId   String @map("series_id") @db.Uuid
+  novelId    String @map("novel_id") @db.Uuid
+  orderIndex Int    @map("order_index")
+
+  series Series @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+  novel  Novel  @relation(fields: [novelId], references: [id], onDelete: Cascade)
+
+  @@id([seriesId, novelId])
+  @@unique([seriesId, orderIndex])
+  @@index([novelId])
+  @@map("series_novels")
+}
+
+model NovelSubscription {
+  id        String   @id @default(uuid()) @db.Uuid
+  novelId   String   @map("novel_id") @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at")
+
+  novel Novel @relation(fields: [novelId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([novelId, userId])
+  @@index([novelId])
+  @@index([userId])
+  @@map("novel_subscriptions")
 }
 
 model NovelGenre {
@@ -1162,6 +1237,7 @@ enum NotificationType {
   NEW_CHAPTER
   NOVEL_MILESTONE
   SYSTEM
+  CHAPTER_PUBLISHED
 }
 
 model PrivacySettings {

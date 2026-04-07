@@ -17,6 +17,7 @@ import { seed14Notifications } from './14-notifications.seed';
 import { seed15Maps } from './15-maps.seed';
 import { seed16Analytics } from './16-analytics.seed';
 import { seed17FeedV2 } from './17-feed-v2.seed';
+import { seed18SeriesSubscriptions } from './18-series-subscriptions.seed';
 
 export async function main() {
   const prisma = new PrismaClient();
@@ -41,6 +42,7 @@ export async function main() {
     await seed15Maps(prisma);
     await seed16Analytics(prisma);
     await seed17FeedV2(prisma);
+    await seed18SeriesSubscriptions(prisma);
 
     console.log('\n✅ Seed completed successfully');
     console.log('\nDemo credentials:');

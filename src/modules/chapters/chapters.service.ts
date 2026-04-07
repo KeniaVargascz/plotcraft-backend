@@ -236,6 +236,38 @@ export class ChaptersService {
       });
     }
 
+    // Notify subscribers of the novel about the new chapter
+    const subscriptions = await this.prisma.novelSubscription.findMany({
+      where: { novelId: chapter.novelId },
+      select: { userId: true },
+    });
+
+    if (subscriptions.length) {
+      const notifications = subscriptions.map((sub) => ({
+        userId: sub.userId,
+        type: 'CHAPTER_PUBLISHED' as any,
+        title: 'Nuevo capitulo disponible',
+        body: `${updated.title} en ${updated.novel.title}`,
+        url: `/novelas/${updated.novel.slug}/${updated.slug}`,
+        actorId: userId,
+      }));
+
+      if (subscriptions.length > 100) {
+        setImmediate(() => {
+          this.prisma.notification
+            .createMany({ data: notifications, skipDuplicates: true })
+            .catch(() => {});
+        });
+      } else {
+        await this.prisma.notification.createMany({
+          data: notifications,
+          skipDuplicates: true,
+        });
+      }
+    }
+
+    // totalWordsCount / chaptersCount are kept in sync via recalculateNovelWordCount above
+
     return this.toChapterDetailResponse(updated);
   }
 

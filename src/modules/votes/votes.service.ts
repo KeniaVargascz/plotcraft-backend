@@ -32,6 +32,10 @@ export class VotesService {
         where: { id: chapterId },
         data: { votesCount: { increment: 1 } },
       }),
+      this.prisma.novel.update({
+        where: { id: chapter.novelId },
+        data: { votesCount: { increment: 1 } },
+      }),
     ]);
 
     const updated = await this.prisma.chapter.findUniqueOrThrow({
@@ -50,10 +54,19 @@ export class VotesService {
       throw new NotFoundException('No has votado por este capitulo');
     }
 
+    const chapter = await this.prisma.chapter.findUniqueOrThrow({
+      where: { id: existing.chapterId },
+      select: { novelId: true },
+    });
+
     await this.prisma.$transaction([
       this.prisma.chapterVote.delete({ where: { id: existing.id } }),
       this.prisma.chapter.update({
         where: { id: existing.chapterId },
+        data: { votesCount: { decrement: 1 } },
+      }),
+      this.prisma.novel.update({
+        where: { id: chapter.novelId },
         data: { votesCount: { decrement: 1 } },
       }),
     ]);

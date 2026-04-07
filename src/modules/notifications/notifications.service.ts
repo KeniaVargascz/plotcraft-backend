@@ -34,6 +34,7 @@ export class NotificationsService {
       NEW_REPLY: prefs.newReplyInThread,
       NEW_CHAPTER: prefs.newChapterFromFollowed,
       NOVEL_MILESTONE: prefs.novelMilestone,
+      CHAPTER_PUBLISHED: prefs.newChapterFromFollowed,
       SYSTEM: true,
     };
 
