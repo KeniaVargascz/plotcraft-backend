@@ -108,6 +108,38 @@ export class SearchPostsQueryDto extends SearchQueryDto {
   sort: 'relevance' | 'recent' | 'reactions' = 'relevance';
 }
 
+export class SearchUnifiedQueryDto {
+  @ApiPropertyOptional({ minLength: 2, maxLength: 200 })
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(2)
+  @MaxLength(200)
+  q!: string;
+
+  @ApiPropertyOptional({
+    isArray: true,
+    enum: [
+      'novels',
+      'worlds',
+      'characters',
+      'users',
+      'posts',
+      'threads',
+      'communities',
+    ],
+  })
+  @IsOptional()
+  types?: string[] | string;
+
+  @ApiPropertyOptional({ default: 20, maximum: 50 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(50)
+  limit = 20;
+}
+
 export class SearchSuggestionsQueryDto {
   @ApiPropertyOptional({ minLength: 2, maxLength: 200 })
   @IsString()

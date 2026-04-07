@@ -289,6 +289,8 @@ export class CommunitiesService {
       owner: { include: { profile: true } },
       linkedNovel: {
         select: {
+          authorId: true,
+          isPublic: true,
           title: true,
           slug: true,
           coverUrl: true,
@@ -304,33 +306,58 @@ export class CommunitiesService {
     viewerId?: string | null,
   ) {
     if (!viewerId) {
-      return { isMember: false, isFollowing: false, isOwner: false };
+      return {
+        isMember: false,
+        isFollowing: false,
+        isOwner: false,
+        isFollowingOwner: false,
+      };
     }
-    const [member, follow] = await Promise.all([
+    const [member, follow, ownerFollow] = await Promise.all([
       this.prisma.communityMember.findUnique({
         where: { communityId_userId: { communityId, userId: viewerId } },
       }),
       this.prisma.communityFollow.findUnique({
         where: { communityId_userId: { communityId, userId: viewerId } },
       }),
+      viewerId === ownerId
+        ? Promise.resolve(null)
+        : this.prisma.follow.findUnique({
+            where: {
+              followerId_followingId: {
+                followerId: viewerId,
+                followingId: ownerId,
+              },
+            },
+          }),
     ]);
     return {
       isMember:
         !!member && member.status === CommunityMemberStatus.ACTIVE,
       isFollowing: !!follow,
       isOwner: viewerId === ownerId,
+      isFollowingOwner: viewerId === ownerId || !!ownerFollow,
     };
   }
 
   toResponse(
-    community: Prisma.CommunityGetPayload<{
-      include: ReturnType<CommunitiesService['communityInclude']>;
-    }>,
-    ctx: { isMember: boolean; isFollowing: boolean; isOwner: boolean },
+    community: any,
+    ctx: {
+      isMember: boolean;
+      isFollowing: boolean;
+      isOwner: boolean;
+      isFollowingOwner?: boolean;
+    },
   ) {
     const hideOwner =
       community.type !== CommunityType.PRIVATE &&
       community.status === CommunityStatus.ACTIVE;
+    const linkedNovelVisibilityKnown =
+      !!community.linkedNovel &&
+      typeof community.linkedNovel.isPublic === 'boolean';
+    const canViewLinkedNovel =
+      !!community.linkedNovel &&
+      (!linkedNovelVisibilityKnown || community.linkedNovel.isPublic || ctx.isOwner);
     return {
       id: community.id,
       name: community.name,
@@ -352,7 +379,7 @@ export class CommunitiesService {
               community.owner.profile?.displayName ?? community.owner.username,
             avatarUrl: community.owner.profile?.avatarUrl ?? null,
           },
-      linkedNovel: community.linkedNovel
+      linkedNovel: community.linkedNovel && canViewLinkedNovel
         ? {
             title: community.linkedNovel.title,
             slug: community.linkedNovel.slug,
@@ -363,6 +390,7 @@ export class CommunitiesService {
       isMember: ctx.isMember,
       isFollowing: ctx.isFollowing,
       isOwner: hideOwner ? false : ctx.isOwner,
+      isFollowingOwner: ctx.isFollowingOwner ?? false,
       forums: [] as unknown[],
       createdAt: community.createdAt,
       updatedAt: community.updatedAt,

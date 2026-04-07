@@ -15,6 +15,7 @@ import {
   SearchPostsQueryDto,
   SearchQueryDto,
   SearchSuggestionsQueryDto,
+  SearchUnifiedQueryDto,
   SearchUsersQueryDto,
   SearchWorldsQueryDto,
 } from './dto/search-query.dto';
@@ -101,6 +102,20 @@ export class SearchController {
     const viewer =
       await this.authService.getOptionalJwtPayloadFromAuthHeader(authorization);
     return this.searchService.searchPosts(query, viewer?.sub ?? null);
+  }
+
+  @Public()
+  @Get('unified')
+  @ApiOperation({
+    summary: 'Busqueda unificada por tipos (foros, comunidades, posts, etc.)',
+  })
+  async searchUnified(
+    @Query() query: SearchUnifiedQueryDto,
+    @Headers('authorization') authorization?: string,
+  ) {
+    const viewer =
+      await this.authService.getOptionalJwtPayloadFromAuthHeader(authorization);
+    return this.searchService.searchUnified(query, viewer?.sub ?? null);
   }
 
   @Public()

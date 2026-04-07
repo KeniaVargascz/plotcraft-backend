@@ -35,6 +35,7 @@ import { VotesModule } from './modules/votes/votes.module';
 import { KudosModule } from './modules/kudos/kudos.module';
 import { SeriesModule } from './modules/series/series.module';
 import { CommunitiesModule } from './modules/communities/communities.module';
+import { CommunityForumsModule } from './modules/community-forums/community-forums.module';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
 import { ValidationPipe } from './common/pipes/validation.pipe';
@@ -81,6 +82,7 @@ import { PrismaModule } from './prisma/prisma.module';
     KudosModule,
     SeriesModule,
     CommunitiesModule,
+    CommunityForumsModule,
   ],
   providers: [
     { provide: APP_PIPE, useClass: ValidationPipe },

@@ -62,6 +62,7 @@ model User {
   ownedCommunities       Community[]        @relation("OwnedCommunities")
   communityMembers       CommunityMember[]
   communityFollows       CommunityFollow[]
+  forumMembers           ForumMember[]
 
   @@index([email])
   @@index([username])
@@ -1155,20 +1156,24 @@ enum ForumReactionType {
 }
 
 model ForumThread {
-  id         String        @id @default(uuid()) @db.Uuid
-  authorId   String        @map("author_id") @db.Uuid
-  category   ForumCategory @default(GENERAL)
-  title      String        @db.VarChar(300)
-  slug       String        @unique @db.VarChar(320)
-  content    String        @db.Text
-  status     ThreadStatus  @default(OPEN)
-  isPinned   Boolean       @default(false) @map("is_pinned")
-  viewsCount Int           @default(0) @map("views_count")
-  createdAt  DateTime      @default(now()) @map("created_at")
-  updatedAt  DateTime      @updatedAt @map("updated_at")
-  deletedAt  DateTime?     @map("deleted_at")
+  id             String        @id @default(uuid()) @db.Uuid
+  authorId       String        @map("author_id") @db.Uuid
+  forumId        String?       @map("forum_id") @db.Uuid
+  category       ForumCategory @default(GENERAL)
+  title          String        @db.VarChar(300)
+  slug           String        @unique @db.VarChar(320)
+  content        String        @db.Text
+  status         ThreadStatus  @default(OPEN)
+  isPinned       Boolean       @default(false) @map("is_pinned")
+  viewsCount     Int           @default(0) @map("views_count")
+  repliesCount   Int           @default(0) @map("replies_count")
+  reactionsCount Int           @default(0) @map("reactions_count")
+  createdAt      DateTime      @default(now()) @map("created_at")
+  updatedAt      DateTime      @updatedAt @map("updated_at")
+  deletedAt      DateTime?     @map("deleted_at")
 
   author    User              @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  forum     CommunityForum?   @relation(fields: [forumId], references: [id], onDelete: SetNull)
   replies   ForumReply[]
   reactions ForumReaction[]
   poll      ForumPoll?
@@ -1177,7 +1182,45 @@ model ForumThread {
   @@index([category, status, createdAt])
   @@index([authorId])
   @@index([slug])
+  @@index([forumId])
   @@map("forum_threads")
+}
+
+model CommunityForum {
+  id           String   @id @default(uuid()) @db.Uuid
+  communityId  String   @map("community_id") @db.Uuid
+  name         String   @db.VarChar(200)
+  slug         String   @db.VarChar(220)
+  description  String?  @db.VarChar(500)
+  rules        String?  @db.Text
+  isPublic     Boolean  @default(true) @map("is_public")
+  membersCount Int      @default(0) @map("members_count")
+  threadsCount Int      @default(0) @map("threads_count")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  community    Community     @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  threads      ForumThread[]
+  forumMembers ForumMember[]
+
+  @@unique([communityId, slug])
+  @@index([communityId])
+  @@map("community_forums")
+}
+
+model ForumMember {
+  id       String   @id @default(uuid()) @db.Uuid
+  forumId  String   @map("forum_id") @db.Uuid
+  userId   String   @map("user_id") @db.Uuid
+  joinedAt DateTime @default(now()) @map("joined_at")
+
+  forum CommunityForum @relation(fields: [forumId], references: [id], onDelete: Cascade)
+  user  User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([forumId, userId])
+  @@index([forumId])
+  @@index([userId])
+  @@map("forum_members")
 }
 
 model ForumThreadTag {
@@ -1505,6 +1548,7 @@ model Community {
   linkedNovel Novel?            @relation("CommunityLinkedNovel", fields: [linkedNovelId], references: [id], onDelete: SetNull)
   members     CommunityMember[]
   follows     CommunityFollow[]
+  forums      CommunityForum[]
 
   @@index([ownerId])
   @@index([type, status])

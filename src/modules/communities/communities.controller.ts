@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  GoneException,
   Headers,
   Param,
   Patch,
@@ -149,6 +150,15 @@ export class CommunitiesController {
   @ApiOperation({ summary: 'Comunidades que sigo' })
   getMyFollowed(@CurrentUser() user: JwtPayload) {
     return this.membersService.getMyFollowed(user.sub);
+  }
+
+  @Public()
+  @Post('communities/:slug/comments')
+  @ApiOperation({ summary: 'Bloqueado: comunidades no admiten comentarios' })
+  communityComments() {
+    throw new GoneException(
+      'Las comunidades no admiten comentarios directos. Usa los foros de la comunidad.',
+    );
   }
 
   @ApiBearerAuth()

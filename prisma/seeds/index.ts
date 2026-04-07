@@ -20,6 +20,7 @@ import { seed16Analytics } from './16-analytics.seed';
 import { seed17FeedV2 } from './17-feed-v2.seed';
 import { seed18SeriesSubscriptions } from './18-series-subscriptions.seed';
 import { seed19Communities } from './19-communities.seed';
+import { seed20CommunityForums } from './20-community-forums.seed';
 
 export async function main() {
   const prisma = new PrismaClient();
@@ -47,6 +48,7 @@ export async function main() {
     await seed17FeedV2(prisma);
     await seed18SeriesSubscriptions(prisma);
     await seed19Communities(prisma);
+    await seed20CommunityForums(prisma);
 
     console.log('\n✅ Seed completed successfully');
     console.log('\nDemo credentials:');

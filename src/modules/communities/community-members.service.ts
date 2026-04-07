@@ -281,14 +281,12 @@ export class CommunityMembersService {
       },
     });
 
-    return {
-      data: rows.map((f) =>
-        this.communitiesService.toResponse(f.community, {
-          isMember: false,
-          isFollowing: true,
-          isOwner: f.community.ownerId === userId,
-        }),
-      ),
-    };
+    return rows.map((f) =>
+      this.communitiesService.toResponse(f.community, {
+        isMember: false,
+        isFollowing: true,
+        isOwner: f.community.ownerId === userId,
+      }),
+    );
   }
 }

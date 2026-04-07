@@ -409,16 +409,23 @@ export class ForumService {
       );
     }
 
-    const reply = await this.prisma.forumReply.create({
-      data: {
-        threadId: thread.id,
-        authorId: userId,
-        content: dto.content.trim(),
-      },
-      include: {
-        author: { include: { profile: true } },
-        reactions: true,
-      },
+    const reply = await this.prisma.$transaction(async (tx) => {
+      const created = await tx.forumReply.create({
+        data: {
+          threadId: thread.id,
+          authorId: userId,
+          content: dto.content.trim(),
+        },
+        include: {
+          author: { include: { profile: true } },
+          reactions: true,
+        },
+      });
+      await tx.forumThread.update({
+        where: { id: thread.id },
+        data: { repliesCount: { increment: 1 } },
+      });
+      return created;
     });
 
     // Send notification to thread author (if not self-reply)
@@ -466,9 +473,15 @@ export class ForumService {
   async deleteReply(slug: string, replyId: string, userId: string) {
     const reply = await this.findOwnedReply(slug, replyId, userId);
 
-    await this.prisma.forumReply.update({
-      where: { id: reply.id },
-      data: { deletedAt: new Date() },
+    await this.prisma.$transaction(async (tx) => {
+      await tx.forumReply.update({
+        where: { id: reply.id },
+        data: { deletedAt: new Date() },
+      });
+      await tx.forumThread.update({
+        where: { id: reply.threadId },
+        data: { repliesCount: { decrement: 1 } },
+      });
     });
 
     return { message: 'Reply deleted' };
@@ -546,9 +559,13 @@ export class ForumService {
     if (existing) {
       if (existing.reactionType === reactionType) {
         // Same type → remove
-        await this.prisma.forumReaction.delete({
-          where: { id: existing.id },
-        });
+        await this.prisma.$transaction([
+          this.prisma.forumReaction.delete({ where: { id: existing.id } }),
+          this.prisma.forumThread.update({
+            where: { id: thread.id },
+            data: { reactionsCount: { decrement: 1 } },
+          }),
+        ]);
       } else {
         // Different type → update
         await this.prisma.forumReaction.update({
@@ -558,13 +575,19 @@ export class ForumService {
       }
     } else {
       // No existing → create
-      await this.prisma.forumReaction.create({
-        data: {
-          userId,
-          threadId: thread.id,
-          reactionType,
-        },
-      });
+      await this.prisma.$transaction([
+        this.prisma.forumReaction.create({
+          data: {
+            userId,
+            threadId: thread.id,
+            reactionType,
+          },
+        }),
+        this.prisma.forumThread.update({
+          where: { id: thread.id },
+          data: { reactionsCount: { increment: 1 } },
+        }),
+      ]);
     }
 
     return this.getThreadReactionCounts(thread.id, userId);
