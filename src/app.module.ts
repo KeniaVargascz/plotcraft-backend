@@ -10,6 +10,7 @@ import { DiscoveryModule } from './modules/discovery/discovery.module';
 import { FeedModule } from './modules/feed/feed.module';
 import { FollowsModule } from './modules/follows/follows.module';
 import { GenresModule } from './modules/genres/genres.module';
+import { LanguagesModule } from './modules/languages/languages.module';
 import { HighlightsModule } from './modules/highlights/highlights.module';
 import { LibraryModule } from './modules/library/library.module';
 import { NovelsModule } from './modules/novels/novels.module';
@@ -56,6 +57,7 @@ import { PrismaModule } from './prisma/prisma.module';
     SearchModule,
     DiscoveryModule,
     GenresModule,
+    LanguagesModule,
     NovelsModule,
     ChaptersModule,
     WorldsModule,

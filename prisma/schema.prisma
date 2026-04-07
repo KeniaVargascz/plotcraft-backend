@@ -336,6 +336,13 @@ enum CharacterStatus {
   TRANSFORMED
 }
 
+enum RomanceGenre {
+  BL
+  GL
+  HETEROSEXUAL
+  OTHER
+}
+
 model Genre {
   id     String       @id @default(uuid()) @db.Uuid
   slug   String       @unique @db.VarChar(80)
@@ -345,9 +352,22 @@ model Genre {
   @@map("genres")
 }
 
+model CatalogLanguage {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String   @db.VarChar(120)
+  code        String   @unique @db.VarChar(20)
+  description String?  @db.VarChar(255)
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  novels      Novel[]
+
+  @@map("cat_language")
+}
+
 model Novel {
   id         String      @id @default(uuid()) @db.Uuid
   authorId   String      @map("author_id") @db.Uuid
+  languageId String      @map("language_id") @db.Uuid
   title      String      @db.VarChar(200)
   slug       String      @unique @db.VarChar(220)
   synopsis   String?     @db.Text
@@ -361,14 +381,15 @@ model Novel {
   viewsCount Int         @default(0) @map("views_count")
   kudosCount Int         @default(0) @map("kudos_count")
   votesCount Int         @default(0) @map("votes_count")
-  language          String @default("es") @db.VarChar(10)
   totalWordsCount   Int    @default(0) @map("total_words_count")
   chaptersCount     Int    @default(0) @map("chapters_count")
   subscribersCount  Int    @default(0) @map("subscribers_count")
+  romanceGenres     RomanceGenre[] @default([]) @map("romance_genres")
   createdAt  DateTime    @default(now()) @map("created_at")
   updatedAt  DateTime    @updatedAt @map("updated_at")
 
   author           User              @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  language         CatalogLanguage   @relation(fields: [languageId], references: [id])
   chapters         Chapter[]
   genres           NovelGenre[]
   likes            NovelLike[]
@@ -386,18 +407,20 @@ model Novel {
   kudos                NovelKudo[]
   seriesNovels         SeriesNovel[]
   subscriptions        NovelSubscription[]
+  pairings             NovelPairing[]
 
   @@index([authorId])
   @@index([slug])
   @@index([status, isPublic])
   @@index([createdAt])
-  @@index([language])
+  @@index([languageId])
   @@map("novels")
 }
 
 model Series {
   id          String       @id @default(uuid()) @db.Uuid
   authorId    String       @map("author_id") @db.Uuid
+  parentId    String?      @map("parent_id") @db.Uuid
   title       String       @db.VarChar(300)
   slug        String       @unique @db.VarChar(320)
   description String?      @db.Text
@@ -407,12 +430,15 @@ model Series {
   createdAt   DateTime     @default(now()) @map("created_at")
   updatedAt   DateTime     @updatedAt @map("updated_at")
 
-  author User          @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  novels SeriesNovel[]
+  author   User          @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  parent   Series?       @relation("SeriesNesting", fields: [parentId], references: [id], onDelete: SetNull)
+  children Series[]      @relation("SeriesNesting")
+  novels   SeriesNovel[]
 
   @@index([authorId])
   @@index([slug])
   @@index([type, status])
+  @@index([parentId])
   @@map("series")
 }
 
@@ -816,6 +842,8 @@ model Character {
   timelineEvents        TimelineEvent[]
   writingTasks          WritingTask[]
   kudos                 CharacterKudo[]
+  pairingsAsA           NovelPairing[]          @relation("PairingA")
+  pairingsAsB           NovelPairing[]          @relation("PairingB")
 
   @@unique([authorId, slug])
   @@index([authorId])
@@ -839,6 +867,25 @@ model CharacterRelationship {
   @@index([sourceId])
   @@index([targetId])
   @@map("character_relationships")
+}
+
+model NovelPairing {
+  id           String   @id @default(uuid()) @db.Uuid
+  novelId      String   @map("novel_id") @db.Uuid
+  characterAId String   @map("character_a_id") @db.Uuid
+  characterBId String   @map("character_b_id") @db.Uuid
+  isMain       Boolean  @default(false) @map("is_main")
+  sortOrder    Int      @default(0) @map("sort_order")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  novel      Novel     @relation(fields: [novelId], references: [id], onDelete: Cascade)
+  characterA Character @relation("PairingA", fields: [characterAId], references: [id], onDelete: Cascade)
+  characterB Character @relation("PairingB", fields: [characterBId], references: [id], onDelete: Cascade)
+
+  @@index([novelId])
+  @@index([characterAId])
+  @@index([characterBId])
+  @@map("novel_pairings")
 }
 
 model NovelCharacter {

@@ -1,4 +1,4 @@
-import { NovelRating, NovelStatus } from '@prisma/client';
+import { NovelRating, NovelStatus, RomanceGenre } from '@prisma/client';
 import { Transform } from 'class-transformer';
 import {
   IsArray,
@@ -8,6 +8,7 @@ import {
   IsInt,
   IsOptional,
   IsString,
+  IsUUID,
   Max,
   MaxLength,
   Min,
@@ -39,6 +40,12 @@ export class NovelQueryDto {
   @IsOptional()
   @IsString()
   genre?: string;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  @Transform(({ value }) => (typeof value === 'string' ? [value] : value))
+  genres?: string[];
 
   @IsOptional()
   @IsEnum(NovelStatus)
@@ -82,9 +89,8 @@ export class NovelQueryDto {
   sortBy?: NovelSortOption;
 
   @IsOptional()
-  @IsString()
-  @MaxLength(10)
-  language?: string;
+  @IsUUID()
+  languageId?: string;
 
   @IsOptional()
   @IsDateString()
@@ -105,4 +111,28 @@ export class NovelQueryDto {
   @IsString({ each: true })
   @Transform(({ value }) => (typeof value === 'string' ? [value] : value))
   ships?: string[];
+
+  @IsOptional()
+  @IsArray()
+  @IsEnum(RomanceGenre, { each: true })
+  @Transform(({ value }) => (typeof value === 'string' ? [value] : value))
+  romanceGenres?: RomanceGenre[];
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  pairingA?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  pairingB?: string;
+
+  // Multi-pairing filter: each entry is "characterA|characterB"
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  @MaxLength(220, { each: true })
+  @Transform(({ value }) => (typeof value === 'string' ? [value] : value))
+  pairings?: string[];
 }

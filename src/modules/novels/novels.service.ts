@@ -34,6 +34,8 @@ export class NovelsService {
 
   async createNovel(userId: string, dto: CreateNovelDto) {
     await this.assertGenresExist(dto.genreIds ?? []);
+    const languageId = await this.resolveLanguageId(dto.languageId);
+    await this.assertOwnsCharacters(userId, this.collectPairingCharacterIds(dto.pairings));
 
     const slug = await this.generateUniqueNovelSlug(dto.title);
     const payload: Prisma.NovelCreateInput = {
@@ -47,7 +49,10 @@ export class NovelsService {
       warnings:
         dto.warnings?.map((warning) => warning.trim()).filter(Boolean) ?? [],
       isPublic: dto.isPublic ?? false,
-      language: dto.language ?? 'es',
+      language: {
+        connect: { id: languageId },
+      },
+      romanceGenres: dto.romanceGenres ?? [],
       author: {
         connect: { id: userId },
       },
@@ -72,7 +77,60 @@ export class NovelsService {
       include: this.novelInclude(userId, false),
     });
 
+    if (dto.pairings?.length) {
+      await this.replacePairings(novel.id, dto.pairings);
+    }
+
     return this.toNovelResponse(novel, userId);
+  }
+
+  private collectPairingCharacterIds(pairings?: { characterAId: string; characterBId: string }[]): string[] {
+    if (!pairings?.length) return [];
+    const ids = new Set<string>();
+    for (const p of pairings) {
+      ids.add(p.characterAId);
+      ids.add(p.characterBId);
+    }
+    return Array.from(ids);
+  }
+
+  private async assertOwnsCharacters(userId: string, ids: string[]): Promise<void> {
+    if (!ids.length) return;
+    const characters = await this.prisma.character.findMany({
+      where: { id: { in: ids } },
+      select: { id: true, authorId: true },
+    });
+    if (characters.length !== ids.length) {
+      throw new NotFoundException('Uno o mas personajes no existen');
+    }
+    const notOwned = characters.find((c) => c.authorId !== userId);
+    if (notOwned) {
+      throw new ForbiddenException(
+        'Solo puedes incluir personajes propios en las parejas',
+      );
+    }
+  }
+
+  private async replacePairings(
+    novelId: string,
+    pairings: { characterAId: string; characterBId: string; isMain?: boolean }[],
+  ): Promise<void> {
+    await this.prisma.$transaction([
+      this.prisma.novelPairing.deleteMany({ where: { novelId } }),
+      ...(pairings.length
+        ? [
+            this.prisma.novelPairing.createMany({
+              data: pairings.map((p, index) => ({
+                novelId,
+                characterAId: p.characterAId,
+                characterBId: p.characterBId,
+                isMain: p.isMain ?? false,
+                sortOrder: index,
+              })),
+            }),
+          ]
+        : []),
+    ]);
   }
 
   listPublicNovels(query: NovelQueryDto, viewerId?: string | null) {
@@ -168,6 +226,11 @@ export class NovelsService {
     const nextTitle = dto.title?.trim() ?? novel.title;
 
     await this.assertGenresExist(dto.genreIds ?? []);
+    const languageId =
+      dto.languageId !== undefined
+        ? await this.resolveLanguageId(dto.languageId)
+        : undefined;
+    await this.assertOwnsCharacters(userId, this.collectPairingCharacterIds(dto.pairings));
 
     if (dto.isPublic) {
       await this.assertPublicRequirements(novel.id);
@@ -211,7 +274,10 @@ export class NovelsService {
               }
             : {}),
           ...(dto.isPublic !== undefined ? { isPublic: dto.isPublic } : {}),
-          ...(dto.language !== undefined ? { language: dto.language } : {}),
+          ...(languageId !== undefined ? { languageId } : {}),
+          ...(dto.romanceGenres !== undefined
+            ? { romanceGenres: dto.romanceGenres }
+            : {}),
           ...(dto.genreIds
             ? {
                 genres: {
@@ -228,7 +294,16 @@ export class NovelsService {
       });
     });
 
-    return this.toNovelResponse(updated, userId);
+    if (dto.pairings !== undefined) {
+      await this.replacePairings(novel.id, dto.pairings);
+    }
+
+    // Re-fetch with pairings included
+    const refreshed = await this.prisma.novel.findUniqueOrThrow({
+      where: { id: novel.id },
+      include: this.novelInclude(userId, false),
+    });
+    return this.toNovelResponse(refreshed, userId);
   }
 
   async deleteNovel(slug: string, userId: string) {
@@ -396,17 +471,23 @@ export class NovelsService {
           }
         : {}),
       ...(options.onlyPublic ? { isPublic: true } : {}),
-      ...(options.query.genre
-        ? {
-            genres: {
-              some: {
-                genre: {
-                  slug: options.query.genre,
-                },
+      ...(() => {
+        const slugs = new Set<string>();
+        if (options.query.genre) slugs.add(options.query.genre);
+        for (const g of options.query.genres ?? []) {
+          if (g) slugs.add(g);
+        }
+        if (slugs.size === 0) return {};
+        return {
+          genres: {
+            some: {
+              genre: {
+                slug: { in: Array.from(slugs) },
               },
             },
-          }
-        : {}),
+          },
+        };
+      })(),
       ...(options.query.status ? { status: options.query.status } : {}),
       ...(options.query.rating ? { rating: options.query.rating } : {}),
       ...(options.query.search
@@ -424,7 +505,10 @@ export class NovelsService {
             ],
           }
         : {}),
-      ...(options.query.language ? { language: options.query.language } : {}),
+      ...(options.query.languageId ? { languageId: options.query.languageId } : {}),
+      ...(options.query.romanceGenres?.length
+        ? { romanceGenres: { hasSome: options.query.romanceGenres } }
+        : {}),
     };
 
     if (options.query.updatedAfter || options.query.updatedBefore) {
@@ -444,6 +528,59 @@ export class NovelsService {
     ];
     if (combinedTags.length) {
       where.tags = { hasEvery: combinedTags };
+    }
+
+    // Pairing filter: search by character names in any order
+    // Multi-pairing filter: each entry is "characterA|characterB"
+    // A novel matches if it has at least one pairing matching ANY of the entries (in any order)
+    const pairingEntries = (options.query.pairings ?? [])
+      .map((entry) => {
+        const [a = '', b = ''] = entry.split('|').map((s) => s.trim());
+        return { a, b };
+      })
+      .filter((entry) => entry.a || entry.b);
+
+    // Backward compatibility with single pairingA/pairingB query params
+    const legacyA = options.query.pairingA?.trim();
+    const legacyB = options.query.pairingB?.trim();
+    if (legacyA || legacyB) {
+      pairingEntries.push({ a: legacyA ?? '', b: legacyB ?? '' });
+    }
+
+    if (pairingEntries.length) {
+      const buildEntryClause = (entry: { a: string; b: string }) => {
+        if (entry.a && entry.b) {
+          return {
+            OR: [
+              {
+                AND: [
+                  { characterA: { name: { contains: entry.a, mode: 'insensitive' as const } } },
+                  { characterB: { name: { contains: entry.b, mode: 'insensitive' as const } } },
+                ],
+              },
+              {
+                AND: [
+                  { characterA: { name: { contains: entry.b, mode: 'insensitive' as const } } },
+                  { characterB: { name: { contains: entry.a, mode: 'insensitive' as const } } },
+                ],
+              },
+            ],
+          };
+        }
+        const term = (entry.a || entry.b) as string;
+        return {
+          OR: [
+            { characterA: { name: { contains: term, mode: 'insensitive' as const } } },
+            { characterB: { name: { contains: term, mode: 'insensitive' as const } } },
+          ],
+        };
+      };
+
+      where.pairings = {
+        some: {
+          OR: pairingEntries.map(buildEntryClause),
+        },
+      };
     }
 
     const novels = await this.prisma.novel.findMany({
@@ -506,6 +643,14 @@ export class NovelsService {
       author: {
         include: {
           profile: true,
+        },
+      },
+      language: {
+        select: {
+          id: true,
+          code: true,
+          name: true,
+          description: true,
         },
       },
       genres: {
@@ -615,6 +760,13 @@ export class NovelsService {
           },
         },
       },
+      pairings: {
+        orderBy: { sortOrder: 'asc' as const },
+        include: {
+          characterA: { select: { id: true, name: true, slug: true } },
+          characterB: { select: { id: true, name: true, slug: true } },
+        },
+      },
       _count: {
         select: {
           chapters: true,
@@ -701,7 +853,16 @@ export class NovelsService {
       tags: novel.tags,
       warnings: novel.warnings,
       isPublic: novel.isPublic,
-      language: novel.language,
+      languageId: novel.languageId,
+      language: novel.language
+        ? {
+            id: novel.language.id,
+            code: novel.language.code,
+            name: novel.language.name,
+            description: novel.language.description,
+          }
+        : null,
+      romanceGenres: novel.romanceGenres ?? [],
       wordCount: novel.wordCount,
       totalWordsCount: novel.totalWordsCount,
       chaptersCount: novel.chaptersCount,
@@ -710,6 +871,13 @@ export class NovelsService {
       createdAt: novel.createdAt,
       updatedAt: novel.updatedAt,
       series,
+      pairings: (novel.pairings ?? []).map((p) => ({
+        id: p.id,
+        isMain: p.isMain,
+        sortOrder: p.sortOrder,
+        characterA: p.characterA,
+        characterB: p.characterB,
+      })),
       author: {
         id: novel.author.id,
         username: novel.author.username,
@@ -900,6 +1068,32 @@ export class NovelsService {
     if (count !== genreIds.length) {
       throw new BadRequestException('Uno o mas generos no existen');
     }
+  }
+
+  private async resolveLanguageId(languageId?: string) {
+    if (languageId) {
+      const language = await this.prisma.catalogLanguage.findUnique({
+        where: { id: languageId },
+        select: { id: true, isActive: true },
+      });
+
+      if (!language || !language.isActive) {
+        throw new BadRequestException('El idioma seleccionado no existe');
+      }
+
+      return language.id;
+    }
+
+    const fallback = await this.prisma.catalogLanguage.findUnique({
+      where: { code: 'es' },
+      select: { id: true, isActive: true },
+    });
+
+    if (!fallback || !fallback.isActive) {
+      throw new BadRequestException('No existe un idioma por defecto configurado');
+    }
+
+    return fallback.id;
   }
 
   private async assertPublicRequirements(novelId: string) {

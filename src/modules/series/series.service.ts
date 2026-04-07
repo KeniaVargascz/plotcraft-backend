@@ -70,23 +70,123 @@ export class SeriesService {
   }
 
   async createSeries(userId: string, dto: CreateSeriesDto) {
+    const novelIds = dto.novelIds ?? [];
+    const childSeriesIds = dto.childSeriesIds ?? [];
+
+    // A collection must contain at least one novel or one child collection
+    if (!novelIds.length && !childSeriesIds.length) {
+      throw new UnprocessableEntityException(
+        'Una coleccion debe contener al menos una novela o una coleccion hija.',
+      );
+    }
+
+    // Verify all novels belong to the user and are not in another collection
+    if (novelIds.length) {
+      const novels = await this.prisma.novel.findMany({
+        where: { id: { in: novelIds } },
+        select: { id: true, authorId: true },
+      });
+      if (novels.length !== novelIds.length) {
+        throw new NotFoundException('Una o mas novelas no existen.');
+      }
+      const notOwned = novels.find((n) => n.authorId !== userId);
+      if (notOwned) {
+        throw new ForbiddenException(
+          'Solo puedes anadir tus propias novelas a una coleccion.',
+        );
+      }
+      const linked = await this.prisma.seriesNovel.findMany({
+        where: { novelId: { in: novelIds } },
+      });
+      if (linked.length) {
+        throw new UnprocessableEntityException(
+          'Una o mas novelas ya pertenecen a otra coleccion.',
+        );
+      }
+      const seriesType = dto.type ?? SeriesType.SAGA;
+      const limit = TYPE_LIMITS[seriesType];
+      if (limit && novelIds.length > limit) {
+        throw new UnprocessableEntityException(
+          `Una coleccion ${seriesType} solo admite ${limit} novelas.`,
+        );
+      }
+    }
+
+    // Verify all child collections belong to the user
+    if (childSeriesIds.length) {
+      const children = await this.prisma.series.findMany({
+        where: { id: { in: childSeriesIds } },
+        select: { id: true, authorId: true },
+      });
+      if (children.length !== childSeriesIds.length) {
+        throw new NotFoundException('Una o mas colecciones hijas no existen.');
+      }
+      const notOwned = children.find((c) => c.authorId !== userId);
+      if (notOwned) {
+        throw new ForbiddenException(
+          'Solo puedes anidar tus propias colecciones.',
+        );
+      }
+    }
+
     const slug = await this.generateUniqueSlug(dto.title);
-    const series = await this.prisma.series.create({
-      data: {
-        authorId: userId,
-        title: dto.title.trim(),
-        slug,
-        description: dto.description?.trim() || null,
-        type: dto.type ?? SeriesType.SAGA,
-        coverUrl: dto.coverUrl?.trim() || null,
-      },
-      include: this.seriesInclude(),
+
+    const series = await this.prisma.$transaction(async (tx) => {
+      const created = await tx.series.create({
+        data: {
+          authorId: userId,
+          title: dto.title.trim(),
+          slug,
+          description: dto.description?.trim() || null,
+          type: dto.type ?? SeriesType.SAGA,
+          coverUrl: dto.coverUrl?.trim() || null,
+        },
+      });
+
+      if (novelIds.length) {
+        await tx.seriesNovel.createMany({
+          data: novelIds.map((novelId, index) => ({
+            seriesId: created.id,
+            novelId,
+            orderIndex: index + 1,
+          })),
+        });
+      }
+
+      if (childSeriesIds.length) {
+        await tx.series.updateMany({
+          where: { id: { in: childSeriesIds } },
+          data: { parentId: created.id },
+        });
+      }
+
+      return tx.series.findUniqueOrThrow({
+        where: { id: created.id },
+        include: this.seriesInclude(),
+      });
     });
+
     return this.toSeriesResponse(series);
   }
 
   async updateSeries(slug: string, userId: string, dto: UpdateSeriesDto) {
     const series = await this.findOwnedSeries(slug, userId);
+
+    // Validate parent: must belong to same author and not be self/descendant
+    if (dto.parentId !== undefined && dto.parentId !== null) {
+      if (dto.parentId === series.id) {
+        throw new BadRequestException(
+          'Una coleccion no puede ser su propia padre.',
+        );
+      }
+      const parent = await this.prisma.series.findUnique({
+        where: { id: dto.parentId },
+      });
+      if (!parent || parent.authorId !== userId) {
+        throw new NotFoundException('Coleccion padre no encontrada');
+      }
+    }
+
     const updated = await this.prisma.series.update({
       where: { id: series.id },
       data: {
@@ -97,6 +197,7 @@ export class SeriesService {
         ...(dto.coverUrl !== undefined
           ? { coverUrl: dto.coverUrl?.trim() || null }
           : {}),
+        ...(dto.parentId !== undefined ? { parentId: dto.parentId } : {}),
       },
       include: this.seriesInclude(),
     });
@@ -181,7 +282,7 @@ export class SeriesService {
     });
     if (!link) throw new NotFoundException('Novela no encontrada en la serie');
 
-    await this.prisma.$transaction(async (tx) => {
+    const wasDeleted = await this.prisma.$transaction(async (tx) => {
       await tx.seriesNovel.delete({
         where: { seriesId_novelId: { seriesId: series.id, novelId } },
       });
@@ -189,6 +290,13 @@ export class SeriesService {
         where: { seriesId: series.id },
         orderBy: { orderIndex: 'asc' },
       });
+
+      // Auto-delete the series when no novels remain (must contain >= 1 novel)
+      if (remaining.length === 0) {
+        await tx.series.delete({ where: { id: series.id } });
+        return true;
+      }
+
       // Two-phase reassignment to avoid unique constraint collisions
       for (let i = 0; i < remaining.length; i++) {
         await tx.seriesNovel.update({
@@ -212,7 +320,16 @@ export class SeriesService {
           data: { orderIndex: i + 1 },
         });
       }
+      return false;
     });
+
+    if (wasDeleted) {
+      return {
+        deleted: true,
+        message:
+          'La coleccion fue eliminada porque era su ultimo libro. Las novelas no se eliminaron.',
+      };
+    }
 
     return this.getSeriesBySlug(series.slug);
   }
@@ -345,6 +462,8 @@ export class SeriesService {
   private seriesInclude() {
     return {
       author: { include: { profile: true } },
+      parent: { select: { id: true, title: true, slug: true } },
+      children: { select: { id: true, title: true, slug: true } },
       novels: {
         orderBy: { orderIndex: 'asc' as const },
         include: {
@@ -377,6 +496,9 @@ export class SeriesService {
       type: series.type,
       status: series.status,
       coverUrl: series.coverUrl,
+      parentId: series.parentId,
+      parent: series.parent ?? null,
+      children: series.children ?? [],
       novelsCount: series.novels.length,
       author: {
         username: series.author.username,

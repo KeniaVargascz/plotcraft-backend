@@ -1,3 +1,4 @@
+import { Type } from 'class-transformer';
 import {
   ArrayMaxSize,
   IsArray,
@@ -7,10 +8,22 @@ import {
   IsOptional,
   IsString,
   IsUUID,
-  Length,
   MaxLength,
+  ValidateNested,
 } from 'class-validator';
-import { NovelRating, NovelStatus } from '@prisma/client';
+import { NovelRating, NovelStatus, RomanceGenre } from '@prisma/client';
+
+export class NovelPairingDto {
+  @IsUUID()
+  characterAId!: string;
+
+  @IsUUID()
+  characterBId!: string;
+
+  @IsOptional()
+  @IsBoolean()
+  isMain?: boolean;
+}
 
 export class CreateNovelDto {
   @IsString()
@@ -59,7 +72,19 @@ export class CreateNovelDto {
   isPublic?: boolean;
 
   @IsOptional()
-  @IsString()
-  @Length(2, 10)
-  language?: string;
+  @IsUUID()
+  languageId?: string;
+
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(4)
+  @IsEnum(RomanceGenre, { each: true })
+  romanceGenres?: RomanceGenre[];
+
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(20)
+  @ValidateNested({ each: true })
+  @Type(() => NovelPairingDto)
+  pairings?: NovelPairingDto[];
 }

@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import { seed00Languages } from './00-languages.seed';
 import { seed00Genres } from './00-genres.seed';
 import { seed01Users } from './01-users.seed';
 import { seed02Profiles } from './02-profiles.seed';
@@ -24,6 +25,7 @@ export async function main() {
 
   try {
     console.log('🌱 Starting PlotCraft seed...\n');
+    await seed00Languages(prisma);
     await seed00Genres(prisma);
     await seed01Users(prisma);
     await seed02Profiles(prisma);

@@ -1,9 +1,12 @@
 import { SeriesType } from '@prisma/client';
 import {
+  ArrayUnique,
+  IsArray,
   IsEnum,
   IsNotEmpty,
   IsOptional,
   IsString,
+  IsUUID,
   MaxLength,
 } from 'class-validator';
 
@@ -25,4 +28,16 @@ export class CreateSeriesDto {
   @IsOptional()
   @IsString()
   coverUrl?: string;
+
+  @IsOptional()
+  @IsArray()
+  @ArrayUnique()
+  @IsUUID('4', { each: true })
+  novelIds?: string[];
+
+  @IsOptional()
+  @IsArray()
+  @ArrayUnique()
+  @IsUUID('4', { each: true })
+  childSeriesIds?: string[];
 }

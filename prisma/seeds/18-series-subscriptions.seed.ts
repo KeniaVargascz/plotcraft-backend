@@ -5,7 +5,7 @@ export async function seed18SeriesSubscriptions(
   prisma: PrismaClient,
 ): Promise<void> {
   await runSeedStep(prisma, 'series + subscriptions', async () => {
-    // 1. Ensure every novel has language = 'es' and aggregated totals
+    // 1. Ensure every novel has aggregated totals
     const novels = await prisma.novel.findMany({
       include: {
         chapters: {
@@ -20,7 +20,6 @@ export async function seed18SeriesSubscriptions(
       await prisma.novel.update({
         where: { id: novel.id },
         data: {
-          language: novel.language ?? 'es',
           totalWordsCount: total,
           chaptersCount: novel.chapters.length,
         },
