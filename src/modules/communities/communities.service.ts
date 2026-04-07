@@ -147,8 +147,8 @@ export class CommunitiesService {
           status,
           description: dto.description?.trim() || null,
           rules: dto.rules?.trim() || null,
-          coverUrl: dto.coverUrl?.trim() || null,
-          bannerUrl: dto.bannerUrl?.trim() || null,
+          coverUrl: isPrivate ? dto.coverUrl?.trim() || null : null,
+          bannerUrl: isPrivate ? dto.bannerUrl?.trim() || null : null,
           linkedNovelId: isPrivate ? dto.linkedNovelId : null,
           membersCount: 1,
         },
@@ -196,6 +196,14 @@ export class CommunitiesService {
     if (community.ownerId !== userId) {
       throw new ForbiddenException('No puedes editar esta comunidad');
     }
+    if (
+      community.type !== CommunityType.PRIVATE &&
+      community.status === CommunityStatus.ACTIVE
+    ) {
+      throw new ForbiddenException(
+        'Las comunidades publicas y de fandom aprobadas solo pueden ser editadas por administradores.',
+      );
+    }
 
     await this.prisma.community.update({
       where: { id: community.id },
@@ -226,6 +234,14 @@ export class CommunitiesService {
     if (!community) throw new NotFoundException('Comunidad no encontrada');
     if (community.ownerId !== userId) {
       throw new ForbiddenException('No puedes eliminar esta comunidad');
+    }
+    if (
+      community.type !== CommunityType.PRIVATE &&
+      community.status === CommunityStatus.ACTIVE
+    ) {
+      throw new ForbiddenException(
+        'Las comunidades publicas y de fandom aprobadas solo pueden ser eliminadas por administradores.',
+      );
     }
 
     if (community.membersCount > 1 && !force) {
@@ -312,6 +328,9 @@ export class CommunitiesService {
     }>,
     ctx: { isMember: boolean; isFollowing: boolean; isOwner: boolean },
   ) {
+    const hideOwner =
+      community.type !== CommunityType.PRIVATE &&
+      community.status === CommunityStatus.ACTIVE;
     return {
       id: community.id,
       name: community.name,
@@ -325,12 +344,14 @@ export class CommunitiesService {
       rejectionReason: community.rejectionReason,
       membersCount: community.membersCount,
       followersCount: community.followersCount,
-      owner: {
-        username: community.owner.username,
-        displayName:
-          community.owner.profile?.displayName ?? community.owner.username,
-        avatarUrl: community.owner.profile?.avatarUrl ?? null,
-      },
+      owner: hideOwner
+        ? null
+        : {
+            username: community.owner.username,
+            displayName:
+              community.owner.profile?.displayName ?? community.owner.username,
+            avatarUrl: community.owner.profile?.avatarUrl ?? null,
+          },
       linkedNovel: community.linkedNovel
         ? {
             title: community.linkedNovel.title,
@@ -341,7 +362,7 @@ export class CommunitiesService {
         : null,
       isMember: ctx.isMember,
       isFollowing: ctx.isFollowing,
-      isOwner: ctx.isOwner,
+      isOwner: hideOwner ? false : ctx.isOwner,
       forums: [] as unknown[],
       createdAt: community.createdAt,
       updatedAt: community.updatedAt,
