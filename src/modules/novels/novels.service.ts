@@ -3,11 +3,15 @@ import {
   ForbiddenException,
   Injectable,
   NotFoundException,
+  UnprocessableEntityException,
 } from '@nestjs/common';
 import {
   ChapterStatus,
+  CommunityStatus,
+  CommunityType,
   NovelRating,
   NovelStatus,
+  NovelType,
   Prisma,
 } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -37,6 +41,46 @@ export class NovelsService {
     const languageId = await this.resolveLanguageId(dto.languageId);
     await this.assertOwnsCharacters(userId, this.collectPairingCharacterIds(dto.pairings));
 
+    const novelType = dto.novelType ?? NovelType.ORIGINAL;
+    let linkedCommunityId: string | null = null;
+
+    if (novelType === NovelType.FANFIC && dto.linkedCommunityId) {
+      const community = await this.prisma.community.findUnique({
+        where: { id: dto.linkedCommunityId },
+      });
+      if (!community) {
+        throw new NotFoundException('Comunidad no encontrada.');
+      }
+      if (community.type !== CommunityType.FANDOM) {
+        throw new UnprocessableEntityException(
+          'Un fanfiction solo puede relacionarse a un Fandom',
+        );
+      }
+      if (community.status !== CommunityStatus.ACTIVE) {
+        throw new UnprocessableEntityException(
+          'La comunidad Fandom debe estar activa.',
+        );
+      }
+      linkedCommunityId = community.id;
+    } else if (dto.linkedCommunityId) {
+      throw new UnprocessableEntityException(
+        'Las novelas originales no pueden estar ligadas a una comunidad fandom.',
+      );
+    }
+
+    // FANFIC novels are auto-tagged with the "fanfiction" genre so they show up
+    // in /novelas?genres=fanfiction without forcing the author to pick it manually.
+    const genreIds = [...(dto.genreIds ?? [])];
+    if (novelType === NovelType.FANFIC) {
+      const fanfictionGenre = await this.prisma.genre.findUnique({
+        where: { slug: 'fanfiction' },
+        select: { id: true },
+      });
+      if (fanfictionGenre && !genreIds.includes(fanfictionGenre.id)) {
+        genreIds.push(fanfictionGenre.id);
+      }
+    }
+
     const slug = await this.generateUniqueNovelSlug(dto.title);
     const payload: Prisma.NovelCreateInput = {
       title: dto.title.trim(),
@@ -53,16 +97,19 @@ export class NovelsService {
         connect: { id: languageId },
       },
       romanceGenres: dto.romanceGenres ?? [],
+      novelType,
+      ...(linkedCommunityId
+        ? { linkedCommunity: { connect: { id: linkedCommunityId } } }
+        : {}),
       author: {
         connect: { id: userId },
       },
       genres: {
-        create:
-          dto.genreIds?.map((genreId) => ({
-            genre: {
-              connect: { id: genreId },
-            },
-          })) ?? [],
+        create: genreIds.map((genreId) => ({
+          genre: {
+            connect: { id: genreId },
+          },
+        })),
       },
     };
 
@@ -461,7 +508,23 @@ export class NovelsService {
 
   private async listNovels(options: NovelListOptions) {
     const limit = options.query.limit ?? 12;
+    let fandomCommunityId: string | undefined;
+    if (options.query.fandomSlug) {
+      const community = await this.prisma.community.findUnique({
+        where: { slug: options.query.fandomSlug },
+        select: { id: true },
+      });
+      fandomCommunityId = community?.id;
+      if (!fandomCommunityId) {
+        return {
+          data: [],
+          pagination: { nextCursor: null, hasMore: false, limit },
+        };
+      }
+    }
     const where: Prisma.NovelWhereInput = {
+      ...(options.query.novelType ? { novelType: options.query.novelType } : {}),
+      ...(fandomCommunityId ? { linkedCommunityId: fandomCommunityId } : {}),
       ...(options.authorId ? { authorId: options.authorId } : {}),
       ...(options.authorUsername
         ? {
@@ -744,6 +807,17 @@ export class NovelsService {
               },
             },
           },
+          communityCharacter: true,
+        },
+      },
+      linkedCommunity: {
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          type: true,
+          coverUrl: true,
+          description: true,
         },
       },
       seriesNovels: {
@@ -825,7 +899,9 @@ export class NovelsService {
     const linkedCharacters = includeChapters
       ? novel.novelCharacters.filter(
           (item) =>
-            item.character.isPublic || item.character.authorId === viewerId,
+            item.communityCharacter ||
+            (item.character &&
+              (item.character.isPublic || item.character.authorId === viewerId)),
         )
       : [];
 
@@ -863,6 +939,9 @@ export class NovelsService {
           }
         : null,
       romanceGenres: novel.romanceGenres ?? [],
+      novelType: novel.novelType,
+      linkedCommunityId: novel.linkedCommunityId,
+      linkedCommunity: novel.linkedCommunity ?? null,
       wordCount: novel.wordCount,
       totalWordsCount: novel.totalWordsCount,
       chaptersCount: novel.chaptersCount,
@@ -946,33 +1025,169 @@ export class NovelsService {
                 avatarUrl: item.world.author.profile?.avatarUrl ?? null,
               },
             })),
-            characters: linkedCharacters.map((item) => ({
-              id: item.character.id,
-              name: item.character.name,
-              slug: item.character.slug,
-              avatarUrl: item.character.avatarUrl,
-              role: item.character.role,
-              roleInNovel: item.roleInNovel ?? item.character.role,
-              status: item.character.status,
-              isPublic: item.character.isPublic,
-              author: {
-                id: item.character.author.id,
-                username: item.character.author.username,
-                displayName:
-                  item.character.author.profile?.displayName ??
-                  item.character.author.username,
-                avatarUrl: item.character.author.profile?.avatarUrl ?? null,
-              },
-              world:
-                item.character.world &&
-                (item.character.world.visibility === 'PUBLIC' ||
-                  item.character.authorId === viewerId)
-                  ? item.character.world
-                  : null,
-            })),
+            characters: linkedCharacters.map((item) => {
+              if (item.communityCharacter) {
+                return {
+                  id: item.communityCharacter.id,
+                  name: item.communityCharacter.name,
+                  slug: null,
+                  avatarUrl: item.communityCharacter.avatarUrl,
+                  role: null,
+                  roleInNovel: item.roleInNovel ?? null,
+                  status: item.communityCharacter.status,
+                  isPublic: true,
+                  source: 'community' as const,
+                  communityCharacterId: item.communityCharacter.id,
+                  author: null,
+                  world: null,
+                };
+              }
+              const ch = item.character!;
+              return {
+                id: ch.id,
+                name: ch.name,
+                slug: ch.slug,
+                avatarUrl: ch.avatarUrl,
+                role: ch.role,
+                roleInNovel: item.roleInNovel ?? ch.role,
+                status: ch.status,
+                isPublic: ch.isPublic,
+                source: 'character' as const,
+                communityCharacterId: null,
+                author: {
+                  id: ch.author.id,
+                  username: ch.author.username,
+                  displayName:
+                    ch.author.profile?.displayName ?? ch.author.username,
+                  avatarUrl: ch.author.profile?.avatarUrl ?? null,
+                },
+                world:
+                  ch.world &&
+                  (ch.world.visibility === 'PUBLIC' ||
+                    ch.authorId === viewerId)
+                    ? ch.world
+                    : null,
+              };
+            }),
           }
         : {}),
     };
+  }
+
+  async linkNovelCharacter(
+    slug: string,
+    userId: string,
+    dto: {
+      characterId?: string;
+      communityCharacterId?: string;
+      roleInNovel?: any;
+    },
+  ) {
+    const novel = await this.findOwnedNovel(slug, userId);
+
+    const hasChar = !!dto.characterId;
+    const hasCC = !!dto.communityCharacterId;
+    if (!hasChar && !hasCC) {
+      throw new BadRequestException(
+        'Debes indicar characterId o communityCharacterId.',
+      );
+    }
+    if (hasChar && hasCC) {
+      throw new BadRequestException(
+        'No puedes indicar characterId y communityCharacterId a la vez.',
+      );
+    }
+
+    if (hasCC) {
+      if (novel.novelType !== NovelType.FANFIC) {
+        throw new UnprocessableEntityException(
+          'Solo los fanfics pueden vincular personajes del catálogo de una comunidad.',
+        );
+      }
+      const cc = await this.prisma.communityCharacter.findUnique({
+        where: { id: dto.communityCharacterId! },
+      });
+      if (!cc || cc.communityId !== novel.linkedCommunityId) {
+        throw new UnprocessableEntityException(
+          'Este personaje no pertenece al fandom de esta novela.',
+        );
+      }
+      if (cc.status !== 'ACTIVE') {
+        throw new UnprocessableEntityException(
+          'Solo puedes vincular personajes aprobados del catálogo.',
+        );
+      }
+
+      const existing = await this.prisma.novelCharacter.findUnique({
+        where: {
+          novelId_communityCharacterId: {
+            novelId: novel.id,
+            communityCharacterId: cc.id,
+          },
+        },
+      });
+      if (existing) {
+        return { linked: true, id: existing.id };
+      }
+
+      const created = await this.prisma.novelCharacter.create({
+        data: {
+          novelId: novel.id,
+          communityCharacterId: cc.id,
+          roleInNovel: dto.roleInNovel ?? null,
+        },
+      });
+      return { linked: true, id: created.id };
+    }
+
+    // characterId path
+    const character = await this.prisma.character.findUnique({
+      where: { id: dto.characterId! },
+    });
+    if (!character) {
+      throw new NotFoundException('Personaje no encontrado.');
+    }
+    if (character.authorId !== userId) {
+      throw new ForbiddenException(
+        'Solo puedes vincular personajes propios a tus novelas.',
+      );
+    }
+
+    const existing = await this.prisma.novelCharacter.findUnique({
+      where: {
+        novelId_characterId: {
+          novelId: novel.id,
+          characterId: character.id,
+        },
+      },
+    });
+    if (existing) {
+      return { linked: true, id: existing.id };
+    }
+    const created = await this.prisma.novelCharacter.create({
+      data: {
+        novelId: novel.id,
+        characterId: character.id,
+        roleInNovel: dto.roleInNovel ?? character.role,
+      },
+    });
+    return { linked: true, id: created.id };
+  }
+
+  async unlinkNovelCharacter(
+    slug: string,
+    userId: string,
+    novelCharacterId: string,
+  ) {
+    const novel = await this.findOwnedNovel(slug, userId);
+    const nc = await this.prisma.novelCharacter.findUnique({
+      where: { id: novelCharacterId },
+    });
+    if (!nc || nc.novelId !== novel.id) {
+      throw new NotFoundException('Vínculo no encontrado.');
+    }
+    await this.prisma.novelCharacter.delete({ where: { id: nc.id } });
+    return { unlinked: true };
   }
 
   async listNovelCharacters(slug: string, viewerId?: string | null) {
@@ -980,7 +1195,7 @@ export class NovelsService {
 
     const items = await this.prisma.novelCharacter.findMany({
       where: { novelId: novel.id },
-      orderBy: [{ roleInNovel: 'asc' }, { character: { name: 'asc' } }],
+      orderBy: [{ roleInNovel: 'asc' }],
       include: {
         character: {
           include: {
@@ -999,38 +1214,66 @@ export class NovelsService {
             },
           },
         },
+        communityCharacter: true,
       },
     });
 
-    return items
+    const communityItems = items
+      .filter((item) => item.communityCharacter)
+      .map((item) => ({
+        id: item.communityCharacter!.id,
+        novelCharacterId: item.id,
+        name: item.communityCharacter!.name,
+        slug: null,
+        avatarUrl: item.communityCharacter!.avatarUrl,
+        description: item.communityCharacter!.description,
+        role: null,
+        roleInNovel: item.roleInNovel ?? null,
+        status: item.communityCharacter!.status,
+        isPublic: true,
+        source: 'community' as const,
+        communityCharacterId: item.communityCharacter!.id,
+        author: null,
+        world: null,
+      }));
+
+    const characterItems = items
       .filter(
         (item) =>
-          item.character.isPublic || item.character.authorId === viewerId,
+          item.character &&
+          (item.character.isPublic || item.character.authorId === viewerId),
       )
-      .map((item) => ({
-        id: item.character.id,
-        name: item.character.name,
-        slug: item.character.slug,
-        avatarUrl: item.character.avatarUrl,
-        role: item.character.role,
-        roleInNovel: item.roleInNovel ?? item.character.role,
-        status: item.character.status,
-        isPublic: item.character.isPublic,
-        author: {
-          id: item.character.author.id,
-          username: item.character.author.username,
-          displayName:
-            item.character.author.profile?.displayName ??
-            item.character.author.username,
-          avatarUrl: item.character.author.profile?.avatarUrl ?? null,
-        },
-        world:
-          item.character.world &&
-          (item.character.world.visibility === 'PUBLIC' ||
-            item.character.authorId === viewerId)
-            ? item.character.world
-            : null,
-      }));
+      .map((item) => {
+        const ch = item.character!;
+        return {
+          id: ch.id,
+          novelCharacterId: item.id,
+          name: ch.name,
+          slug: ch.slug,
+          avatarUrl: ch.avatarUrl,
+          description: null,
+          role: ch.role,
+          roleInNovel: item.roleInNovel ?? ch.role,
+          status: ch.status,
+          isPublic: ch.isPublic,
+          source: 'character' as const,
+          communityCharacterId: null,
+          author: {
+            id: ch.author.id,
+            username: ch.author.username,
+            displayName:
+              ch.author.profile?.displayName ?? ch.author.username,
+            avatarUrl: ch.author.profile?.avatarUrl ?? null,
+          },
+          world:
+            ch.world &&
+            (ch.world.visibility === 'PUBLIC' || ch.authorId === viewerId)
+              ? ch.world
+              : null,
+        };
+      });
+
+    return [...characterItems, ...communityItems];
   }
 
   private async generateUniqueNovelSlug(title: string, ignoreNovelId?: string) {

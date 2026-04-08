@@ -9,6 +9,7 @@ import {
   CommunityMemberStatus,
   CommunityStatus,
   CommunityType,
+  NovelType,
   Prisma,
 } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -112,6 +113,11 @@ export class CommunitiesService {
       if (novel.authorId !== ownerId) {
         throw new ForbiddenException(
           'Solo puedes vincular tus propias novelas.',
+        );
+      }
+      if (novel.novelType === NovelType.FANFIC) {
+        throw new UnprocessableEntityException(
+          'Un fanfiction solo puede relacionarse a un Fandom',
         );
       }
       const ageMs = Date.now() - novel.createdAt.getTime();
@@ -284,6 +290,49 @@ export class CommunitiesService {
     }
   }
 
+  async addRelatedNovel(slug: string, novelId: string, viewerId: string) {
+    const community = await this.prisma.community.findUnique({ where: { slug } });
+    if (!community) throw new NotFoundException('Comunidad no encontrada');
+    if (community.ownerId !== viewerId) {
+      throw new ForbiddenException('Solo el creador puede gestionar obras relacionadas.');
+    }
+    if (community.type !== CommunityType.PRIVATE) {
+      throw new UnprocessableEntityException(
+        'Solo las comunidades privadas pueden tener obras relacionadas.',
+      );
+    }
+    const novel = await this.prisma.novel.findUnique({ where: { id: novelId } });
+    if (!novel) throw new NotFoundException('Novela no encontrada');
+    if (novel.authorId !== viewerId) {
+      throw new ForbiddenException('Solo puedes vincular tus propias novelas.');
+    }
+    if (community.linkedNovelId === novelId) {
+      throw new UnprocessableEntityException(
+        'Esta novela ya es la novela principal de la comunidad.',
+      );
+    }
+    await this.prisma.communityRelatedNovel.upsert({
+      where: { communityId_novelId: { communityId: community.id, novelId } },
+      update: {},
+      create: { communityId: community.id, novelId },
+    });
+    return this.findBySlug(slug, viewerId);
+  }
+
+  async removeRelatedNovel(slug: string, novelId: string, viewerId: string) {
+    const community = await this.prisma.community.findUnique({ where: { slug } });
+    if (!community) throw new NotFoundException('Comunidad no encontrada');
+    if (community.ownerId !== viewerId) {
+      throw new ForbiddenException('Solo el creador puede gestionar obras relacionadas.');
+    }
+    await this.prisma.communityRelatedNovel
+      .delete({
+        where: { communityId_novelId: { communityId: community.id, novelId } },
+      })
+      .catch(() => undefined);
+    return this.findBySlug(slug, viewerId);
+  }
+
   private communityInclude() {
     return {
       owner: { include: { profile: true } },
@@ -295,6 +344,20 @@ export class CommunitiesService {
           slug: true,
           coverUrl: true,
           author: { select: { username: true } },
+        },
+      },
+      relatedNovels: {
+        orderBy: { createdAt: 'asc' },
+        include: {
+          novel: {
+            select: {
+              id: true,
+              title: true,
+              slug: true,
+              coverUrl: true,
+              isPublic: true,
+            },
+          },
         },
       },
     } satisfies Prisma.CommunityInclude;
@@ -387,6 +450,16 @@ export class CommunitiesService {
             authorUsername: community.linkedNovel.author.username,
           }
         : null,
+      relatedNovels: Array.isArray(community.relatedNovels)
+        ? community.relatedNovels
+            .filter((r: any) => r.novel && (r.novel.isPublic || ctx.isOwner))
+            .map((r: any) => ({
+              id: r.novel.id,
+              title: r.novel.title,
+              slug: r.novel.slug,
+              coverUrl: r.novel.coverUrl,
+            }))
+        : [],
       isMember: ctx.isMember,
       isFollowing: ctx.isFollowing,
       isOwner: hideOwner ? false : ctx.isOwner,
