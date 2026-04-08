@@ -1025,23 +1025,18 @@ export class NovelsService {
                 avatarUrl: item.world.author.profile?.avatarUrl ?? null,
               },
             })),
-            characters: linkedCharacters.map((item) => {
-              if (item.communityCharacter) {
-                return {
-                  id: item.communityCharacter.id,
-                  name: item.communityCharacter.name,
-                  slug: null,
-                  avatarUrl: item.communityCharacter.avatarUrl,
-                  role: null,
-                  roleInNovel: item.roleInNovel ?? null,
-                  status: item.communityCharacter.status,
-                  isPublic: true,
-                  source: 'community' as const,
-                  communityCharacterId: item.communityCharacter.id,
-                  author: null,
-                  world: null,
-                };
-              }
+            communityCharacters: linkedCharacters
+              .filter((item) => item.communityCharacter)
+              .map((item) => ({
+                id: item.communityCharacter!.id,
+                name: item.communityCharacter!.name,
+                avatarUrl: item.communityCharacter!.avatarUrl,
+                roleInNovel: item.roleInNovel ?? null,
+                status: item.communityCharacter!.status,
+              })),
+            characters: linkedCharacters
+              .filter((item) => !item.communityCharacter && item.character)
+              .map((item) => {
               const ch = item.character!;
               return {
                 id: ch.id,
