@@ -223,7 +223,7 @@ enum SeriesStatus {
 enum NovelRating {
   G
   PG
-  PG13
+  T
   R
   EXPLICIT
 }

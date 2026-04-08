@@ -685,7 +685,7 @@ async function seedNovels() {
     synopsis:
       'Una cartografa descubre que el mapa de su ciudad encubre un corredor hacia un reino anfibio donde toda deuda se paga con memoria, magia del velo, silencio ritual y oscuridad marina.',
     status: NovelStatus.IN_PROGRESS,
-    rating: NovelRating.PG13,
+    rating: NovelRating.T,
     genreSlugs: ['fantasy', 'mythology'],
     tags: ['serial', 'magia', 'ciudad-puerto'],
     isPublic: true,

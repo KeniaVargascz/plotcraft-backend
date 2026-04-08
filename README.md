@@ -34,6 +34,16 @@ pnpm prisma:migrate --name init
 pnpm prisma:seed
 ```
 
+## Cambio reciente de rating
+
+- El enum `NovelRating` usa `T` en lugar de `PG13`.
+- La migracion correspondiente vive en `prisma/migrations/20260408050000_rename_rating_pg13_to_t/`.
+- Si una base local ya fue ajustada manualmente y Prisma no registro la migracion, sincroniza el historial con:
+
+```bash
+pnpm exec prisma migrate resolve --applied 20260408050000_rename_rating_pg13_to_t
+```
+
 ## Desarrollo
 
 ```bash
