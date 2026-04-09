@@ -63,6 +63,8 @@ model User {
   communityMembers       CommunityMember[]
   communityFollows       CommunityFollow[]
   forumMembers           ForumMember[]
+  suggestedCharacters    CommunityCharacter[] @relation("SuggestedCharacters")
+  visualBoards           VisualBoard[]
 
   @@index([email])
   @@index([username])
@@ -196,6 +198,17 @@ model SavedPost {
   @@unique([postId, userId])
   @@index([userId])
   @@map("saved_posts")
+}
+
+enum NovelType {
+  ORIGINAL
+  FANFIC
+}
+
+enum CommunityCharacterStatus {
+  ACTIVE
+  SUGGESTED
+  REJECTED
 }
 
 enum NovelStatus {
@@ -341,6 +354,27 @@ enum CharacterStatus {
   TRANSFORMED
 }
 
+enum CharacterRelationshipCategory {
+  KINSHIP
+  OTHER
+}
+
+enum CharacterKinshipType {
+  PARENT
+  CHILD
+  SIBLING
+  GRANDPARENT
+  GRANDCHILD
+  UNCLE_AUNT
+  NIECE_NEPHEW
+  COUSIN
+  SPOUSE
+  STEP_PARENT
+  STEP_CHILD
+  GUARDIAN
+  WARD
+}
+
 enum RomanceGenre {
   BL
   GL
@@ -390,6 +424,9 @@ model Novel {
   chaptersCount     Int    @default(0) @map("chapters_count")
   subscribersCount  Int    @default(0) @map("subscribers_count")
   romanceGenres     RomanceGenre[] @default([]) @map("romance_genres")
+  novelType         NovelType   @default(ORIGINAL) @map("novel_type")
+  isAlternateUniverse Boolean   @default(false) @map("is_alternate_universe")
+  linkedCommunityId String?     @map("linked_community_id") @db.Uuid
   createdAt  DateTime    @default(now()) @map("created_at")
   updatedAt  DateTime    @updatedAt @map("updated_at")
 
@@ -414,12 +451,15 @@ model Novel {
   subscriptions        NovelSubscription[]
   pairings             NovelPairing[]
   linkedCommunities    Community[]        @relation("CommunityLinkedNovel")
+  linkedCommunity      Community?         @relation("FanficCommunity", fields: [linkedCommunityId], references: [id], onDelete: SetNull)
+  relatedInCommunities CommunityRelatedNovel[] @relation("RelatedInCommunities")
 
   @@index([authorId])
   @@index([slug])
   @@index([status, isPublic])
   @@index([createdAt])
   @@index([languageId])
+  @@index([linkedCommunityId])
   @@map("novels")
 }
 
@@ -446,6 +486,57 @@ model Series {
   @@index([type, status])
   @@index([parentId])
   @@map("series")
+}
+
+model VisualBoard {
+  id          String   @id @default(uuid()) @db.Uuid
+  authorId    String   @map("author_id") @db.Uuid
+  title       String   @db.VarChar(200)
+  description String?  @db.VarChar(500)
+  coverUrl    String?  @map("cover_url")
+  isPublic    Boolean  @default(false) @map("is_public")
+  linkedType  String?  @map("linked_type") @db.VarChar(50)
+  linkedId    String?  @map("linked_id") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  author   User                 @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  sections VisualBoardSection[]
+
+  @@index([authorId])
+  @@index([linkedType, linkedId])
+  @@map("visual_boards")
+}
+
+model VisualBoardSection {
+  id         String   @id @default(uuid()) @db.Uuid
+  boardId    String   @map("board_id") @db.Uuid
+  title      String   @db.VarChar(200)
+  orderIndex Int      @map("order_index")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  board VisualBoard       @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  items VisualBoardItem[]
+
+  @@index([boardId])
+  @@unique([boardId, orderIndex])
+  @@map("visual_board_sections")
+}
+
+model VisualBoardItem {
+  id         String   @id @default(uuid()) @db.Uuid
+  sectionId  String   @map("section_id") @db.Uuid
+  imageUrl   String   @map("image_url")
+  caption    String?  @db.VarChar(300)
+  orderIndex Int      @map("order_index")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  section VisualBoardSection @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+
+  @@index([sectionId])
+  @@unique([sectionId, orderIndex])
+  @@map("visual_board_items")
 }
 
 model SeriesNovel {
@@ -858,20 +949,26 @@ model Character {
 }
 
 model CharacterRelationship {
-  id          String   @id @default(uuid()) @db.Uuid
-  sourceId    String   @map("source_id") @db.Uuid
-  targetId    String   @map("target_id") @db.Uuid
-  type        String   @db.VarChar(100)
-  description String?  @db.VarChar(500)
-  isMutual    Boolean  @default(false) @map("is_mutual")
-  createdAt   DateTime @default(now()) @map("created_at")
+  id                  String                        @id @default(uuid()) @db.Uuid
+  sourceId            String                        @map("source_id") @db.Uuid
+  targetId            String                        @map("target_id") @db.Uuid
+  type                String                        @db.VarChar(100)
+  category            CharacterRelationshipCategory @default(OTHER)
+  kinshipType         CharacterKinshipType?         @map("kinship_type")
+  relationshipGroupId String?                       @map("relationship_group_id") @db.Uuid
+  description         String?                       @db.VarChar(500)
+  isMutual            Boolean                       @default(false) @map("is_mutual")
+  createdAt           DateTime                      @default(now()) @map("created_at")
 
   source Character @relation("RelationshipSource", fields: [sourceId], references: [id], onDelete: Cascade)
   target Character @relation("RelationshipTarget", fields: [targetId], references: [id], onDelete: Cascade)
 
   @@unique([sourceId, targetId, type])
+  @@index([sourceId, category])
   @@index([sourceId])
+  @@index([targetId, category])
   @@index([targetId])
+  @@index([relationshipGroupId])
   @@map("character_relationships")
 }
 
@@ -895,17 +992,42 @@ model NovelPairing {
 }
 
 model NovelCharacter {
-  novelId     String         @map("novel_id") @db.Uuid
-  characterId String         @map("character_id") @db.Uuid
-  roleInNovel CharacterRole? @map("role_in_novel")
+  id                    String         @id @default(uuid()) @db.Uuid
+  novelId               String         @map("novel_id") @db.Uuid
+  characterId           String?        @map("character_id") @db.Uuid
+  roleInNovel           CharacterRole? @map("role_in_novel")
+  communityCharacterId  String?        @map("community_character_id") @db.Uuid
 
-  novel     Novel     @relation(fields: [novelId], references: [id], onDelete: Cascade)
-  character Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  novel              Novel               @relation(fields: [novelId], references: [id], onDelete: Cascade)
+  character          Character?          @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  communityCharacter CommunityCharacter? @relation(fields: [communityCharacterId], references: [id], onDelete: SetNull)
 
-  @@id([novelId, characterId])
+  @@unique([novelId, characterId])
+  @@unique([novelId, communityCharacterId])
   @@index([novelId])
   @@index([characterId])
+  @@index([communityCharacterId])
   @@map("novel_characters")
+}
+
+model CommunityCharacter {
+  id              String                   @id @default(uuid()) @db.Uuid
+  communityId     String                   @map("community_id") @db.Uuid
+  name            String                   @db.VarChar(200)
+  description     String?                  @db.Text
+  avatarUrl       String?                  @map("avatar_url")
+  status          CommunityCharacterStatus @default(SUGGESTED)
+  suggestedById   String?                  @map("suggested_by_id") @db.Uuid
+  rejectionNote   String?                  @map("rejection_note") @db.VarChar(500)
+  createdAt       DateTime                 @default(now()) @map("created_at")
+  updatedAt       DateTime                 @updatedAt @map("updated_at")
+
+  community       Community        @relation("CommunityCharacters", fields: [communityId], references: [id], onDelete: Cascade)
+  suggestedBy     User?            @relation("SuggestedCharacters", fields: [suggestedById], references: [id], onDelete: SetNull)
+  novelCharacters NovelCharacter[]
+
+  @@index([communityId, status])
+  @@map("community_characters")
 }
 
 model SearchHistory {
@@ -1354,6 +1476,8 @@ enum NotificationType {
   COMMUNITY_APPROVED
   COMMUNITY_REJECTED
   COMMUNITY_REVIEW
+  SUGGESTION_APPROVED
+  SUGGESTION_REJECTED
 }
 
 model PrivacySettings {
@@ -1568,6 +1692,9 @@ model Community {
   follows        CommunityFollow[]
   forums         CommunityForum[]
   linkedThreads  ThreadCommunityLink[]
+  fanficNovels   Novel[]              @relation("FanficCommunity")
+  communityCharacters CommunityCharacter[] @relation("CommunityCharacters")
+  relatedNovels  CommunityRelatedNovel[] @relation("CommunityRelatedNovels")
 
   @@index([ownerId])
   @@index([type, status])
@@ -1605,6 +1732,19 @@ model CommunityFollow {
   @@index([communityId])
   @@index([userId])
   @@map("community_follows")
+}
+
+model CommunityRelatedNovel {
+  communityId String   @map("community_id") @db.Uuid
+  novelId     String   @map("novel_id") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  community Community @relation("CommunityRelatedNovels", fields: [communityId], references: [id], onDelete: Cascade)
+  novel     Novel     @relation("RelatedInCommunities", fields: [novelId], references: [id], onDelete: Cascade)
+
+  @@id([communityId, novelId])
+  @@index([novelId])
+  @@map("community_related_novels")
 }
 
 model AppSetting {

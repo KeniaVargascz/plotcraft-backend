@@ -3,7 +3,14 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { CharacterRole, CharacterStatus, Prisma } from '@prisma/client';
+import { randomUUID } from 'crypto';
+import {
+  CharacterKinshipType,
+  CharacterRelationshipCategory,
+  CharacterRole,
+  CharacterStatus,
+  Prisma,
+} from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { NovelsService } from '../novels/novels.service';
 import { createSlug } from '../novels/utils/slugify.util';
@@ -20,6 +27,13 @@ type CharacterListOptions = {
   onlyPublic?: boolean;
   worldSlug?: string;
   query: CharacterQueryDto;
+};
+
+type KinshipDefinition = {
+  label: string;
+  inverseType: CharacterKinshipType;
+  inverseLabel: string;
+  isMutual: boolean;
 };
 
 @Injectable()
@@ -244,12 +258,82 @@ export class CharactersService {
       );
     }
 
+    const description = dto.description?.trim() || null;
+
+    if (dto.kinshipType) {
+      const definition = this.resolveKinshipDefinition(dto.kinshipType);
+      const existing = await this.prisma.characterRelationship.findFirst({
+        where: {
+          OR: [
+            {
+              sourceId: source.id,
+              targetId: target.id,
+              category: CharacterRelationshipCategory.KINSHIP,
+              kinshipType: dto.kinshipType,
+            },
+            {
+              sourceId: target.id,
+              targetId: source.id,
+              category: CharacterRelationshipCategory.KINSHIP,
+              kinshipType: definition.inverseType,
+            },
+          ],
+        },
+      });
+
+      if (existing) {
+        throw new BadRequestException(
+          'La relacion de parentesco ya existe entre estos personajes',
+        );
+      }
+
+      const relationshipGroupId = randomUUID();
+      const relationship = await this.prisma.characterRelationship.create({
+        data: {
+          sourceId: source.id,
+          targetId: target.id,
+          type: definition.label,
+          category: CharacterRelationshipCategory.KINSHIP,
+          kinshipType: dto.kinshipType,
+          relationshipGroupId,
+          description,
+          isMutual: definition.isMutual,
+        },
+        include: this.relationshipInclude(),
+      });
+
+      await this.prisma.characterRelationship.create({
+        data: {
+          sourceId: target.id,
+          targetId: source.id,
+          type: definition.inverseLabel,
+          category: CharacterRelationshipCategory.KINSHIP,
+          kinshipType: definition.inverseType,
+          relationshipGroupId,
+          description,
+          isMutual: definition.isMutual,
+        },
+      });
+
+      return this.toRelationshipResponse(relationship);
+    }
+
+    const type = dto.type?.trim();
+    if (!type) {
+      throw new BadRequestException(
+        'Debes indicar un tipo de relacion o un parentesco valido',
+      );
+    }
+
+    const relationshipGroupId = dto.isMutual ? randomUUID() : null;
     const relationship = await this.prisma.characterRelationship.create({
       data: {
         sourceId: source.id,
         targetId: target.id,
-        type: dto.type.trim(),
-        description: dto.description?.trim() || null,
+        type,
+        category: dto.category ?? CharacterRelationshipCategory.OTHER,
+        relationshipGroupId,
+        description,
         isMutual: dto.isMutual ?? false,
       },
       include: this.relationshipInclude(),
@@ -261,18 +345,22 @@ export class CharactersService {
           sourceId_targetId_type: {
             sourceId: target.id,
             targetId: source.id,
-            type: dto.type.trim(),
+            type,
           },
         },
         update: {
-          description: dto.description?.trim() || null,
+          category: dto.category ?? CharacterRelationshipCategory.OTHER,
+          relationshipGroupId,
+          description,
           isMutual: true,
         },
         create: {
           sourceId: target.id,
           targetId: source.id,
-          type: dto.type.trim(),
-          description: dto.description?.trim() || null,
+          type,
+          category: dto.category ?? CharacterRelationshipCategory.OTHER,
+          relationshipGroupId,
+          description,
           isMutual: true,
         },
       });
@@ -303,18 +391,24 @@ export class CharactersService {
       throw new NotFoundException('Relacion no encontrada');
     }
 
-    await this.prisma.characterRelationship.delete({
-      where: { id: relationship.id },
-    });
-
-    if (relationship.isMutual) {
+    if (relationship.relationshipGroupId) {
       await this.prisma.characterRelationship.deleteMany({
-        where: {
-          sourceId: relationship.targetId,
-          targetId: relationship.sourceId,
-          type: relationship.type,
-        },
+        where: { relationshipGroupId: relationship.relationshipGroupId },
       });
+    } else {
+      await this.prisma.characterRelationship.delete({
+        where: { id: relationship.id },
+      });
+
+      if (relationship.isMutual) {
+        await this.prisma.characterRelationship.deleteMany({
+          where: {
+            sourceId: relationship.targetId,
+            targetId: relationship.sourceId,
+            type: relationship.type,
+          },
+        });
+      }
     }
 
     return { message: 'Relacion eliminada correctamente' };
@@ -384,7 +478,11 @@ export class CharactersService {
     const character = await this.findCharacter(authorUsername, slug, viewerId);
     const relationships = await this.prisma.characterRelationship.findMany({
       where: { sourceId: character.id },
-      orderBy: [{ isMutual: 'desc' }, { createdAt: 'desc' }],
+      orderBy: [
+        { category: 'asc' },
+        { isMutual: 'desc' },
+        { createdAt: 'desc' },
+      ],
       include: this.relationshipInclude(),
     });
 
@@ -472,8 +570,9 @@ export class CharactersService {
 
     return items
       .filter(
-        (item) =>
-          item.character.isPublic || item.character.authorId === viewerId,
+        (item): item is typeof item & { character: NonNullable<typeof item.character> } =>
+          !!item.character &&
+          (item.character.isPublic || item.character.authorId === viewerId),
       )
       .map((item) => ({
         ...this.toCharacterResponse(item.character, viewerId),
@@ -752,6 +851,10 @@ export class CharactersService {
     return {
       id: relationship.id,
       type: relationship.type,
+      label: relationship.type,
+      category: relationship.category,
+      kinshipType: relationship.kinshipType,
+      relationshipGroupId: relationship.relationshipGroupId,
       description: relationship.description,
       isMutual: relationship.isMutual,
       createdAt: relationship.createdAt,
@@ -770,6 +873,106 @@ export class CharactersService {
         world: relationship.target.world,
       },
     };
+  }
+
+  private resolveKinshipDefinition(
+    kinshipType: CharacterKinshipType,
+  ): KinshipDefinition {
+    switch (kinshipType) {
+      case CharacterKinshipType.PARENT:
+        return {
+          label: 'Padre/Madre',
+          inverseType: CharacterKinshipType.CHILD,
+          inverseLabel: 'Hijo/Hija',
+          isMutual: false,
+        };
+      case CharacterKinshipType.CHILD:
+        return {
+          label: 'Hijo/Hija',
+          inverseType: CharacterKinshipType.PARENT,
+          inverseLabel: 'Padre/Madre',
+          isMutual: false,
+        };
+      case CharacterKinshipType.SIBLING:
+        return {
+          label: 'Hermano/a',
+          inverseType: CharacterKinshipType.SIBLING,
+          inverseLabel: 'Hermano/a',
+          isMutual: true,
+        };
+      case CharacterKinshipType.GRANDPARENT:
+        return {
+          label: 'Abuelo/a',
+          inverseType: CharacterKinshipType.GRANDCHILD,
+          inverseLabel: 'Nieto/a',
+          isMutual: false,
+        };
+      case CharacterKinshipType.GRANDCHILD:
+        return {
+          label: 'Nieto/a',
+          inverseType: CharacterKinshipType.GRANDPARENT,
+          inverseLabel: 'Abuelo/a',
+          isMutual: false,
+        };
+      case CharacterKinshipType.UNCLE_AUNT:
+        return {
+          label: 'Tio/Tia',
+          inverseType: CharacterKinshipType.NIECE_NEPHEW,
+          inverseLabel: 'Sobrino/a',
+          isMutual: false,
+        };
+      case CharacterKinshipType.NIECE_NEPHEW:
+        return {
+          label: 'Sobrino/a',
+          inverseType: CharacterKinshipType.UNCLE_AUNT,
+          inverseLabel: 'Tio/Tia',
+          isMutual: false,
+        };
+      case CharacterKinshipType.COUSIN:
+        return {
+          label: 'Primo/a',
+          inverseType: CharacterKinshipType.COUSIN,
+          inverseLabel: 'Primo/a',
+          isMutual: true,
+        };
+      case CharacterKinshipType.SPOUSE:
+        return {
+          label: 'Conyuge',
+          inverseType: CharacterKinshipType.SPOUSE,
+          inverseLabel: 'Conyuge',
+          isMutual: true,
+        };
+      case CharacterKinshipType.STEP_PARENT:
+        return {
+          label: 'Padre/Madre adoptivo',
+          inverseType: CharacterKinshipType.STEP_CHILD,
+          inverseLabel: 'Hijo/Hija adoptivo',
+          isMutual: false,
+        };
+      case CharacterKinshipType.STEP_CHILD:
+        return {
+          label: 'Hijo/Hija adoptivo',
+          inverseType: CharacterKinshipType.STEP_PARENT,
+          inverseLabel: 'Padre/Madre adoptivo',
+          isMutual: false,
+        };
+      case CharacterKinshipType.GUARDIAN:
+        return {
+          label: 'Tutor/a',
+          inverseType: CharacterKinshipType.WARD,
+          inverseLabel: 'Tutelado/a',
+          isMutual: false,
+        };
+      case CharacterKinshipType.WARD:
+        return {
+          label: 'Tutelado/a',
+          inverseType: CharacterKinshipType.GUARDIAN,
+          inverseLabel: 'Tutor/a',
+          isMutual: false,
+        };
+      default:
+        throw new BadRequestException('Tipo de parentesco no soportado');
+    }
   }
 
   private async resolveOwnedWorldId(userId: string, worldId?: string | null) {
