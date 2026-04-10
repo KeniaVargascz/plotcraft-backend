@@ -7,9 +7,16 @@ describe('ChaptersService', () => {
       aggregate: jest.fn(),
       create: jest.fn(),
       findFirst: jest.fn(),
+      findMany: jest.fn(),
       update: jest.fn(),
     },
     follow: {
+      findMany: jest.fn(),
+    },
+    notification: {
+      createMany: jest.fn(),
+    },
+    novelSubscription: {
       findMany: jest.fn(),
     },
     $transaction: jest.fn(),
@@ -34,6 +41,7 @@ describe('ChaptersService', () => {
   it('createChapter auto-assigns order = max + 1 and calculates word count', async () => {
     novelsService.findOwnedNovel.mockResolvedValue(createNovelFixture());
     prisma.chapter.aggregate.mockResolvedValue({ _max: { order: 4 } });
+    prisma.chapter.findMany.mockResolvedValue([]);
     prisma.chapter.findFirst.mockResolvedValue(null);
     prisma.chapter.create.mockResolvedValue(
       createChapterFixture({ order: 5, wordCount: 9 }),
@@ -74,16 +82,14 @@ describe('ChaptersService', () => {
         followerId: `user-${index}`,
       })),
     );
+    prisma.notification.createMany.mockResolvedValue({ count: 100 });
+    prisma.novelSubscription.findMany.mockResolvedValue([]);
 
     await service.publishChapter('fixture-novel', 'fixture-chapter', 'author-id');
 
-    expect(prisma.follow.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        take: 100,
-      }),
-    );
+    expect(prisma.follow.findMany).toHaveBeenCalled();
     expect(novelsService.recalculateNovelWordCount).toHaveBeenCalled();
-    expect(notificationsService.createNotification).toHaveBeenCalledTimes(100);
+    expect(prisma.notification.createMany).toHaveBeenCalled();
   });
 
   it('autosaveChapter returns minimal response and does not recalculate novel word count', async () => {

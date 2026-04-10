@@ -30,6 +30,12 @@ describe('NovelsService', () => {
       delete: jest.fn(),
       create: jest.fn(),
     },
+    catalogLanguage: {
+      findUnique: jest.fn(),
+    },
+    character: {
+      findMany: jest.fn(),
+    },
   } as any;
 
   const notificationsService = {
@@ -45,7 +51,10 @@ describe('NovelsService', () => {
 
   it('createNovel generates slug and assigns authorId from authenticated user', async () => {
     prisma.genre.count.mockResolvedValue(0);
+    prisma.catalogLanguage.findUnique.mockResolvedValue({ id: 'lang-es', isActive: true });
+    prisma.character.findMany.mockResolvedValue([]);
     prisma.novel.findFirst.mockResolvedValue(null);
+    prisma.novel.findUnique.mockResolvedValue(null);
     prisma.novel.create.mockResolvedValue(
       createNovelFixture({
         slug: 'my-title',
@@ -74,6 +83,8 @@ describe('NovelsService', () => {
 
   it('createNovel throws when trying to publish without chapters', async () => {
     prisma.genre.count.mockResolvedValue(0);
+    prisma.catalogLanguage.findUnique.mockResolvedValue({ id: 'lang-es', isActive: true });
+    prisma.character.findMany.mockResolvedValue([]);
     prisma.novel.findFirst.mockResolvedValue(null);
 
     await expect(

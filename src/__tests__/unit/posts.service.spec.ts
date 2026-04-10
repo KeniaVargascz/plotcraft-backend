@@ -33,6 +33,8 @@ describe('PostsService', () => {
         authorId: 'user-id',
         content: 'Hola mundo',
         type: 'TEXT',
+        imageUrls: [],
+        tags: [],
       },
     });
   });
