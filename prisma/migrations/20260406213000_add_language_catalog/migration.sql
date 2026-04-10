@@ -29,27 +29,19 @@ ON CONFLICT ("code") DO NOTHING;
 
 ALTER TABLE "novels" ADD COLUMN "language_id" UUID;
 
-UPDATE "novels" AS n
-SET "language_id" = cl."id"
-FROM "cat_language" AS cl
-WHERE cl."code" = n."language";
-
 UPDATE "novels"
 SET "language_id" = (
     SELECT "id"
     FROM "cat_language"
-    WHERE "code" = 'other'
+    WHERE "code" = 'es'
 )
 WHERE "language_id" IS NULL;
 
 ALTER TABLE "novels" ALTER COLUMN "language_id" SET NOT NULL;
 
-DROP INDEX IF EXISTS "novels_language_idx";
 CREATE INDEX "novels_language_id_idx" ON "novels"("language_id");
 
 ALTER TABLE "novels"
 ADD CONSTRAINT "novels_language_id_fkey"
 FOREIGN KEY ("language_id") REFERENCES "cat_language"("id")
 ON DELETE RESTRICT ON UPDATE CASCADE;
-
-ALTER TABLE "novels" DROP COLUMN "language";
