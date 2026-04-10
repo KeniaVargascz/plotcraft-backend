@@ -39,6 +39,8 @@ export class NotificationsService {
       COMMUNITY_APPROVED: true,
       COMMUNITY_REJECTED: true,
       COMMUNITY_REVIEW: true,
+      SUGGESTION_APPROVED: true,
+      SUGGESTION_REJECTED: true,
     };
 
     if (!typeEnabledMap[dto.type]) {

@@ -162,6 +162,28 @@ export class CommunitiesController {
   }
 
   @ApiBearerAuth()
+  @Post('communities/:slug/related-novels')
+  @ApiOperation({ summary: 'Vincular una novela propia como obra relacionada' })
+  addRelatedNovel(
+    @Param('slug') slug: string,
+    @Body() body: { novelId: string },
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.communitiesService.addRelatedNovel(slug, body.novelId, user.sub);
+  }
+
+  @ApiBearerAuth()
+  @Delete('communities/:slug/related-novels/:novelId')
+  @ApiOperation({ summary: 'Desvincular una obra relacionada' })
+  removeRelatedNovel(
+    @Param('slug') slug: string,
+    @Param('novelId') novelId: string,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.communitiesService.removeRelatedNovel(slug, novelId, user.sub);
+  }
+
+  @ApiBearerAuth()
   @Get('me/communities/owned')
   @ApiOperation({ summary: 'Comunidades de las que soy creador' })
   getMyOwned(@CurrentUser() user: JwtPayload) {

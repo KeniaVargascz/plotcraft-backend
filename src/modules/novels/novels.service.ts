@@ -98,6 +98,7 @@ export class NovelsService {
       },
       romanceGenres: dto.romanceGenres ?? [],
       novelType,
+      isAlternateUniverse: dto.isAlternateUniverse ?? false,
       ...(linkedCommunityId
         ? { linkedCommunity: { connect: { id: linkedCommunityId } } }
         : {}),
@@ -324,6 +325,9 @@ export class NovelsService {
           ...(languageId !== undefined ? { languageId } : {}),
           ...(dto.romanceGenres !== undefined
             ? { romanceGenres: dto.romanceGenres }
+            : {}),
+          ...(dto.isAlternateUniverse !== undefined
+            ? { isAlternateUniverse: dto.isAlternateUniverse }
             : {}),
           ...(dto.genreIds
             ? {
@@ -940,6 +944,7 @@ export class NovelsService {
         : null,
       romanceGenres: novel.romanceGenres ?? [],
       novelType: novel.novelType,
+      isAlternateUniverse: novel.isAlternateUniverse,
       linkedCommunityId: novel.linkedCommunityId,
       linkedCommunity: novel.linkedCommunity ?? null,
       wordCount: novel.wordCount,

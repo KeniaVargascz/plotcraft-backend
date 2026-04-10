@@ -15,6 +15,7 @@ import { Public } from '../../common/decorators/public.decorator';
 import { AuthService } from '../auth/auth.service';
 import type { JwtPayload } from '../auth/strategies/jwt.strategy';
 import { CreateNovelDto } from './dto/create-novel.dto';
+import { LinkNovelCharacterDto } from './dto/link-novel-character.dto';
 import { NovelQueryDto } from './dto/novel-query.dto';
 import { UpdateNovelDto } from './dto/update-novel.dto';
 import { KudosService } from './kudos.service';
@@ -113,6 +114,32 @@ export class NovelsController {
       await this.authService.getOptionalJwtPayloadFromAuthHeader(authorization);
 
     return this.novelsService.listNovelCharacters(slug, viewer?.sub ?? null);
+  }
+
+  @ApiBearerAuth()
+  @Post(':slug/characters')
+  @ApiOperation({ summary: 'Vincular un personaje (propio o de catálogo) a una novela' })
+  linkNovelCharacter(
+    @Param('slug') slug: string,
+    @CurrentUser() user: JwtPayload,
+    @Body() dto: LinkNovelCharacterDto,
+  ) {
+    return this.novelsService.linkNovelCharacter(slug, user.sub, dto);
+  }
+
+  @ApiBearerAuth()
+  @Delete(':slug/characters/:novelCharacterId')
+  @ApiOperation({ summary: 'Desvincular un personaje de una novela' })
+  unlinkNovelCharacter(
+    @Param('slug') slug: string,
+    @Param('novelCharacterId') novelCharacterId: string,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.novelsService.unlinkNovelCharacter(
+      slug,
+      user.sub,
+      novelCharacterId,
+    );
   }
 
   @ApiBearerAuth()

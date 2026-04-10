@@ -21,6 +21,10 @@ import { seed17FeedV2 } from './17-feed-v2.seed';
 import { seed18SeriesSubscriptions } from './18-series-subscriptions.seed';
 import { seed19Communities } from './19-communities.seed';
 import { seed20CommunityForums } from './20-community-forums.seed';
+import { seed21FanficCommunityCharacters } from './21-fanfic-community-characters.seed';
+import { seed22TestUserFanfic } from './22-test-user-fanfic.seed';
+import { seed23VisualBoards } from './23-visual-boards.seed';
+import { seed24CharacterMarkdownTemplates } from './24-character-markdown-templates.seed';
 
 export async function main() {
   const prisma = new PrismaClient();
@@ -49,6 +53,10 @@ export async function main() {
     await seed18SeriesSubscriptions(prisma);
     await seed19Communities(prisma);
     await seed20CommunityForums(prisma);
+    await seed21FanficCommunityCharacters(prisma);
+    await seed22TestUserFanfic(prisma);
+    await seed23VisualBoards(prisma);
+    await seed24CharacterMarkdownTemplates(prisma);
 
     console.log('\n✅ Seed completed successfully');
     console.log('\nDemo credentials:');

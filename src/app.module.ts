@@ -36,6 +36,9 @@ import { KudosModule } from './modules/kudos/kudos.module';
 import { SeriesModule } from './modules/series/series.module';
 import { CommunitiesModule } from './modules/communities/communities.module';
 import { CommunityForumsModule } from './modules/community-forums/community-forums.module';
+import { CommunityCharactersModule } from './modules/community-characters/community-characters.module';
+import { MediaModule } from './modules/media/media.module';
+import { VisualBoardsModule } from './modules/visual-boards/visual-boards.module';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
 import { ValidationPipe } from './common/pipes/validation.pipe';
@@ -83,6 +86,9 @@ import { PrismaModule } from './prisma/prisma.module';
     SeriesModule,
     CommunitiesModule,
     CommunityForumsModule,
+    CommunityCharactersModule,
+    MediaModule,
+    VisualBoardsModule,
   ],
   providers: [
     { provide: APP_PIPE, useClass: ValidationPipe },

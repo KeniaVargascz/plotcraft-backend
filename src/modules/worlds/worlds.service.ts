@@ -3,8 +3,9 @@ import {
   ForbiddenException,
   Injectable,
   NotFoundException,
+  UnprocessableEntityException,
 } from '@nestjs/common';
-import { Prisma, WorldVisibility } from '@prisma/client';
+import { NovelType, Prisma, WorldVisibility } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { NovelsService } from '../novels/novels.service';
 import { createSlug } from '../novels/utils/slugify.util';
@@ -226,6 +227,12 @@ export class WorldsService {
   async linkNovel(userId: string, slug: string, novelSlug: string) {
     const world = await this.findOwnedWorld(userId, slug);
     const novel = await this.novelsService.findOwnedNovel(novelSlug, userId);
+
+    if (novel.novelType === NovelType.FANFIC && !novel.isAlternateUniverse) {
+      throw new UnprocessableEntityException(
+        'Solo los fanfics marcados como AU pueden tener mundos vinculados.',
+      );
+    }
 
     await this.prisma.novelWorld.upsert({
       where: {

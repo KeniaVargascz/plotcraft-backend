@@ -1,4 +1,4 @@
-import { NovelRating, NovelStatus, RomanceGenre } from '@prisma/client';
+import { NovelRating, NovelStatus, NovelType, RomanceGenre } from '@prisma/client';
 import { Transform } from 'class-transformer';
 import {
   IsArray,
@@ -135,4 +135,13 @@ export class NovelQueryDto {
   @MaxLength(220, { each: true })
   @Transform(({ value }) => (typeof value === 'string' ? [value] : value))
   pairings?: string[];
+
+  @IsOptional()
+  @IsEnum(NovelType)
+  novelType?: NovelType;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(220)
+  fandomSlug?: string;
 }

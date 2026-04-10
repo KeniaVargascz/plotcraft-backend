@@ -11,7 +11,7 @@ import {
   MaxLength,
   ValidateNested,
 } from 'class-validator';
-import { NovelRating, NovelStatus, RomanceGenre } from '@prisma/client';
+import { NovelRating, NovelStatus, NovelType, RomanceGenre } from '@prisma/client';
 
 export class NovelPairingDto {
   @IsUUID()
@@ -87,4 +87,16 @@ export class CreateNovelDto {
   @ValidateNested({ each: true })
   @Type(() => NovelPairingDto)
   pairings?: NovelPairingDto[];
+
+  @IsOptional()
+  @IsEnum(NovelType)
+  novelType?: NovelType;
+
+  @IsOptional()
+  @IsBoolean()
+  isAlternateUniverse?: boolean;
+
+  @IsOptional()
+  @IsUUID()
+  linkedCommunityId?: string;
 }

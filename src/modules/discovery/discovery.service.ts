@@ -395,7 +395,7 @@ export class DiscoveryService {
         (novelOrder.get(left.novelId) ?? Number.MAX_SAFE_INTEGER) -
         (novelOrder.get(right.novelId) ?? Number.MAX_SAFE_INTEGER),
     )) {
-      if (!deduped.has(item.character.id)) {
+      if (item.character && !deduped.has(item.character.id)) {
         deduped.set(item.character.id, this.toCharacterSummary(item.character));
       }
       if (deduped.size >= limit) {
