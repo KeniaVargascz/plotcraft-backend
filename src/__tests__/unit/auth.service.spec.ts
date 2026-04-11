@@ -55,7 +55,9 @@ describe('AuthService', () => {
     jest.clearAllMocks();
     bcryptHash.mockReset();
     bcryptCompare.mockReset();
-    service = new AuthService(prisma, usersService, jwtService, configService);
+    const otpService = { create: jest.fn(), verify: jest.fn() } as any;
+    const emailService = { sendOtpVerification: jest.fn(), sendWelcome: jest.fn() } as any;
+    service = new AuthService(prisma, usersService, jwtService, configService, otpService, emailService);
   });
 
   it('register hashes password and creates profile in a transaction', async () => {

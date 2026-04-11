@@ -12,6 +12,9 @@ model User {
   email             String             @unique @db.VarChar(255)
   username          String             @unique @db.VarChar(30)
   passwordHash      String             @map("password_hash")
+  nickname      String?          @db.VarChar(50)
+  birthdate     DateTime?
+  status        UserStatus       @default(ACTIVE)
   isActive          Boolean            @default(true) @map("is_active")
   isAdmin           Boolean            @default(false) @map("is_admin")
   createdAt         DateTime           @default(now()) @map("created_at")
@@ -65,6 +68,7 @@ model User {
   forumMembers           ForumMember[]
   suggestedCharacters    CommunityCharacter[] @relation("SuggestedCharacters")
   visualBoards           VisualBoard[]
+  otpCodes           OtpCode[]
 
   @@index([email])
   @@index([username])
@@ -1753,4 +1757,30 @@ model AppSetting {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@map("app_settings")
+}
+
+enum UserStatus {
+  PENDING_VERIFICATION
+  ACTIVE
+  SUSPENDED
+  BANNED
+}
+
+enum OtpType {
+  REGISTER_VERIFY
+  PASSWORD_RESET
+}
+
+model OtpCode {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  code      String
+  type      OtpType
+  expiresAt DateTime  @map("expires_at")
+  usedAt    DateTime? @map("used_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  @@index([userId, type])
+  @@map("otp_codes")
 }

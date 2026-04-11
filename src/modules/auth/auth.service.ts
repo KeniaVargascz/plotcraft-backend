@@ -1,6 +1,10 @@
 import {
+  BadRequestException,
   ConflictException,
+  HttpException,
+  HttpStatus,
   Injectable,
+  Logger,
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -9,9 +13,14 @@ import { Prisma } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../../prisma/prisma.service';
 import { UsersService } from '../users/users.service';
+import { OtpService } from '../otp/otp.service';
+import { EmailService } from '../email/email.service';
+import { OTP_EXPIRY_MINUTES, OTP_RESEND_COOLDOWN } from '../otp/otp.constants';
 import { LoginDto } from './dto/login.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { RegisterDto } from './dto/register.dto';
+import { RegisterInitiateDto } from './dto/register-initiate.dto';
+import { RegisterVerifyDto } from './dto/register-verify.dto';
 import type { JwtPayload } from './strategies/jwt.strategy';
 import { APP_CONFIG } from '../../config/constants';
 
@@ -20,12 +29,15 @@ type SessionUser = Prisma.UserGetPayload<{ include: { profile: true } }>;
 @Injectable()
 export class AuthService {
   private readonly saltRounds = APP_CONFIG.auth.saltRounds;
+  private readonly logger = new Logger(AuthService.name);
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly usersService: UsersService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
+    private readonly otpService: OtpService,
+    private readonly emailService: EmailService,
   ) {}
 
   async register(dto: RegisterDto) {
@@ -158,6 +170,145 @@ export class AuthService {
 
   async me(userId: string) {
     return this.usersService.getCurrentUser(userId);
+  }
+
+  async registerInitiate(dto: RegisterInitiateDto): Promise<void> {
+    const [existingUsername, existingEmail] = await Promise.all([
+      this.prisma.user.findUnique({ where: { username: dto.username } }),
+      this.prisma.user.findUnique({ where: { email: dto.email } }),
+    ]);
+
+    if (existingUsername) {
+      throw new ConflictException({ field: 'username', code: 'USERNAME_TAKEN', message: 'username already taken' });
+    }
+    if (existingEmail) {
+      throw new ConflictException({ field: 'email', code: 'EMAIL_TAKEN', message: 'email already taken' });
+    }
+
+    const passwordHash = await bcrypt.hash(dto.password, this.saltRounds);
+
+    const user = await this.prisma.$transaction(async (tx) => {
+      const createdUser = await tx.user.create({
+        data: {
+          email: dto.email,
+          username: dto.username,
+          passwordHash,
+          nickname: dto.nickname,
+          birthdate: dto.birthdate ? new Date(dto.birthdate) : null,
+          status: 'PENDING_VERIFICATION',
+          isActive: false,
+        },
+      });
+
+      await tx.profile.create({
+        data: {
+          userId: createdUser.id,
+          displayName: dto.nickname,
+        },
+      });
+
+      return createdUser;
+    });
+
+    const plainCode = await this.otpService.create(user.id, 'REGISTER_VERIFY');
+
+    const result = await this.emailService.sendOtpVerification({
+      to: user.email,
+      username: user.username,
+      code: plainCode,
+      expiresInMinutes: OTP_EXPIRY_MINUTES,
+    });
+
+    if (!result.success) {
+      this.logger.warn(`Email OTP no enviado para userId=${user.id}: ${result.error}`);
+    }
+  }
+
+  async registerVerify(dto: RegisterVerifyDto) {
+    const user = await this.prisma.user.findUnique({
+      where: { email: dto.email.toLowerCase().trim() },
+      include: { profile: true },
+    });
+
+    if (!user || user.status !== 'PENDING_VERIFICATION') {
+      throw new BadRequestException('Solicitud de verificacion invalida');
+    }
+
+    const result = await this.otpService.verify(user.id, dto.code, 'REGISTER_VERIFY');
+
+    if (!result.valid) {
+      switch (result.reason) {
+        case 'expired':
+          throw new HttpException({ code: 'OTP_EXPIRED' }, HttpStatus.GONE);
+        case 'too_many_attempts':
+          throw new HttpException({ code: 'TOO_MANY_ATTEMPTS' }, HttpStatus.TOO_MANY_REQUESTS);
+        default:
+          throw new BadRequestException({ code: 'OTP_INVALID' });
+      }
+    }
+
+    const activatedUser = await this.prisma.user.update({
+      where: { id: user.id },
+      data: { status: 'ACTIVE', isActive: true },
+      include: { profile: true },
+    });
+
+    this.emailService
+      .sendWelcome({
+        to: user.email,
+        username: user.username,
+        nickname: user.nickname ?? user.username,
+      })
+      .catch((err) => this.logger.warn('Welcome email failed:', err));
+
+    return {
+      user: this.usersService.toUserEntity(activatedUser),
+      ...(await this.createSession(activatedUser)),
+    };
+  }
+
+  async resendOtp(dto: { email: string }): Promise<void> {
+    const user = await this.prisma.user.findUnique({
+      where: { email: dto.email.toLowerCase().trim() },
+    });
+
+    if (!user || user.status !== 'PENDING_VERIFICATION') {
+      return;
+    }
+
+    const lastOtp = await this.prisma.otpCode.findFirst({
+      where: { userId: user.id, type: 'REGISTER_VERIFY', usedAt: null },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    if (lastOtp) {
+      const secondsSinceCreation = (Date.now() - lastOtp.createdAt.getTime()) / 1000;
+      if (secondsSinceCreation < OTP_RESEND_COOLDOWN) {
+        const retryAfter = Math.ceil(OTP_RESEND_COOLDOWN - secondsSinceCreation);
+        throw new HttpException(
+          { code: 'RESEND_COOLDOWN', retryAfter },
+          HttpStatus.TOO_MANY_REQUESTS,
+        );
+      }
+    }
+
+    const plainCode = await this.otpService.create(user.id, 'REGISTER_VERIFY');
+    await this.emailService.sendOtpVerification({
+      to: user.email,
+      username: user.username,
+      code: plainCode,
+      expiresInMinutes: OTP_EXPIRY_MINUTES,
+    });
+  }
+
+  async checkUsernameAvailable(value: string): Promise<{ available: boolean }> {
+    const exists = await this.prisma.user.findUnique({ where: { username: value } });
+    return { available: !exists };
+  }
+
+  async checkEmailAvailable(value: string): Promise<{ available: boolean }> {
+    const exists = await this.prisma.user.findUnique({ where: { email: value.toLowerCase().trim() } });
+    return { available: !exists };
   }
 
   async getOptionalJwtPayloadFromAuthHeader(

@@ -1,10 +1,13 @@
-import { Body, Controller, Get, HttpCode, Post } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Post, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Public } from '../../common/decorators/public.decorator';
 import { LoginDto } from './dto/login.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { RegisterDto } from './dto/register.dto';
+import { RegisterInitiateDto } from './dto/register-initiate.dto';
+import { RegisterVerifyDto } from './dto/register-verify.dto';
+import { ResendOtpDto } from './dto/resend-otp.dto';
 import { AuthService } from './auth.service';
 import type { JwtPayload } from './strategies/jwt.strategy';
 
@@ -15,9 +18,53 @@ export class AuthController {
 
   @Public()
   @Post('register')
-  @ApiOperation({ summary: 'Registrar nuevo usuario' })
+  @ApiOperation({ summary: 'Registrar nuevo usuario (legacy)' })
   register(@Body() dto: RegisterDto) {
     return this.authService.register(dto);
+  }
+
+  @Public()
+  @HttpCode(201)
+  @Post('register/initiate')
+  @ApiOperation({ summary: 'Iniciar registro con verificacion OTP' })
+  registerInitiate(@Body() dto: RegisterInitiateDto) {
+    return this.authService.registerInitiate(dto).then(() => ({
+      message: 'Codigo de verificacion enviado',
+    }));
+  }
+
+  @Public()
+  @HttpCode(200)
+  @Post('register/verify')
+  @ApiOperation({ summary: 'Verificar codigo OTP de registro' })
+  registerVerify(@Body() dto: RegisterVerifyDto) {
+    return this.authService.registerVerify(dto);
+  }
+
+  @Public()
+  @HttpCode(200)
+  @Post('register/resend')
+  @ApiOperation({ summary: 'Reenviar codigo OTP' })
+  resendOtp(@Body() dto: ResendOtpDto) {
+    return this.authService.resendOtp(dto).then(() => ({
+      message: 'Codigo reenviado',
+    }));
+  }
+
+  @Public()
+  @HttpCode(200)
+  @Get('check-username')
+  @ApiOperation({ summary: 'Verificar disponibilidad de username' })
+  checkUsername(@Query('value') value: string) {
+    return this.authService.checkUsernameAvailable(value);
+  }
+
+  @Public()
+  @HttpCode(200)
+  @Get('check-email')
+  @ApiOperation({ summary: 'Verificar disponibilidad de email' })
+  checkEmail(@Query('value') value: string) {
+    return this.authService.checkEmailAvailable(value);
   }
 
   @Public()
