@@ -18,7 +18,6 @@ import { EmailService } from '../email/email.service';
 import { OTP_EXPIRY_MINUTES, OTP_RESEND_COOLDOWN } from '../otp/otp.constants';
 import { LoginDto } from './dto/login.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
-import { RegisterDto } from './dto/register.dto';
 import { RegisterInitiateDto } from './dto/register-initiate.dto';
 import { RegisterVerifyDto } from './dto/register-verify.dto';
 import type { JwtPayload } from './strategies/jwt.strategy';
@@ -39,48 +38,6 @@ export class AuthService {
     private readonly otpService: OtpService,
     private readonly emailService: EmailService,
   ) {}
-
-  async register(dto: RegisterDto) {
-    const email = dto.email.toLowerCase().trim();
-    const username = dto.username.trim();
-
-    const duplicate = await this.prisma.user.findFirst({
-      where: {
-        OR: [{ email }, { username }],
-      },
-    });
-
-    if (duplicate) {
-      throw new ConflictException('El email o username ya estan registrados');
-    }
-
-    const passwordHash = await bcrypt.hash(dto.password, this.saltRounds);
-    const user = await this.prisma.$transaction(async (tx) => {
-      const createdUser = await tx.user.create({
-        data: {
-          email,
-          username,
-          passwordHash,
-        },
-      });
-
-      await tx.profile.create({
-        data: {
-          userId: createdUser.id,
-        },
-      });
-
-      return tx.user.findUniqueOrThrow({
-        where: { id: createdUser.id },
-        include: { profile: true },
-      });
-    });
-
-    return {
-      user: this.usersService.toUserEntity(user),
-      ...(await this.createSession(user)),
-    };
-  }
 
   async login(dto: LoginDto) {
     const user = await this.prisma.user.findUnique({
@@ -299,16 +256,6 @@ export class AuthService {
       code: plainCode,
       expiresInMinutes: OTP_EXPIRY_MINUTES,
     });
-  }
-
-  async checkUsernameAvailable(value: string): Promise<{ available: boolean }> {
-    const exists = await this.prisma.user.findUnique({ where: { username: value } });
-    return { available: !exists };
-  }
-
-  async checkEmailAvailable(value: string): Promise<{ available: boolean }> {
-    const exists = await this.prisma.user.findUnique({ where: { email: value.toLowerCase().trim() } });
-    return { available: !exists };
   }
 
   async getOptionalJwtPayloadFromAuthHeader(

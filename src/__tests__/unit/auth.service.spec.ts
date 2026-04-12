@@ -60,58 +60,6 @@ describe('AuthService', () => {
     service = new AuthService(prisma, usersService, jwtService, configService, otpService, emailService);
   });
 
-  it('register hashes password and creates profile in a transaction', async () => {
-    const user = createUserFixture({ profile: createProfileFixture() });
-    prisma.user.findFirst.mockResolvedValue(null);
-    prisma.$transaction.mockImplementation(async (callback: any) =>
-      callback({
-        user: {
-          create: jest.fn().mockResolvedValue({ id: user.id }),
-          findUniqueOrThrow: jest.fn().mockResolvedValue(user),
-        },
-        profile: {
-          create: jest.fn().mockResolvedValue(createProfileFixture()),
-        },
-      }),
-    );
-    bcryptHash
-      .mockResolvedValueOnce('hashed-password' as never)
-      .mockResolvedValueOnce('hashed-refresh' as never);
-    jwtService.signAsync.mockResolvedValueOnce('access-token');
-    jwtService.signAsync.mockResolvedValueOnce('refresh-token');
-
-    const result = await service.register({
-      email: 'Test@Test.com',
-      username: 'tester',
-      password: 'Demo1234!',
-    });
-
-    expect(prisma.$transaction).toHaveBeenCalled();
-    expect(bcrypt.hash).toHaveBeenCalledWith('Demo1234!', 12);
-    expect(prisma.refreshToken.create).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: expect.objectContaining({
-          tokenHash: 'hashed-refresh',
-          userId: user.id,
-        }),
-      }),
-    );
-    expect(result.accessToken).toBe('access-token');
-    expect(result.refreshToken).toBe('refresh-token');
-  });
-
-  it('register throws ConflictException when duplicate email or username exists', async () => {
-    prisma.user.findFirst.mockResolvedValue(createUserFixture());
-
-    await expect(
-      service.register({
-        email: 'test@test.com',
-        username: 'tester',
-        password: 'Demo1234!',
-      }),
-    ).rejects.toBeInstanceOf(ConflictException);
-  });
-
   it('login throws UnauthorizedException when password does not match', async () => {
     prisma.user.findUnique.mockResolvedValue(createUserFixture());
     bcryptCompare.mockResolvedValue(false as never);

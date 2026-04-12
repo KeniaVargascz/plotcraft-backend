@@ -1,10 +1,9 @@
-import { Body, Controller, Get, HttpCode, Post, Query } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Post } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Public } from '../../common/decorators/public.decorator';
 import { LoginDto } from './dto/login.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
-import { RegisterDto } from './dto/register.dto';
 import { RegisterInitiateDto } from './dto/register-initiate.dto';
 import { RegisterVerifyDto } from './dto/register-verify.dto';
 import { ResendOtpDto } from './dto/resend-otp.dto';
@@ -15,13 +14,6 @@ import type { JwtPayload } from './strategies/jwt.strategy';
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
-
-  @Public()
-  @Post('register')
-  @ApiOperation({ summary: 'Registrar nuevo usuario (legacy)' })
-  register(@Body() dto: RegisterDto) {
-    return this.authService.register(dto);
-  }
 
   @Public()
   @HttpCode(201)
@@ -49,22 +41,6 @@ export class AuthController {
     return this.authService.resendOtp(dto).then(() => ({
       message: 'Codigo reenviado',
     }));
-  }
-
-  @Public()
-  @HttpCode(200)
-  @Get('check-username')
-  @ApiOperation({ summary: 'Verificar disponibilidad de username' })
-  checkUsername(@Query('value') value: string) {
-    return this.authService.checkUsernameAvailable(value);
-  }
-
-  @Public()
-  @HttpCode(200)
-  @Get('check-email')
-  @ApiOperation({ summary: 'Verificar disponibilidad de email' })
-  checkEmail(@Query('value') value: string) {
-    return this.authService.checkEmailAvailable(value);
   }
 
   @Public()

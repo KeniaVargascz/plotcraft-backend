@@ -4,12 +4,14 @@ import { EmailService } from './email.service';
 import { ResendProvider } from './providers/resend.provider';
 import { BrevoProvider } from './providers/brevo.provider';
 import { ConsoleProvider } from './providers/console.provider';
+import { SmtpProvider } from './providers/smtp.provider';
 import { EMAIL_PROVIDER_TOKEN } from './constants/email-tokens';
 
 const PROVIDER_MAP = {
   resend: ResendProvider,
   brevo: BrevoProvider,
   console: ConsoleProvider,
+  smtp: SmtpProvider,
 } as const;
 
 type ProviderKey = keyof typeof PROVIDER_MAP;
