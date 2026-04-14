@@ -7,6 +7,7 @@ import {
 import { HighlightColor } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateHighlightDto } from './dto/create-highlight.dto';
+import { HighlightQueryDto } from './dto/highlight-query.dto';
 import { UpdateHighlightDto } from './dto/update-highlight.dto';
 
 @Injectable()
@@ -26,12 +27,16 @@ export class HighlightsService {
     return rows.map((row) => this.toHighlightResponse(row));
   }
 
-  async listAll(userId: string, novelId?: string) {
+  async listAll(userId: string, query: HighlightQueryDto = {}) {
+    const limit = query.limit ?? 20;
+
     const rows = await this.prisma.highlight.findMany({
       where: {
         userId,
-        ...(novelId ? { novelId } : {}),
+        ...(query.novel_id ? { novelId: query.novel_id } : {}),
       },
+      take: limit + 1,
+      ...(query.cursor ? { skip: 1, cursor: { id: query.cursor } } : {}),
       orderBy: [{ createdAt: 'desc' }],
       include: {
         chapter: true,
@@ -39,7 +44,17 @@ export class HighlightsService {
       },
     });
 
-    return rows.map((row) => this.toHighlightResponse(row));
+    const hasMore = rows.length > limit;
+    const items = rows.slice(0, limit);
+
+    return {
+      data: items.map((row) => this.toHighlightResponse(row)),
+      pagination: {
+        nextCursor: hasMore ? (items.at(-1)?.id ?? null) : null,
+        hasMore,
+        limit,
+      },
+    };
   }
 
   async create(userId: string, dto: CreateHighlightDto) {

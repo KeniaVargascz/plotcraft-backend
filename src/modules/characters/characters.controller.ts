@@ -104,6 +104,7 @@ export class CharactersController {
   async listRelationships(
     @Param('authorUsername') authorUsername: string,
     @Param('slug') slug: string,
+    @Query() query: CharacterQueryDto,
     @Headers('authorization') authorization?: string,
   ) {
     const viewer =
@@ -112,6 +113,7 @@ export class CharactersController {
       authorUsername,
       slug,
       viewer?.sub ?? null,
+      query,
     );
   }
 
@@ -121,6 +123,7 @@ export class CharactersController {
   async listNovels(
     @Param('authorUsername') authorUsername: string,
     @Param('slug') slug: string,
+    @Query() query: CharacterQueryDto,
     @Headers('authorization') authorization?: string,
   ) {
     const viewer =
@@ -129,6 +132,7 @@ export class CharactersController {
       authorUsername,
       slug,
       viewer?.sub ?? null,
+      query,
     );
   }
 

@@ -1,5 +1,6 @@
-import { IsEnum, IsIn, IsOptional, IsString, IsUUID, MaxLength } from 'class-validator';
+import { IsEnum, IsIn, IsInt, IsOptional, IsString, IsUUID, Max, MaxLength, Min } from 'class-validator';
 import { TimelineEventType, TimelineEventRelevance } from '@prisma/client';
+import { Transform } from 'class-transformer';
 
 export class EventQueryDto {
   @IsOptional()
@@ -30,4 +31,15 @@ export class EventQueryDto {
   @IsOptional()
   @IsIn(['order', 'type', 'relevance'])
   sort?: 'order' | 'type' | 'relevance' = 'order';
+
+  @IsOptional()
+  @IsString()
+  cursor?: string;
+
+  @IsOptional()
+  @Transform(({ value }) => Number(value))
+  @IsInt()
+  @Min(1)
+  @Max(50)
+  limit?: number = 20;
 }

@@ -108,12 +108,13 @@ export class NovelsController {
   @ApiOperation({ summary: 'Personajes vinculados a una novela' })
   async listNovelCharacters(
     @Param('slug') slug: string,
+    @Query() query: NovelQueryDto,
     @Headers('authorization') authorization?: string,
   ) {
     const viewer =
       await this.authService.getOptionalJwtPayloadFromAuthHeader(authorization);
 
-    return this.novelsService.listNovelCharacters(slug, viewer?.sub ?? null);
+    return this.novelsService.listNovelCharacters(slug, viewer?.sub ?? null, query);
   }
 
   @ApiBearerAuth()

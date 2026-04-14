@@ -78,11 +78,12 @@ export class WorldsController {
   @ApiOperation({ summary: 'Novelas vinculadas a un mundo' })
   async listWorldNovels(
     @Param('slug') slug: string,
+    @Query() query: WorldQueryDto,
     @Headers('authorization') authorization?: string,
   ) {
     const viewer =
       await this.authService.getOptionalJwtPayloadFromAuthHeader(authorization);
-    return this.worldsService.listLinkedNovels(slug, viewer?.sub ?? null);
+    return this.worldsService.listLinkedNovels(slug, viewer?.sub ?? null, query);
   }
 
   @ApiBearerAuth()

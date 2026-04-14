@@ -37,6 +37,35 @@ export class SeriesService {
         : {}),
     };
 
+    const page = query.page ?? null;
+
+    if (page) {
+      const [rows, total] = await Promise.all([
+        this.prisma.series.findMany({
+          where,
+          take: limit,
+          skip: (page - 1) * limit,
+          orderBy: { createdAt: 'desc' },
+          include: this.seriesInclude(),
+        }),
+        this.prisma.series.count({ where }),
+      ]);
+
+      const totalPages = Math.ceil(total / limit);
+
+      return {
+        data: rows.map((s) => this.toSeriesResponse(s)),
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages,
+          hasMore: page < totalPages,
+          nextCursor: null,
+        },
+      };
+    }
+
     const rows = await this.prisma.series.findMany({
       where,
       take: limit + 1,
@@ -56,6 +85,9 @@ export class SeriesService {
         nextCursor: hasMore ? (items.at(-1)?.id ?? null) : null,
         hasMore,
         limit,
+        page: null,
+        total: null,
+        totalPages: null,
       },
     };
   }

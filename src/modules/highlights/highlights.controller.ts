@@ -12,6 +12,7 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import type { JwtPayload } from '../auth/strategies/jwt.strategy';
 import { CreateHighlightDto } from './dto/create-highlight.dto';
+import { HighlightQueryDto } from './dto/highlight-query.dto';
 import { UpdateHighlightDto } from './dto/update-highlight.dto';
 import { HighlightsService } from './highlights.service';
 
@@ -34,9 +35,9 @@ export class HighlightsController {
   @ApiOperation({ summary: 'Todos los highlights del usuario' })
   listAll(
     @CurrentUser() user: JwtPayload,
-    @Query('novel_id') novelId?: string,
+    @Query() query: HighlightQueryDto,
   ) {
-    return this.highlightsService.listAll(user.sub, novelId);
+    return this.highlightsService.listAll(user.sub, query);
   }
 
   @Post()

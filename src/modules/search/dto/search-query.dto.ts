@@ -34,6 +34,13 @@ export class SearchQueryDto {
   @IsString()
   cursor?: string;
 
+  @ApiPropertyOptional()
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  page?: number;
+
   @ApiPropertyOptional({ default: 20, maximum: 50 })
   @IsOptional()
   @Type(() => Number)

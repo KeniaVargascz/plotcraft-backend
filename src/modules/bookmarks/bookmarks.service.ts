@@ -5,15 +5,20 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { BookmarkQueryDto } from './dto/bookmark-query.dto';
 import { CreateBookmarkDto } from './dto/create-bookmark.dto';
 
 @Injectable()
 export class BookmarksService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async listAll(userId: string) {
+  async listAll(userId: string, query: BookmarkQueryDto = {}) {
+    const limit = query.limit ?? 20;
+
     const rows = await this.prisma.chapterBookmark.findMany({
       where: { userId },
+      take: limit + 1,
+      ...(query.cursor ? { skip: 1, cursor: { id: query.cursor } } : {}),
       orderBy: [{ createdAt: 'desc' }],
       include: {
         chapter: true,
@@ -21,30 +26,17 @@ export class BookmarksService {
       },
     });
 
-    const grouped = new Map<
-      string,
-      {
-        novel: { id: string; slug: string; title: string };
-        bookmarks: ReturnType<BookmarksService['toBookmarkResponse']>[];
-      }
-    >();
+    const hasMore = rows.length > limit;
+    const items = rows.slice(0, limit);
 
-    for (const row of rows) {
-      if (!grouped.has(row.novelId)) {
-        grouped.set(row.novelId, {
-          novel: {
-            id: row.novel.id,
-            slug: row.novel.slug,
-            title: row.novel.title,
-          },
-          bookmarks: [],
-        });
-      }
-
-      grouped.get(row.novelId)?.bookmarks.push(this.toBookmarkResponse(row));
-    }
-
-    return [...grouped.values()];
+    return {
+      data: items.map((row) => this.toBookmarkResponse(row)),
+      pagination: {
+        nextCursor: hasMore ? (items.at(-1)?.id ?? null) : null,
+        hasMore,
+        limit,
+      },
+    };
   }
 
   async listByChapter(userId: string, chapterId: string) {

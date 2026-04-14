@@ -424,6 +424,7 @@ export class TimelineService {
 
   async listEvents(timelineId: string, userId: string, query: EventQueryDto) {
     await this.verifyTimelineOwnership(timelineId, userId);
+    const limit = query.limit ?? 20;
 
     const where: Prisma.TimelineEventWhereInput = {
       timelineId,
@@ -460,6 +461,8 @@ export class TimelineService {
 
     const events = await this.prisma.timelineEvent.findMany({
       where,
+      take: limit + 1,
+      ...(query.cursor ? { skip: 1, cursor: { id: query.cursor } } : {}),
       orderBy: orderByMap[query.sort ?? 'order'],
       include: {
         chapter: { select: { id: true, slug: true, title: true, order: true } },
@@ -478,7 +481,17 @@ export class TimelineService {
       },
     });
 
-    return events.map((e) => this.toEventResponse(e));
+    const hasMore = events.length > limit;
+    const items = events.slice(0, limit);
+
+    return {
+      data: items.map((e) => this.toEventResponse(e)),
+      pagination: {
+        nextCursor: hasMore ? (items.at(-1)?.id ?? null) : null,
+        hasMore,
+        limit,
+      },
+    };
   }
 
   async exportTimeline(id: string, userId: string) {

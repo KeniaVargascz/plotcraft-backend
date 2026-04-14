@@ -46,6 +46,38 @@ export class CommunitiesService {
         : {}),
     };
 
+    const page = query.page ?? null;
+
+    if (page) {
+      const [rows, total] = await Promise.all([
+        this.prisma.community.findMany({
+          where,
+          take: limit,
+          skip: (page - 1) * limit,
+          orderBy: { createdAt: 'desc' },
+          include: this.communityInclude(),
+        }),
+        this.prisma.community.count({ where }),
+      ]);
+
+      const totalPages = Math.ceil(total / limit);
+      const viewerCtxList = await Promise.all(
+        rows.map((c) => this.buildViewerContext(c.id, c.ownerId, viewerId)),
+      );
+
+      return {
+        data: rows.map((c, i) => this.toResponse(c, viewerCtxList[i])),
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages,
+          hasMore: page < totalPages,
+          nextCursor: null,
+        },
+      };
+    }
+
     const rows = await this.prisma.community.findMany({
       where,
       take: limit + 1,
@@ -67,6 +99,9 @@ export class CommunitiesService {
         nextCursor: hasMore ? (items.at(-1)?.id ?? null) : null,
         hasMore,
         limit,
+        page: null,
+        total: null,
+        totalPages: null,
       },
     };
   }

@@ -297,12 +297,16 @@ export class ForumService {
     }));
   }
 
-  async listUserThreads(username: string) {
+  async listUserThreads(username: string, query: ThreadQueryDto = {}) {
+    const limit = query.limit ?? 20;
+
     const threads = await this.prisma.forumThread.findMany({
       where: {
         author: { username },
         deletedAt: null,
       },
+      take: limit + 1,
+      ...(query.cursor ? { skip: 1, cursor: { id: query.cursor } } : {}),
       orderBy: { createdAt: 'desc' },
       include: {
         author: { include: { profile: true } },
@@ -317,12 +321,26 @@ export class ForumService {
       },
     });
 
-    return threads.map((thread) => this.toThreadSummary(thread));
+    const hasMore = threads.length > limit;
+    const items = threads.slice(0, limit);
+
+    return {
+      data: items.map((thread) => this.toThreadSummary(thread)),
+      pagination: {
+        nextCursor: hasMore ? (items.at(-1)?.id ?? null) : null,
+        hasMore,
+        limit,
+      },
+    };
   }
 
-  async listMyThreads(userId: string) {
+  async listMyThreads(userId: string, query: ThreadQueryDto = {}) {
+    const limit = query.limit ?? 20;
+
     const threads = await this.prisma.forumThread.findMany({
       where: { authorId: userId },
+      take: limit + 1,
+      ...(query.cursor ? { skip: 1, cursor: { id: query.cursor } } : {}),
       orderBy: { createdAt: 'desc' },
       include: {
         author: { include: { profile: true } },
@@ -333,7 +351,17 @@ export class ForumService {
       },
     });
 
-    return threads.map((thread) => this.toThreadSummary(thread));
+    const hasMore = threads.length > limit;
+    const items = threads.slice(0, limit);
+
+    return {
+      data: items.map((thread) => this.toThreadSummary(thread)),
+      pagination: {
+        nextCursor: hasMore ? (items.at(-1)?.id ?? null) : null,
+        hasMore,
+        limit,
+      },
+    };
   }
 
   async createThread(userId: string, dto: CreateThreadDto) {

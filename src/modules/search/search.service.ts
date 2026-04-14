@@ -338,6 +338,25 @@ export class SearchService {
   async searchNovels(query: SearchNovelsQueryDto, userId?: string | null) {
     this.recordHistoryAsync(userId, query.q);
     const limit = query.limit ?? 20;
+
+    if (query.page) {
+      const offset = (query.page - 1) * limit;
+      const section = await this.searchNovelsSection(query, offset);
+      const totalPages = Math.ceil(section.total_hint / limit);
+
+      return {
+        data: section.items,
+        pagination: {
+          page: query.page,
+          limit,
+          total: section.total_hint,
+          totalPages,
+          hasMore: query.page < totalPages,
+          nextCursor: null,
+        },
+      };
+    }
+
     const offset = this.decodeCursor(query.cursor);
     const section = await this.searchNovelsSection(query, offset);
 
@@ -350,6 +369,9 @@ export class SearchService {
             : null,
         hasMore: offset + limit < section.total_hint,
         limit,
+        page: null,
+        total: null,
+        totalPages: null,
       },
     };
   }
@@ -357,6 +379,25 @@ export class SearchService {
   async searchWorlds(query: SearchWorldsQueryDto, userId?: string | null) {
     this.recordHistoryAsync(userId, query.q);
     const limit = query.limit ?? 20;
+
+    if (query.page) {
+      const offset = (query.page - 1) * limit;
+      const section = await this.searchWorldsSection(query, offset);
+      const totalPages = Math.ceil(section.total_hint / limit);
+
+      return {
+        data: section.items,
+        pagination: {
+          page: query.page,
+          limit,
+          total: section.total_hint,
+          totalPages,
+          hasMore: query.page < totalPages,
+          nextCursor: null,
+        },
+      };
+    }
+
     const offset = this.decodeCursor(query.cursor);
     const section = await this.searchWorldsSection(query, offset);
 
@@ -369,6 +410,9 @@ export class SearchService {
             : null,
         hasMore: offset + limit < section.total_hint,
         limit,
+        page: null,
+        total: null,
+        totalPages: null,
       },
     };
   }
@@ -379,6 +423,25 @@ export class SearchService {
   ) {
     this.recordHistoryAsync(userId, query.q);
     const limit = query.limit ?? 20;
+
+    if (query.page) {
+      const offset = (query.page - 1) * limit;
+      const section = await this.searchCharactersSection(query, offset);
+      const totalPages = Math.ceil(section.total_hint / limit);
+
+      return {
+        data: section.items,
+        pagination: {
+          page: query.page,
+          limit,
+          total: section.total_hint,
+          totalPages,
+          hasMore: query.page < totalPages,
+          nextCursor: null,
+        },
+      };
+    }
+
     const offset = this.decodeCursor(query.cursor);
     const section = await this.searchCharactersSection(query, offset);
 
@@ -391,6 +454,9 @@ export class SearchService {
             : null,
         hasMore: offset + limit < section.total_hint,
         limit,
+        page: null,
+        total: null,
+        totalPages: null,
       },
     };
   }
@@ -398,6 +464,25 @@ export class SearchService {
   async searchUsers(query: SearchUsersQueryDto, userId?: string | null) {
     this.recordHistoryAsync(userId, query.q);
     const limit = query.limit ?? 20;
+
+    if (query.page) {
+      const offset = (query.page - 1) * limit;
+      const section = await this.searchUsersSection(query, offset);
+      const totalPages = Math.ceil(section.total_hint / limit);
+
+      return {
+        data: section.items,
+        pagination: {
+          page: query.page,
+          limit,
+          total: section.total_hint,
+          totalPages,
+          hasMore: query.page < totalPages,
+          nextCursor: null,
+        },
+      };
+    }
+
     const offset = this.decodeCursor(query.cursor);
     const section = await this.searchUsersSection(query, offset);
 
@@ -410,6 +495,9 @@ export class SearchService {
             : null,
         hasMore: offset + limit < section.total_hint,
         limit,
+        page: null,
+        total: null,
+        totalPages: null,
       },
     };
   }
@@ -417,6 +505,25 @@ export class SearchService {
   async searchPosts(query: SearchPostsQueryDto, userId?: string | null) {
     this.recordHistoryAsync(userId, query.q);
     const limit = query.limit ?? 20;
+
+    if (query.page) {
+      const offset = (query.page - 1) * limit;
+      const section = await this.searchPostsSection(query, offset);
+      const totalPages = Math.ceil(section.total_hint / limit);
+
+      return {
+        data: section.items,
+        pagination: {
+          page: query.page,
+          limit,
+          total: section.total_hint,
+          totalPages,
+          hasMore: query.page < totalPages,
+          nextCursor: null,
+        },
+      };
+    }
+
     const offset = this.decodeCursor(query.cursor);
     const section = await this.searchPostsSection(query, offset);
 
@@ -429,6 +536,9 @@ export class SearchService {
             : null,
         hasMore: offset + limit < section.total_hint,
         limit,
+        page: null,
+        total: null,
+        totalPages: null,
       },
     };
   }

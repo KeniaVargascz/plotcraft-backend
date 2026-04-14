@@ -4,6 +4,7 @@ import {
   Get,
   Param,
   Post,
+  Query,
   UnprocessableEntityException,
   UseGuards,
 } from '@nestjs/common';
@@ -12,6 +13,7 @@ import { CommunityStatus } from '@prisma/client';
 import { AdminGuard } from '../../common/guards/admin.guard';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CommunitiesService } from './communities.service';
+import { CommunityQueryDto } from './dto/community-query.dto';
 import { ReviewCommunityDto } from './dto/review-community.dto';
 
 @ApiTags('admin-communities')
@@ -26,9 +28,13 @@ export class AdminCommunitiesController {
 
   @Get('pending')
   @ApiOperation({ summary: 'Listar comunidades pendientes de revision' })
-  async listPending() {
+  async listPending(@Query() query: CommunityQueryDto) {
+    const limit = query.limit ?? 20;
+
     const rows = await this.prisma.community.findMany({
       where: { status: CommunityStatus.PENDING },
+      take: limit + 1,
+      ...(query.cursor ? { skip: 1, cursor: { id: query.cursor } } : {}),
       orderBy: { createdAt: 'asc' },
       include: {
         owner: { include: { profile: true } },
@@ -43,13 +49,23 @@ export class AdminCommunitiesController {
       },
     });
 
-    return rows.map((c) =>
-      this.communitiesService.toResponse(c, {
-        isMember: false,
-        isFollowing: false,
-        isOwner: false,
-      }),
-    );
+    const hasMore = rows.length > limit;
+    const items = rows.slice(0, limit);
+
+    return {
+      data: items.map((c) =>
+        this.communitiesService.toResponse(c, {
+          isMember: false,
+          isFollowing: false,
+          isOwner: false,
+        }),
+      ),
+      pagination: {
+        nextCursor: hasMore ? (items.at(-1)?.id ?? null) : null,
+        hasMore,
+        limit,
+      },
+    };
   }
 
   @Post(':slug/approve')

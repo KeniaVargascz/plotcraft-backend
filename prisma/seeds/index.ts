@@ -25,6 +25,7 @@ import { seed21FanficCommunityCharacters } from './21-fanfic-community-character
 import { seed22TestUserFanfic } from './22-test-user-fanfic.seed';
 import { seed23VisualBoards } from './23-visual-boards.seed';
 import { seed24CharacterMarkdownTemplates } from './24-character-markdown-templates.seed';
+import { seed25PaginationTestData } from './25-pagination-test-data.seed';
 
 export async function main() {
   const prisma = new PrismaClient();
@@ -57,6 +58,7 @@ export async function main() {
     await seed22TestUserFanfic(prisma);
     await seed23VisualBoards(prisma);
     await seed24CharacterMarkdownTemplates(prisma);
+    await seed25PaginationTestData(prisma);
 
     console.log('\n✅ Seed completed successfully');
     console.log('\nDemo credentials:');

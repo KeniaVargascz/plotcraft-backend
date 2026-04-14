@@ -4,9 +4,12 @@ import {
   IsBoolean,
   IsDateString,
   IsEnum,
+  IsInt,
   IsOptional,
   IsString,
+  Max,
   MaxLength,
+  Min,
 } from 'class-validator';
 
 export class TaskQueryDto {
@@ -39,4 +42,15 @@ export class TaskQueryDto {
   @IsOptional()
   @IsDateString()
   dueTo?: string;
+
+  @IsOptional()
+  @IsString()
+  cursor?: string;
+
+  @IsOptional()
+  @Transform(({ value }) => Number(value))
+  @IsInt()
+  @Min(1)
+  @Max(50)
+  limit?: number = 20;
 }

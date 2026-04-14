@@ -56,15 +56,21 @@ export class ForumController {
   @Public()
   @Get('user/:username')
   @ApiOperation({ summary: 'List threads by user' })
-  listUserThreads(@Param('username') username: string) {
-    return this.forumService.listUserThreads(username);
+  listUserThreads(
+    @Param('username') username: string,
+    @Query() query: ThreadQueryDto,
+  ) {
+    return this.forumService.listUserThreads(username, query);
   }
 
   @ApiBearerAuth()
   @Get('mine')
   @ApiOperation({ summary: 'List my threads including archived' })
-  listMyThreads(@CurrentUser() user: JwtPayload) {
-    return this.forumService.listMyThreads(user.sub);
+  listMyThreads(
+    @CurrentUser() user: JwtPayload,
+    @Query() query: ThreadQueryDto,
+  ) {
+    return this.forumService.listMyThreads(user.sub, query);
   }
 
   @Public()

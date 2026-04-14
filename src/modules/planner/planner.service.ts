@@ -179,6 +179,7 @@ export class PlannerService {
 
   async listTasks(projectId: string, userId: string, query: TaskQueryDto) {
     await this.findOwnedProject(projectId, userId);
+    const limit = query.limit ?? 20;
 
     const now = new Date();
     const where: Prisma.WritingTaskWhereInput = {
@@ -214,11 +215,23 @@ export class PlannerService {
 
     const tasks = await this.prisma.writingTask.findMany({
       where,
+      take: limit + 1,
+      ...(query.cursor ? { skip: 1, cursor: { id: query.cursor } } : {}),
       orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
       include: TASK_INCLUDE,
     });
 
-    return tasks.map((t) => this.toTaskResponse(t));
+    const hasMore = tasks.length > limit;
+    const items = tasks.slice(0, limit);
+
+    return {
+      data: items.map((t) => this.toTaskResponse(t)),
+      pagination: {
+        nextCursor: hasMore ? (items.at(-1)?.id ?? null) : null,
+        hasMore,
+        limit,
+      },
+    };
   }
 
   async createTask(projectId: string, userId: string, dto: CreateTaskDto) {

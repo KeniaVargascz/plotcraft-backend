@@ -474,10 +474,23 @@ export class CharactersService {
     authorUsername: string,
     slug: string,
     viewerId?: string | null,
+    query: { cursor?: string; limit?: number } = {},
   ) {
     const character = await this.findCharacter(authorUsername, slug, viewerId);
+    const limit = query.limit ?? 20;
+
     const relationships = await this.prisma.characterRelationship.findMany({
-      where: { sourceId: character.id },
+      where: {
+        sourceId: character.id,
+        target: {
+          OR: [
+            { isPublic: true },
+            ...(viewerId ? [{ authorId: viewerId }] : []),
+          ],
+        },
+      },
+      take: limit + 1,
+      ...(query.cursor ? { skip: 1, cursor: { id: query.cursor } } : {}),
       orderBy: [
         { category: 'asc' },
         { isMutual: 'desc' },
@@ -486,28 +499,41 @@ export class CharactersService {
       include: this.relationshipInclude(),
     });
 
-    return relationships
-      .filter(
-        (relationship) =>
-          relationship.target.isPublic ||
-          relationship.target.authorId === viewerId,
-      )
-      .map((relationship) => this.toRelationshipResponse(relationship));
+    const hasMore = relationships.length > limit;
+    const items = relationships.slice(0, limit);
+
+    return {
+      data: items.map((relationship) => this.toRelationshipResponse(relationship)),
+      pagination: {
+        nextCursor: hasMore ? (items.at(-1)?.id ?? null) : null,
+        hasMore,
+        limit,
+      },
+    };
   }
 
   async listNovels(
     authorUsername: string,
     slug: string,
     viewerId?: string | null,
+    query: { cursor?: string; limit?: number } = {},
   ) {
     const character = await this.findCharacter(authorUsername, slug, viewerId);
+    const limit = query.limit ?? 12;
+
     const novels = await this.prisma.novelCharacter.findMany({
-      where: { characterId: character.id },
-      orderBy: {
+      where: {
+        characterId: character.id,
         novel: {
-          updatedAt: 'desc',
+          OR: [
+            { isPublic: true },
+            ...(viewerId ? [{ authorId: viewerId }] : []),
+          ],
         },
       },
+      take: limit + 1,
+      ...(query.cursor ? { skip: 1, cursor: { id: query.cursor } } : {}),
+      orderBy: { novel: { updatedAt: 'desc' } },
       include: {
         novel: {
           include: {
@@ -525,9 +551,11 @@ export class CharactersService {
       },
     });
 
-    return novels
-      .filter((item) => item.novel.isPublic || item.novel.authorId === viewerId)
-      .map((item) => ({
+    const hasMore = novels.length > limit;
+    const items = novels.slice(0, limit);
+
+    return {
+      data: items.map((item) => ({
         id: item.novel.id,
         title: item.novel.title,
         slug: item.novel.slug,
@@ -549,7 +577,13 @@ export class CharactersService {
           likesCount: item.novel._count.likes,
           bookmarksCount: item.novel._count.bookmarks,
         },
-      }));
+      })),
+      pagination: {
+        nextCursor: hasMore ? (items.at(-1)?.id ?? null) : null,
+        hasMore,
+        limit,
+      },
+    };
   }
 
   async listByNovel(novelSlug: string, viewerId?: string | null) {
@@ -666,6 +700,37 @@ export class CharactersService {
         : {}),
     };
 
+    const page = options.query.page ?? null;
+
+    if (page) {
+      const [characters, total] = await Promise.all([
+        this.prisma.character.findMany({
+          where,
+          take: limit,
+          skip: (page - 1) * limit,
+          orderBy: this.resolveOrderBy(options.query.sort),
+          include: this.characterInclude(),
+        }),
+        this.prisma.character.count({ where }),
+      ]);
+
+      const totalPages = Math.ceil(total / limit);
+
+      return {
+        data: characters.map((character) =>
+          this.toCharacterResponse(character, options.viewerId),
+        ),
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages,
+          hasMore: page < totalPages,
+          nextCursor: null,
+        },
+      };
+    }
+
     const characters = await this.prisma.character.findMany({
       where,
       take: limit + 1,
@@ -687,6 +752,9 @@ export class CharactersService {
         nextCursor: hasMore ? (items.at(-1)?.id ?? null) : null,
         hasMore,
         limit,
+        page: null,
+        total: null,
+        totalPages: null,
       },
     };
   }

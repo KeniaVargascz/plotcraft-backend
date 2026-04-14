@@ -650,6 +650,37 @@ export class NovelsService {
       };
     }
 
+    const page = options.query.page ?? 1;
+
+    // If page-based pagination is requested, use offset approach with total count
+    if (options.query.page) {
+      const [novels, total] = await Promise.all([
+        this.prisma.novel.findMany({
+          where,
+          take: limit,
+          skip: (page - 1) * limit,
+          orderBy: this.resolveOrderBy(options.query.sortBy ?? options.query.sort),
+          include: this.novelInclude(options.viewerId, false),
+        }),
+        this.prisma.novel.count({ where }),
+      ]);
+
+      const totalPages = Math.ceil(total / limit);
+
+      return {
+        data: novels.map((novel) => this.toNovelResponse(novel, options.viewerId)),
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages,
+          hasMore: page < totalPages,
+          nextCursor: null,
+        },
+      };
+    }
+
+    // Fallback: cursor-based pagination (for backward compatibility)
     const novels = await this.prisma.novel.findMany({
       where,
       take: limit + 1,
@@ -672,6 +703,9 @@ export class NovelsService {
         nextCursor: hasMore ? (items.at(-1)?.id ?? null) : null,
         hasMore,
         limit,
+        page: null,
+        total: null,
+        totalPages: null,
       },
     };
   }
@@ -1190,11 +1224,14 @@ export class NovelsService {
     return { unlinked: true };
   }
 
-  async listNovelCharacters(slug: string, viewerId?: string | null) {
+  async listNovelCharacters(slug: string, viewerId?: string | null, query: { cursor?: string; limit?: number } = {}) {
     const novel = await this.findAccessibleNovel(slug, viewerId);
+    const limit = query.limit ?? 20;
 
     const items = await this.prisma.novelCharacter.findMany({
       where: { novelId: novel.id },
+      take: limit + 1,
+      ...(query.cursor ? { skip: 1, cursor: { id: query.cursor } } : {}),
       orderBy: [{ roleInNovel: 'asc' }],
       include: {
         character: {
@@ -1218,33 +1255,34 @@ export class NovelsService {
       },
     });
 
-    const communityItems = items
-      .filter((item) => item.communityCharacter)
-      .map((item) => ({
-        id: item.communityCharacter!.id,
-        novelCharacterId: item.id,
-        name: item.communityCharacter!.name,
-        slug: null,
-        avatarUrl: item.communityCharacter!.avatarUrl,
-        description: item.communityCharacter!.description,
-        role: null,
-        roleInNovel: item.roleInNovel ?? null,
-        status: item.communityCharacter!.status,
-        isPublic: true,
-        source: 'community' as const,
-        communityCharacterId: item.communityCharacter!.id,
-        author: null,
-        world: null,
-      }));
+    const hasMore = items.length > limit;
+    const sliced = items.slice(0, limit);
 
-    const characterItems = items
-      .filter(
-        (item) =>
-          item.character &&
-          (item.character.isPublic || item.character.authorId === viewerId),
-      )
-      .map((item) => {
-        const ch = item.character!;
+    const data = sliced.map((item) => {
+      if (item.communityCharacter) {
+        return {
+          id: item.communityCharacter.id,
+          novelCharacterId: item.id,
+          name: item.communityCharacter.name,
+          slug: null,
+          avatarUrl: item.communityCharacter.avatarUrl,
+          description: item.communityCharacter.description,
+          role: null,
+          roleInNovel: item.roleInNovel ?? null,
+          status: item.communityCharacter.status,
+          isPublic: true,
+          source: 'community' as const,
+          communityCharacterId: item.communityCharacter.id,
+          author: null,
+          world: null,
+        };
+      }
+
+      if (
+        item.character &&
+        (item.character.isPublic || item.character.authorId === viewerId)
+      ) {
+        const ch = item.character;
         return {
           id: ch.id,
           novelCharacterId: item.id,
@@ -1271,9 +1309,19 @@ export class NovelsService {
               ? ch.world
               : null,
         };
-      });
+      }
 
-    return [...characterItems, ...communityItems];
+      return null;
+    }).filter(Boolean);
+
+    return {
+      data,
+      pagination: {
+        nextCursor: hasMore ? (sliced.at(-1)?.id ?? null) : null,
+        hasMore,
+        limit,
+      },
+    };
   }
 
   private async generateUniqueNovelSlug(title: string, ignoreNovelId?: string) {

@@ -265,19 +265,25 @@ export class WorldsService {
     return { linked: false };
   }
 
-  async listLinkedNovels(slug: string, viewerId?: string | null) {
+  async listLinkedNovels(slug: string, viewerId?: string | null, query: { cursor?: string; limit?: number } = {}) {
     const world = await this.getWorldEntity(slug, viewerId);
+    const limit = query.limit ?? 12;
 
-    const novels = await this.prisma.novelWorld.findMany({
+    const rows = await this.prisma.novelWorld.findMany({
       where: {
         worldId: world.id,
-        novel: viewerId ? undefined : { isPublic: true },
-      },
-      orderBy: {
         novel: {
-          updatedAt: 'desc',
+          OR: [
+            { isPublic: true },
+            ...(viewerId ? [{ authorId: viewerId }] : []),
+          ],
         },
       },
+      take: limit + 1,
+      ...(query.cursor
+        ? { skip: 1, cursor: { novelId_worldId: { novelId: query.cursor, worldId: world.id } } }
+        : {}),
+      orderBy: { novel: { updatedAt: 'desc' } },
       include: {
         novel: {
           include: {
@@ -295,9 +301,11 @@ export class WorldsService {
       },
     });
 
-    return novels
-      .filter((item) => item.novel.isPublic || item.novel.authorId === viewerId)
-      .map((item) => ({
+    const hasMore = rows.length > limit;
+    const items = rows.slice(0, limit);
+
+    return {
+      data: items.map((item) => ({
         id: item.novel.id,
         title: item.novel.title,
         slug: item.novel.slug,
@@ -326,7 +334,13 @@ export class WorldsService {
           likesCount: item.novel._count.likes,
           bookmarksCount: item.novel._count.bookmarks,
         },
-      }));
+      })),
+      pagination: {
+        nextCursor: hasMore ? (items.at(-1)?.novelId ?? null) : null,
+        hasMore,
+        limit,
+      },
+    };
   }
 
   async findOwnedWorld(userId: string, slug: string) {
@@ -396,6 +410,35 @@ export class WorldsService {
         : {}),
     };
 
+    const page = options.query.page ?? null;
+
+    if (page) {
+      const [worlds, total] = await Promise.all([
+        this.prisma.world.findMany({
+          where,
+          take: limit,
+          skip: (page - 1) * limit,
+          orderBy: this.resolveOrderBy(options.query.sort),
+          include: this.worldInclude(),
+        }),
+        this.prisma.world.count({ where }),
+      ]);
+
+      const totalPages = Math.ceil(total / limit);
+
+      return {
+        data: worlds.map((world) => this.toWorldResponse(world, options.viewerId)),
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages,
+          hasMore: page < totalPages,
+          nextCursor: null,
+        },
+      };
+    }
+
     const worlds = await this.prisma.world.findMany({
       where,
       take: limit + 1,
@@ -415,6 +458,9 @@ export class WorldsService {
         nextCursor: hasMore ? (items.at(-1)?.id ?? null) : null,
         hasMore,
         limit,
+        page: null,
+        total: null,
+        totalPages: null,
       },
     };
   }

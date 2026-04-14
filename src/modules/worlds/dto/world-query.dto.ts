@@ -20,6 +20,12 @@ export class WorldQueryDto {
   @Transform(({ value }) => Number(value))
   @IsInt()
   @Min(1)
+  page?: number;
+
+  @IsOptional()
+  @Transform(({ value }) => Number(value))
+  @IsInt()
+  @Min(1)
   @Max(50)
   limit?: number = 12;
 
