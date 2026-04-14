@@ -380,9 +380,9 @@ enum CharacterKinshipType {
 }
 
 enum RomanceGenre {
-  BL
-  GL
-  HETEROSEXUAL
+  MM
+  MF
+  FF
   OTHER
 }
 

@@ -66,7 +66,7 @@ describe('AuthService', () => {
 
     await expect(
       service.login({
-        email: 'test@test.com',
+        identifier: 'test@test.com',
         password: 'wrong-password',
       }),
     ).rejects.toBeInstanceOf(UnauthorizedException);

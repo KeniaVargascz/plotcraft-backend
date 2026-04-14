@@ -503,6 +503,9 @@ async function upsertNovelWithChapters(input: {
   });
   const slug = normalizeSlug(input.title);
 
+  const language = await prisma.catalogLanguage.findUnique({ where: { code: 'es' } });
+  if (!language) throw new Error('CatalogLanguage "es" not found – run language seed first');
+
   const novel = await prisma.novel.upsert({
     where: { slug },
     update: {
@@ -527,6 +530,7 @@ async function upsertNovelWithChapters(input: {
       tags: input.tags ?? [],
       isPublic: input.isPublic,
       viewsCount: input.viewsCount,
+      languageId: language.id,
     },
   });
 
