@@ -2,10 +2,12 @@ import { Body, Controller, Get, HttpCode, Post } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Public } from '../../common/decorators/public.decorator';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { LoginDto } from './dto/login.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { RegisterInitiateDto } from './dto/register-initiate.dto';
 import { RegisterVerifyDto } from './dto/register-verify.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 import { ResendOtpDto } from './dto/resend-otp.dto';
 import { AuthService } from './auth.service';
 import type { JwtPayload } from './strategies/jwt.strategy';
@@ -40,6 +42,26 @@ export class AuthController {
   resendOtp(@Body() dto: ResendOtpDto) {
     return this.authService.resendOtp(dto).then(() => ({
       message: 'Codigo reenviado',
+    }));
+  }
+
+  @Public()
+  @HttpCode(200)
+  @Post('forgot-password')
+  @ApiOperation({ summary: 'Solicitar codigo de recuperacion de contraseña' })
+  forgotPassword(@Body() dto: ForgotPasswordDto) {
+    return this.authService.forgotPassword(dto).then(() => ({
+      message: 'Si el correo existe, se envio un codigo de recuperacion',
+    }));
+  }
+
+  @Public()
+  @HttpCode(200)
+  @Post('reset-password')
+  @ApiOperation({ summary: 'Restablecer contraseña con codigo OTP' })
+  resetPassword(@Body() dto: ResetPasswordDto) {
+    return this.authService.resetPassword(dto).then(() => ({
+      message: 'Contraseña actualizada correctamente',
     }));
   }
 

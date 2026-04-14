@@ -2,6 +2,7 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import { EmailProvider, EmailResult } from './interfaces/email-provider.interface';
 import { EMAIL_PROVIDER_TOKEN } from './constants/email-tokens';
 import { buildOtpTemplate } from './templates/otp-verification.template';
+import { buildPasswordResetTemplate } from './templates/password-reset.template';
 import { buildWelcomeTemplate } from './templates/welcome.template';
 
 @Injectable()
@@ -27,6 +28,22 @@ export class EmailService {
       html,
       text,
       tags: { type: 'otp', flow: 'register' },
+    });
+  }
+
+  async sendPasswordResetOtp(params: {
+    to: string;
+    username: string;
+    code: string;
+    expiresInMinutes: number;
+  }): Promise<EmailResult> {
+    const { html, text } = buildPasswordResetTemplate(params);
+    return this.provider.send({
+      to: params.to,
+      subject: 'Restablece tu contraseña en PlotCraft',
+      html,
+      text,
+      tags: { type: 'otp', flow: 'password-reset' },
     });
   }
 

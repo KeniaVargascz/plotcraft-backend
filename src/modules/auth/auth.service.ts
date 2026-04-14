@@ -16,10 +16,12 @@ import { UsersService } from '../users/users.service';
 import { OtpService } from '../otp/otp.service';
 import { EmailService } from '../email/email.service';
 import { OTP_EXPIRY_MINUTES, OTP_RESEND_COOLDOWN } from '../otp/otp.constants';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { LoginDto } from './dto/login.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { RegisterInitiateDto } from './dto/register-initiate.dto';
 import { RegisterVerifyDto } from './dto/register-verify.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 import type { JwtPayload } from './strategies/jwt.strategy';
 import { APP_CONFIG } from '../../config/constants';
 
@@ -40,10 +42,18 @@ export class AuthService {
   ) {}
 
   async login(dto: LoginDto) {
-    const user = await this.prisma.user.findUnique({
-      where: { email: dto.email.toLowerCase().trim() },
-      include: { profile: true },
-    });
+    const value = dto.identifier.trim();
+    const isEmail = value.includes('@');
+
+    const user = isEmail
+      ? await this.prisma.user.findUnique({
+          where: { email: value.toLowerCase() },
+          include: { profile: true },
+        })
+      : await this.prisma.user.findFirst({
+          where: { username: { equals: value, mode: 'insensitive' } },
+          include: { profile: true },
+        });
 
     if (!user) {
       throw new UnauthorizedException({
@@ -131,7 +141,7 @@ export class AuthService {
 
   async registerInitiate(dto: RegisterInitiateDto): Promise<void> {
     const [existingUsername, existingEmail] = await Promise.all([
-      this.prisma.user.findUnique({ where: { username: dto.username } }),
+      this.prisma.user.findFirst({ where: { username: { equals: dto.username, mode: 'insensitive' } } }),
       this.prisma.user.findUnique({ where: { email: dto.email } }),
     ]);
 
@@ -255,6 +265,80 @@ export class AuthService {
       username: user.username,
       code: plainCode,
       expiresInMinutes: OTP_EXPIRY_MINUTES,
+    });
+  }
+
+  async forgotPassword(dto: ForgotPasswordDto): Promise<void> {
+    const user = await this.prisma.user.findUnique({
+      where: { email: dto.email.toLowerCase().trim() },
+    });
+
+    if (!user || !user.isActive) {
+      return;
+    }
+
+    const lastOtp = await this.prisma.otpCode.findFirst({
+      where: { userId: user.id, type: 'PASSWORD_RESET', usedAt: null },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    if (lastOtp) {
+      const secondsSinceCreation = (Date.now() - lastOtp.createdAt.getTime()) / 1000;
+      if (secondsSinceCreation < OTP_RESEND_COOLDOWN) {
+        const retryAfter = Math.ceil(OTP_RESEND_COOLDOWN - secondsSinceCreation);
+        throw new HttpException(
+          { code: 'RESEND_COOLDOWN', retryAfter },
+          HttpStatus.TOO_MANY_REQUESTS,
+        );
+      }
+    }
+
+    const plainCode = await this.otpService.create(user.id, 'PASSWORD_RESET');
+
+    const result = await this.emailService.sendPasswordResetOtp({
+      to: user.email,
+      username: user.username,
+      code: plainCode,
+      expiresInMinutes: OTP_EXPIRY_MINUTES,
+    });
+
+    if (!result.success) {
+      this.logger.warn(`Email de recuperacion no enviado para userId=${user.id}: ${result.error}`);
+    }
+  }
+
+  async resetPassword(dto: ResetPasswordDto): Promise<void> {
+    const user = await this.prisma.user.findUnique({
+      where: { email: dto.email.toLowerCase().trim() },
+    });
+
+    if (!user) {
+      throw new BadRequestException('Solicitud de restablecimiento invalida');
+    }
+
+    const result = await this.otpService.verify(user.id, dto.code, 'PASSWORD_RESET');
+
+    if (!result.valid) {
+      switch (result.reason) {
+        case 'expired':
+          throw new HttpException({ code: 'OTP_EXPIRED' }, HttpStatus.GONE);
+        case 'too_many_attempts':
+          throw new HttpException({ code: 'TOO_MANY_ATTEMPTS' }, HttpStatus.TOO_MANY_REQUESTS);
+        default:
+          throw new BadRequestException({ code: 'OTP_INVALID' });
+      }
+    }
+
+    const passwordHash = await bcrypt.hash(dto.newPassword, this.saltRounds);
+
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: { passwordHash },
+    });
+
+    await this.prisma.refreshToken.updateMany({
+      where: { userId: user.id, revoked: false },
+      data: { revoked: true },
     });
   }
 
