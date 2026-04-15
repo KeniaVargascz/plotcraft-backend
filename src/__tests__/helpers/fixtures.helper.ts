@@ -109,6 +109,10 @@ export const createPostFixture = (overrides: Record<string, unknown> = {}) => ({
   reactions: [],
   comments: [],
   savedBy: [],
+  characterIds: [],
+  novel: null,
+  chapter: null,
+  world: null,
   _count: {
     comments: 0,
     reactions: 0,

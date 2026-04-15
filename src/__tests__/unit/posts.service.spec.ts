@@ -35,6 +35,10 @@ describe('PostsService', () => {
         type: 'TEXT',
         imageUrls: [],
         tags: [],
+        novelId: null,
+        chapterId: null,
+        worldId: null,
+        characterIds: [],
       },
     });
   });
