@@ -25,6 +25,7 @@ model User {
   following         Follow[]           @relation("UserFollowing")
   posts             Post[]
   comments          Comment[]
+  novelComments     NovelComment[]
   reactions         Reaction[]
   savedPosts        SavedPost[]
   novels            Novel[]
@@ -473,6 +474,7 @@ model Novel {
   linkedCommunity      Community?         @relation("FanficCommunity", fields: [linkedCommunityId], references: [id], onDelete: SetNull)
   relatedInCommunities CommunityRelatedNovel[] @relation("RelatedInCommunities")
   posts                Post[]
+  novelComments        NovelComment[]
 
   @@index([authorId])
   @@index([slug])
@@ -662,6 +664,23 @@ model NovelBookmark {
   @@unique([novelId, userId])
   @@index([userId])
   @@map("novel_bookmarks")
+}
+
+model NovelComment {
+  id        String    @id @default(uuid()) @db.Uuid
+  novelId   String    @map("novel_id") @db.Uuid
+  authorId  String    @map("author_id") @db.Uuid
+  content   String    @db.Text
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  novel  Novel @relation(fields: [novelId], references: [id], onDelete: Cascade)
+  author User  @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([novelId, createdAt])
+  @@index([authorId])
+  @@map("novel_comments")
 }
 
 model NovelKudo {

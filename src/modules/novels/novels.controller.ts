@@ -19,6 +19,7 @@ import { LinkNovelCharacterDto } from './dto/link-novel-character.dto';
 import { NovelQueryDto } from './dto/novel-query.dto';
 import { UpdateNovelDto } from './dto/update-novel.dto';
 import { KudosService } from './kudos.service';
+import { NovelCommentsService } from './novel-comments.service';
 import { NovelsService } from './novels.service';
 import { SubscriptionsService } from './subscriptions.service';
 import { TimelineService } from '../timeline/timeline.service';
@@ -30,6 +31,7 @@ export class NovelsController {
   constructor(
     private readonly novelsService: NovelsService,
     private readonly kudosService: KudosService,
+    private readonly novelCommentsService: NovelCommentsService,
     private readonly authService: AuthService,
     private readonly timelineService: TimelineService,
     private readonly plannerService: PlannerService,
@@ -222,5 +224,40 @@ export class NovelsController {
   @ApiOperation({ summary: 'Cancelar suscripcion a una novela' })
   unsubscribe(@Param('slug') slug: string, @CurrentUser() user: JwtPayload) {
     return this.subscriptionsService.unsubscribe(slug, user.sub);
+  }
+
+  // ── Novel Comments ──
+
+  @Public()
+  @Get(':slug/comments')
+  @ApiOperation({ summary: 'List novel comments' })
+  listNovelComments(
+    @Param('slug') slug: string,
+    @Query('cursor') cursor?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.novelCommentsService.list(slug, cursor, limit ? +limit : 20);
+  }
+
+  @ApiBearerAuth()
+  @Post(':slug/comments')
+  @ApiOperation({ summary: 'Comment on a novel' })
+  createNovelComment(
+    @Param('slug') slug: string,
+    @CurrentUser() user: JwtPayload,
+    @Body('content') content: string,
+  ) {
+    return this.novelCommentsService.create(slug, user.sub, content);
+  }
+
+  @ApiBearerAuth()
+  @Delete(':slug/comments/:commentId')
+  @ApiOperation({ summary: 'Delete a novel comment' })
+  deleteNovelComment(
+    @Param('slug') slug: string,
+    @Param('commentId') commentId: string,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.novelCommentsService.remove(slug, commentId, user.sub);
   }
 }
