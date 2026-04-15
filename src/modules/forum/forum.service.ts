@@ -927,6 +927,38 @@ export class ForumService {
     return { message: 'Thread archived' };
   }
 
+  // ── Trending Tags ──
+
+  async getTrendingTags(limit = 15) {
+    const tags = await this.prisma.forumThreadTag.groupBy({
+      by: ['tag'],
+      where: { thread: { deletedAt: null } },
+      _count: { tag: true },
+      orderBy: { _count: { tag: 'desc' } },
+      take: limit,
+    });
+
+    return tags.map((t) => ({ tag: t.tag, count: t._count.tag }));
+  }
+
+  // ── Stats ──
+
+  async getUserStats(userId: string) {
+    const [threadsCount, repliesCount, solutionsCount] = await Promise.all([
+      this.prisma.forumThread.count({
+        where: { authorId: userId, deletedAt: null },
+      }),
+      this.prisma.forumReply.count({
+        where: { authorId: userId, deletedAt: null },
+      }),
+      this.prisma.forumReply.count({
+        where: { authorId: userId, deletedAt: null, isSolution: true },
+      }),
+    ]);
+
+    return { threadsCount, repliesCount, solutionsCount };
+  }
+
   // ── Private Helpers ──
 
   private async findOwnedThread(slug: string, userId: string) {

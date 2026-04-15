@@ -54,6 +54,13 @@ export class ForumController {
   }
 
   @Public()
+  @Get('tags/trending')
+  @ApiOperation({ summary: 'List trending tags' })
+  getTrendingTags() {
+    return this.forumService.getTrendingTags();
+  }
+
+  @Public()
   @Get('user/:username')
   @ApiOperation({ summary: 'List threads by user' })
   listUserThreads(
@@ -61,6 +68,13 @@ export class ForumController {
     @Query() query: ThreadQueryDto,
   ) {
     return this.forumService.listUserThreads(username, query);
+  }
+
+  @ApiBearerAuth()
+  @Get('stats/me')
+  @ApiOperation({ summary: 'Get forum stats for the authenticated user' })
+  getMyStats(@CurrentUser() user: JwtPayload) {
+    return this.forumService.getUserStats(user.sub);
   }
 
   @ApiBearerAuth()
