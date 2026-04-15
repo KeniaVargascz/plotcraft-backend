@@ -32,6 +32,17 @@ export class CommentsService {
       throw new NotFoundException('Publicacion no encontrada');
     }
 
+    if (post.authorId !== userId) {
+      const privacy = await this.prisma.privacySettings.findUnique({
+        where: { userId: post.authorId },
+      });
+      if (privacy && !privacy.allowPostComments) {
+        throw new ForbiddenException(
+          'El autor ha limitado los comentarios.',
+        );
+      }
+    }
+
     const comment = await this.prisma.comment.create({
       data: {
         postId,

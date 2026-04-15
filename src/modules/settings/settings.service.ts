@@ -20,6 +20,8 @@ export class SettingsService {
         showFollows: true,
         showStats: true,
         allowMessages: true,
+        allowPostComments: true,
+        allowNovelComments: true,
         searchable: true,
       },
       update: {},
@@ -40,6 +42,8 @@ export class SettingsService {
         showFollows: dto.showFollows ?? true,
         showStats: dto.showStats ?? true,
         allowMessages: dto.allowMessages ?? true,
+        allowPostComments: dto.allowPostComments ?? true,
+        allowNovelComments: dto.allowNovelComments ?? true,
         searchable: dto.searchable ?? true,
       },
       update: {
@@ -57,6 +61,12 @@ export class SettingsService {
         }),
         ...(dto.allowMessages !== undefined && {
           allowMessages: dto.allowMessages,
+        }),
+        ...(dto.allowPostComments !== undefined && {
+          allowPostComments: dto.allowPostComments,
+        }),
+        ...(dto.allowNovelComments !== undefined && {
+          allowNovelComments: dto.allowNovelComments,
         }),
         ...(dto.searchable !== undefined && {
           searchable: dto.searchable,

@@ -23,5 +23,13 @@ export class UpdatePrivacySettingsDto {
 
   @IsOptional()
   @IsBoolean()
+  allowPostComments?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  allowNovelComments?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
   searchable?: boolean;
 }

@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -21,6 +22,8 @@ export class PostsService {
   constructor(private readonly prisma: PrismaService) {}
 
   async createPost(userId: string, dto: CreatePostDto) {
+    await this.validateContentLinking(userId, dto);
+
     const post = await this.prisma.post.create({
       data: {
         authorId: userId,
@@ -31,6 +34,10 @@ export class PostsService {
           dto.tags
             ?.map((t) => t.trim().toLowerCase().replace(/\s+/g, '-'))
             .filter(Boolean) ?? [],
+        novelId: dto.novel_id ?? null,
+        chapterId: dto.chapter_id ?? null,
+        worldId: dto.world_id ?? null,
+        characterIds: dto.character_ids ?? [],
       },
     });
 
@@ -98,9 +105,12 @@ export class PostsService {
     });
 
     const trimmed = posts.slice(0, limit);
+    const charMap = await this.fetchCharacterMap(trimmed);
 
     return {
-      data: trimmed.map((post) => this.toPostResponse(post, options.viewerId)),
+      data: trimmed.map((post) =>
+        this.toPostResponse(post, options.viewerId, charMap),
+      ),
       pagination: {
         nextCursor: posts.length > limit ? (trimmed.at(-1)?.id ?? null) : null,
         hasMore: posts.length > limit,
@@ -119,7 +129,8 @@ export class PostsService {
       throw new NotFoundException('Publicacion no encontrada');
     }
 
-    return this.toPostResponse(post, viewerId);
+    const charMap = await this.fetchCharacterMap([post]);
+    return this.toPostResponse(post, viewerId, charMap);
   }
 
   async updatePost(postId: string, userId: string, dto: UpdatePostDto) {
@@ -218,6 +229,7 @@ export class PostsService {
       author: {
         include: {
           profile: true,
+          privacySettings: { select: { allowPostComments: true } },
         },
       },
       reactions: true,
@@ -239,20 +251,56 @@ export class PostsService {
           reactions: true,
         },
       },
+      novel: {
+        select: {
+          id: true,
+          title: true,
+          slug: true,
+          synopsis: true,
+          coverUrl: true,
+          status: true,
+          chaptersCount: true,
+          author: {
+            select: {
+              id: true,
+              username: true,
+              profile: {
+                select: { displayName: true, avatarUrl: true },
+              },
+            },
+          },
+        },
+      },
+      chapter: {
+        select: {
+          id: true,
+          title: true,
+          slug: true,
+          order: true,
+          wordCount: true,
+          publishedAt: true,
+          novel: {
+            select: { id: true, title: true, slug: true },
+          },
+        },
+      },
+      world: {
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          tagline: true,
+          coverUrl: true,
+          genre: true,
+        },
+      },
     } satisfies Prisma.PostInclude;
   }
 
   private toPostResponse(
-    post: Prisma.PostGetPayload<{
-      include: {
-        author: { include: { profile: true } };
-        reactions: true;
-        comments: { select: { id: true } };
-        savedBy: { select: { id: true } };
-        _count: { select: { comments: true; reactions: true } };
-      };
-    }>,
+    post: PostWithIncludes,
     viewerId?: string | null,
+    characterMap?: Map<string, CharacterLinked>,
   ) {
     const summary = {
       LIKE: 0,
@@ -299,6 +347,220 @@ export class PostsService {
             hasSaved: post.savedBy.length > 0,
           }
         : null,
+      commentsEnabled:
+        post.author.privacySettings?.allowPostComments ?? true,
+      linkedContent: this.buildLinkedContent(post, characterMap),
     };
   }
+
+  private buildLinkedContent(
+    post: PostWithIncludes,
+    characterMap?: Map<string, CharacterLinked>,
+  ) {
+    const hasLinked =
+      post.novel || post.chapter || post.world || post.characterIds.length > 0;
+    if (!hasLinked) return null;
+
+    return {
+      novel: post.novel
+        ? {
+            id: post.novel.id,
+            title: post.novel.title,
+            slug: post.novel.slug,
+            synopsis: post.novel.synopsis,
+            coverUrl: post.novel.coverUrl,
+            status: post.novel.status,
+            chaptersCount: post.novel.chaptersCount,
+            author: {
+              id: post.novel.author.id,
+              username: post.novel.author.username,
+              displayName:
+                post.novel.author.profile?.displayName ?? null,
+              avatarUrl: post.novel.author.profile?.avatarUrl ?? null,
+            },
+          }
+        : null,
+      chapter: post.chapter
+        ? {
+            id: post.chapter.id,
+            title: post.chapter.title,
+            slug: post.chapter.slug,
+            order: post.chapter.order,
+            wordCount: post.chapter.wordCount,
+            publishedAt: post.chapter.publishedAt,
+            novelTitle: post.chapter.novel.title,
+            novelSlug: post.chapter.novel.slug,
+          }
+        : null,
+      world: post.world
+        ? {
+            id: post.world.id,
+            name: post.world.name,
+            slug: post.world.slug,
+            tagline: post.world.tagline,
+            coverUrl: post.world.coverUrl,
+            genre: post.world.genre,
+          }
+        : null,
+      characters: post.characterIds
+        .map((id) => characterMap?.get(id))
+        .filter(Boolean) as CharacterLinked[],
+    };
+  }
+
+  private async fetchCharacterMap(
+    posts: PostWithIncludes[],
+  ): Promise<Map<string, CharacterLinked>> {
+    const allIds = posts.flatMap((p) => p.characterIds);
+    if (!allIds.length) return new Map();
+
+    const chars = await this.prisma.character.findMany({
+      where: { id: { in: allIds } },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        avatarUrl: true,
+        role: true,
+        author: { select: { username: true } },
+      },
+    });
+
+    return new Map(
+      chars.map((c) => [
+        c.id,
+        {
+          id: c.id,
+          name: c.name,
+          slug: c.slug,
+          avatarUrl: c.avatarUrl,
+          role: c.role,
+          authorUsername: c.author.username,
+        },
+      ]),
+    );
+  }
+
+  private async validateContentLinking(userId: string, dto: CreatePostDto) {
+    if (dto.type === PostType.RECOMMENDATION) {
+      if (!dto.novel_id) {
+        throw new BadRequestException(
+          'novel_id requerido para recomendaciones',
+        );
+      }
+      const novel = await this.prisma.novel.findUnique({
+        where: { id: dto.novel_id },
+      });
+      if (!novel) {
+        throw new NotFoundException('Novela no encontrada');
+      }
+      return;
+    }
+
+    if (dto.novel_id) {
+      const novel = await this.prisma.novel.findUnique({
+        where: { id: dto.novel_id },
+      });
+      if (!novel || novel.authorId !== userId) {
+        throw new ForbiddenException('No puedes vincular esta novela');
+      }
+    }
+
+    if (dto.chapter_id) {
+      const chapter = await this.prisma.chapter.findUnique({
+        where: { id: dto.chapter_id },
+      });
+      if (!chapter || chapter.authorId !== userId) {
+        throw new ForbiddenException('No puedes vincular este capitulo');
+      }
+      if (dto.novel_id && chapter.novelId !== dto.novel_id) {
+        throw new BadRequestException(
+          'El capitulo no pertenece a la novela',
+        );
+      }
+    }
+
+    if (dto.world_id) {
+      const world = await this.prisma.world.findUnique({
+        where: { id: dto.world_id },
+      });
+      if (!world || world.authorId !== userId) {
+        throw new ForbiddenException('No puedes vincular este mundo');
+      }
+    }
+
+    if (dto.character_ids?.length) {
+      const chars = await this.prisma.character.findMany({
+        where: { id: { in: dto.character_ids }, authorId: userId },
+      });
+      if (chars.length !== dto.character_ids.length) {
+        throw new ForbiddenException(
+          'No puedes vincular todos estos personajes',
+        );
+      }
+    }
+  }
 }
+
+type PostWithIncludes = Prisma.PostGetPayload<{
+  include: {
+    author: {
+      include: {
+        profile: true;
+        privacySettings: { select: { allowPostComments: true } };
+      };
+    };
+    reactions: true;
+    comments: { select: { id: true } };
+    savedBy: { select: { id: true } };
+    _count: { select: { comments: true; reactions: true } };
+    novel: {
+      select: {
+        id: true;
+        title: true;
+        slug: true;
+        synopsis: true;
+        coverUrl: true;
+        status: true;
+        chaptersCount: true;
+        author: {
+          select: {
+            id: true;
+            username: true;
+            profile: { select: { displayName: true; avatarUrl: true } };
+          };
+        };
+      };
+    };
+    chapter: {
+      select: {
+        id: true;
+        title: true;
+        slug: true;
+        order: true;
+        wordCount: true;
+        publishedAt: true;
+        novel: { select: { id: true; title: true; slug: true } };
+      };
+    };
+    world: {
+      select: {
+        id: true;
+        name: true;
+        slug: true;
+        tagline: true;
+        coverUrl: true;
+        genre: true;
+      };
+    };
+  };
+}>;
+
+type CharacterLinked = {
+  id: string;
+  name: string;
+  slug: string;
+  avatarUrl: string | null;
+  role: string;
+  authorUsername: string;
+};

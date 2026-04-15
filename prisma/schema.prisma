@@ -126,6 +126,11 @@ enum PostType {
   WORLDBUILDING
   SHOWCASE
   ANNOUNCEMENT
+  NEW_CHAPTER
+  NEW_NOVEL
+  WORLD_UPDATE
+  NEW_CHARACTER
+  RECOMMENDATION
 }
 
 model Post {
@@ -137,10 +142,17 @@ model Post {
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime  @updatedAt @map("updated_at")
   deletedAt DateTime? @map("deleted_at")
-  imageUrls String[]  @default([]) @map("image_urls")
-  tags      String[]  @default([])
+  imageUrls    String[]  @default([]) @map("image_urls")
+  tags         String[]  @default([])
+  novelId      String?   @map("novel_id") @db.Uuid
+  chapterId    String?   @map("chapter_id") @db.Uuid
+  worldId      String?   @map("world_id") @db.Uuid
+  characterIds String[]  @default([]) @map("character_ids") @db.Uuid
 
   author    User        @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  novel     Novel?      @relation(fields: [novelId], references: [id], onDelete: SetNull)
+  chapter   Chapter?    @relation(fields: [chapterId], references: [id], onDelete: SetNull)
+  world     World?      @relation(fields: [worldId], references: [id], onDelete: SetNull)
   comments  Comment[]
   reactions Reaction[]
   savedBy   SavedPost[]
@@ -148,6 +160,9 @@ model Post {
   @@index([authorId])
   @@index([createdAt])
   @@index([authorId, createdAt(sort: Desc)]) // feed pagination: author posts ordered by date
+  @@index([novelId])
+  @@index([chapterId])
+  @@index([worldId])
   @@map("posts")
 }
 
@@ -457,6 +472,7 @@ model Novel {
   linkedCommunities    Community[]        @relation("CommunityLinkedNovel")
   linkedCommunity      Community?         @relation("FanficCommunity", fields: [linkedCommunityId], references: [id], onDelete: SetNull)
   relatedInCommunities CommunityRelatedNovel[] @relation("RelatedInCommunities")
+  posts                Post[]
 
   @@index([authorId])
   @@index([slug])
@@ -609,6 +625,7 @@ model Chapter {
   timelineEvents   TimelineEvent[]
   writingTasks     WritingTask[]
   chapterVotes     ChapterVote[]
+  posts            Post[]
 
   @@unique([novelId, slug])
   @@unique([novelId, order])
@@ -872,6 +889,7 @@ model World {
   timelineEvents TimelineEvent[]
   worldMap       WorldMap?
   kudos        WorldKudo[]
+  posts        Post[]
 
   @@index([authorId])
   @@index([slug])
@@ -1492,6 +1510,8 @@ model PrivacySettings {
   showFollows         Boolean  @default(true) @map("show_follows")
   showStats           Boolean  @default(true) @map("show_stats")
   allowMessages       Boolean  @default(true) @map("allow_messages")
+  allowPostComments   Boolean  @default(true) @map("allow_post_comments")
+  allowNovelComments  Boolean  @default(true) @map("allow_novel_comments")
   searchable          Boolean  @default(true)
   createdAt           DateTime @default(now()) @map("created_at")
   updatedAt           DateTime @updatedAt @map("updated_at")

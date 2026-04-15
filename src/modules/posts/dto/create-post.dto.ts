@@ -6,6 +6,7 @@ import {
   IsNotEmpty,
   IsOptional,
   IsString,
+  IsUUID,
   MaxLength,
   MinLength,
 } from 'class-validator';
@@ -33,4 +34,22 @@ export class CreatePostDto {
   @IsString({ each: true })
   @MaxLength(50, { each: true })
   tags?: string[];
+
+  @IsOptional()
+  @IsUUID()
+  novel_id?: string;
+
+  @IsOptional()
+  @IsUUID()
+  chapter_id?: string;
+
+  @IsOptional()
+  @IsUUID()
+  world_id?: string;
+
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(10)
+  @IsUUID('4', { each: true })
+  character_ids?: string[];
 }
