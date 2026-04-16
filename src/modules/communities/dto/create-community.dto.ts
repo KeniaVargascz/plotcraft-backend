@@ -3,6 +3,7 @@ import {
   IsEnum,
   IsOptional,
   IsString,
+  IsUrl,
   IsUUID,
   MaxLength,
   MinLength,
@@ -28,11 +29,11 @@ export class CreateCommunityDto {
   rules?: string;
 
   @IsOptional()
-  @IsString()
+  @IsUrl({ require_tld: false }, { message: 'coverUrl debe ser una URL valida' })
   coverUrl?: string;
 
   @IsOptional()
-  @IsString()
+  @IsUrl({ require_tld: false }, { message: 'bannerUrl debe ser una URL valida' })
   bannerUrl?: string;
 
   @IsOptional()

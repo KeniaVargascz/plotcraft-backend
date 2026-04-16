@@ -1,4 +1,4 @@
-import { NovelRating, NovelStatus, NovelType, RomanceGenre } from '@prisma/client';
+import { NovelRating, NovelStatus, NovelType } from '@prisma/client';
 import { Transform } from 'class-transformer';
 import {
   IsArray,
@@ -120,9 +120,9 @@ export class NovelQueryDto {
 
   @IsOptional()
   @IsArray()
-  @IsEnum(RomanceGenre, { each: true })
+  @IsUUID('all', { each: true })
   @Transform(({ value }) => (typeof value === 'string' ? [value] : value))
-  romanceGenres?: RomanceGenre[];
+  romanceGenreIds?: string[];
 
   @IsOptional()
   @IsString()

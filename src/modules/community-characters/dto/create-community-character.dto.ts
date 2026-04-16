@@ -1,4 +1,4 @@
-import { IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
+import { IsOptional, IsString, IsUrl, MaxLength, MinLength } from 'class-validator';
 
 export class CreateCommunityCharacterDto {
   @IsString()
@@ -12,6 +12,6 @@ export class CreateCommunityCharacterDto {
   description?: string;
 
   @IsOptional()
-  @IsString()
+  @IsUrl({ require_tld: false }, { message: 'avatarUrl debe ser una URL valida' })
   avatarUrl?: string;
 }

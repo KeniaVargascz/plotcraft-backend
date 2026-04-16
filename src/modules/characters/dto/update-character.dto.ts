@@ -7,6 +7,7 @@ import {
   IsObject,
   IsOptional,
   IsString,
+  IsUrl,
   IsUUID,
   MaxLength,
 } from 'class-validator';
@@ -82,7 +83,7 @@ export class UpdateCharacterDto {
   arc?: string;
 
   @IsOptional()
-  @IsString()
+  @IsUrl({ require_tld: false }, { message: 'avatarUrl debe ser una URL valida' })
   avatarUrl?: string;
 
   @IsOptional()

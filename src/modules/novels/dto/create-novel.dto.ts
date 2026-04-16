@@ -7,11 +7,12 @@ import {
   IsNotEmpty,
   IsOptional,
   IsString,
+  IsUrl,
   IsUUID,
   MaxLength,
   ValidateNested,
 } from 'class-validator';
-import { NovelRating, NovelStatus, NovelType, RomanceGenre } from '@prisma/client';
+import { NovelRating, NovelStatus, NovelType } from '@prisma/client';
 
 export class NovelPairingDto {
   @IsUUID()
@@ -37,7 +38,7 @@ export class CreateNovelDto {
   synopsis?: string;
 
   @IsOptional()
-  @IsString()
+  @IsUrl({ require_tld: false }, { message: 'coverUrl debe ser una URL valida' })
   coverUrl?: string;
 
   @IsOptional()
@@ -78,8 +79,8 @@ export class CreateNovelDto {
   @IsOptional()
   @IsArray()
   @ArrayMaxSize(4)
-  @IsEnum(RomanceGenre, { each: true })
-  romanceGenres?: RomanceGenre[];
+  @IsUUID('all', { each: true })
+  romanceGenreIds?: string[];
 
   @IsOptional()
   @IsArray()

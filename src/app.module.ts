@@ -11,6 +11,7 @@ import { FeedModule } from './modules/feed/feed.module';
 import { FollowsModule } from './modules/follows/follows.module';
 import { GenresModule } from './modules/genres/genres.module';
 import { LanguagesModule } from './modules/languages/languages.module';
+import { RomanceGenresModule } from './modules/romance-genres/romance-genres.module';
 import { HighlightsModule } from './modules/highlights/highlights.module';
 import { LibraryModule } from './modules/library/library.module';
 import { NovelsModule } from './modules/novels/novels.module';
@@ -63,6 +64,7 @@ import { PrismaModule } from './prisma/prisma.module';
     DiscoveryModule,
     GenresModule,
     LanguagesModule,
+    RomanceGenresModule,
     NovelsModule,
     ChaptersModule,
     WorldsModule,

@@ -6,6 +6,7 @@ import {
   IsObject,
   IsOptional,
   IsString,
+  IsUrl,
   MaxLength,
 } from 'class-validator';
 
@@ -26,7 +27,7 @@ export class UpdateEntryDto {
   content?: string;
 
   @IsOptional()
-  @IsString()
+  @IsUrl({ require_tld: false }, { message: 'coverUrl debe ser una URL valida' })
   coverUrl?: string;
 
   @IsOptional()

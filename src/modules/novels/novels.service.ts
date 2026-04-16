@@ -96,7 +96,15 @@ export class NovelsService {
       language: {
         connect: { id: languageId },
       },
-      romanceGenres: dto.romanceGenres ?? [],
+      ...(dto.romanceGenreIds?.length
+        ? {
+            romanceGenres: {
+              create: dto.romanceGenreIds.map((id) => ({
+                romanceGenre: { connect: { id } },
+              })),
+            },
+          }
+        : {}),
       novelType,
       isAlternateUniverse: dto.isAlternateUniverse ?? false,
       ...(linkedCommunityId
@@ -291,6 +299,12 @@ export class NovelsService {
         });
       }
 
+      if (dto.romanceGenreIds !== undefined) {
+        await tx.novelRomanceGenre.deleteMany({
+          where: { novelId: novel.id },
+        });
+      }
+
       return tx.novel.update({
         where: { id: novel.id },
         data: {
@@ -323,8 +337,14 @@ export class NovelsService {
             : {}),
           ...(dto.isPublic !== undefined ? { isPublic: dto.isPublic } : {}),
           ...(languageId !== undefined ? { languageId } : {}),
-          ...(dto.romanceGenres !== undefined
-            ? { romanceGenres: dto.romanceGenres }
+          ...(dto.romanceGenreIds !== undefined && dto.romanceGenreIds.length
+            ? {
+                romanceGenres: {
+                  create: dto.romanceGenreIds.map((id) => ({
+                    romanceGenre: { connect: { id } },
+                  })),
+                },
+              }
             : {}),
           ...(dto.isAlternateUniverse !== undefined
             ? { isAlternateUniverse: dto.isAlternateUniverse }
@@ -573,8 +593,12 @@ export class NovelsService {
           }
         : {}),
       ...(options.query.languageId ? { languageId: options.query.languageId } : {}),
-      ...(options.query.romanceGenres?.length
-        ? { romanceGenres: { hasSome: options.query.romanceGenres } }
+      ...(options.query.romanceGenreIds?.length
+        ? {
+            romanceGenres: {
+              some: { romanceGenreId: { in: options.query.romanceGenreIds } },
+            },
+          }
         : {}),
     };
 
@@ -757,6 +781,17 @@ export class NovelsService {
       genres: {
         include: {
           genre: true,
+        },
+      },
+      romanceGenres: {
+        include: {
+          romanceGenre: {
+            select: {
+              id: true,
+              slug: true,
+              label: true,
+            },
+          },
         },
       },
       likes: viewerId
@@ -976,7 +1011,12 @@ export class NovelsService {
             description: novel.language.description,
           }
         : null,
-      romanceGenres: novel.romanceGenres ?? [],
+      romanceGenres:
+        novel.romanceGenres?.map((rg) => ({
+          id: rg.romanceGenre.id,
+          slug: rg.romanceGenre.slug,
+          label: rg.romanceGenre.label,
+        })) ?? [],
       novelType: novel.novelType,
       isAlternateUniverse: novel.isAlternateUniverse,
       linkedCommunityId: novel.linkedCommunityId,

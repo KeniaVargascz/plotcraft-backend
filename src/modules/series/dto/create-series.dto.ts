@@ -6,6 +6,7 @@ import {
   IsNotEmpty,
   IsOptional,
   IsString,
+  IsUrl,
   IsUUID,
   MaxLength,
 } from 'class-validator';
@@ -26,7 +27,7 @@ export class CreateSeriesDto {
   type?: SeriesType;
 
   @IsOptional()
-  @IsString()
+  @IsUrl({ require_tld: false }, { message: 'coverUrl debe ser una URL valida' })
   coverUrl?: string;
 
   @IsOptional()

@@ -6,6 +6,7 @@ import {
   IsNotEmpty,
   IsOptional,
   IsString,
+  IsUrl,
   IsUUID,
   MaxLength,
   MinLength,
@@ -25,7 +26,7 @@ export class CreatePostDto {
   @IsOptional()
   @IsArray()
   @ArrayMaxSize(4)
-  @IsString({ each: true })
+  @IsUrl({ require_tld: false }, { each: true, message: 'Cada image_url debe ser una URL valida' })
   image_urls?: string[];
 
   @IsOptional()

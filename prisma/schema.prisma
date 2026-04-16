@@ -395,12 +395,6 @@ enum CharacterKinshipType {
   WARD
 }
 
-enum RomanceGenre {
-  MM
-  MF
-  FF
-  OTHER
-}
 
 model Genre {
   id     String       @id @default(uuid()) @db.Uuid
@@ -409,6 +403,17 @@ model Genre {
   novels NovelGenre[]
 
   @@map("genres")
+}
+
+model CatalogRomanceGenre {
+  id        String               @id @default(uuid()) @db.Uuid
+  slug      String               @unique @db.VarChar(40)
+  label     String               @db.VarChar(120)
+  isActive  Boolean              @default(true) @map("is_active")
+  createdAt DateTime             @default(now()) @map("created_at")
+  novels    NovelRomanceGenre[]
+
+  @@map("cat_romance_genre")
 }
 
 model CatalogLanguage {
@@ -443,7 +448,7 @@ model Novel {
   totalWordsCount   Int    @default(0) @map("total_words_count")
   chaptersCount     Int    @default(0) @map("chapters_count")
   subscribersCount  Int    @default(0) @map("subscribers_count")
-  romanceGenres     RomanceGenre[] @default([]) @map("romance_genres")
+  romanceGenres     NovelRomanceGenre[]
   novelType         NovelType   @default(ORIGINAL) @map("novel_type")
   isAlternateUniverse Boolean   @default(false) @map("is_alternate_universe")
   linkedCommunityId String?     @map("linked_community_id") @db.Uuid
@@ -599,6 +604,18 @@ model NovelGenre {
 
   @@id([novelId, genreId])
   @@map("novel_genres")
+}
+
+model NovelRomanceGenre {
+  novelId         String @map("novel_id") @db.Uuid
+  romanceGenreId  String @map("romance_genre_id") @db.Uuid
+
+  novel        Novel               @relation(fields: [novelId], references: [id], onDelete: Cascade)
+  romanceGenre CatalogRomanceGenre @relation(fields: [romanceGenreId], references: [id], onDelete: Cascade)
+
+  @@id([novelId, romanceGenreId])
+  @@index([romanceGenreId])
+  @@map("novel_romance_genres")
 }
 
 model Chapter {

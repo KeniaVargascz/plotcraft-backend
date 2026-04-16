@@ -26,6 +26,6 @@ export class UpdateThreadDto {
   @IsArray()
   @IsString({ each: true })
   @MaxLength(50, { each: true })
-  @ArrayMaxSize(5)
+  @ArrayMaxSize(10)
   tags?: string[];
 }
