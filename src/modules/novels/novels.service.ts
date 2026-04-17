@@ -261,16 +261,15 @@ export class NovelsService {
     response.stats.votesCount = totalVotes._sum.votesCount ?? 0;
 
     if (viewerId && viewerId !== baseNovel.authorId && response.viewerContext) {
-      const kudo = await this.prisma.novelKudo.findUnique({
-        where: { novelId_userId: { novelId: baseNovel.id, userId: viewerId } },
-      });
+      const [kudo, sub] = await Promise.all([
+        this.prisma.novelKudo.findUnique({
+          where: { novelId_userId: { novelId: baseNovel.id, userId: viewerId } },
+        }),
+        this.prisma.novelSubscription.findUnique({
+          where: { novelId_userId: { novelId: baseNovel.id, userId: viewerId } },
+        }),
+      ]);
       response.viewerContext.hasKudo = !!kudo;
-
-      const sub = await this.prisma.novelSubscription.findUnique({
-        where: {
-          novelId_userId: { novelId: baseNovel.id, userId: viewerId },
-        },
-      });
       response.viewerContext.isSubscribed = !!sub;
     }
 

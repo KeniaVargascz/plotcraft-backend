@@ -816,6 +816,7 @@ model ReadingProgress {
   @@unique([userId, novelId])
   @@index([userId])
   @@index([novelId])
+  @@index([userId, scrollPct])
   @@map("reading_progress")
 }
 

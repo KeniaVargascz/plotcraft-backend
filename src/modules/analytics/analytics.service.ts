@@ -77,6 +77,7 @@ export class AnalyticsService {
         status: true,
         createdAt: true,
         authorId: true,
+        viewsCount: true,
       },
     });
 
@@ -165,51 +166,34 @@ export class AnalyticsService {
     const prevRange = this.getPreviousPeriodRange(period);
 
     if (prevRange) {
-      const [currentSnapshots, prevSnapshots] = await Promise.all([
-        this.prisma.novelDailySnapshot.findMany({
+      const sumFields = {
+        views: true,
+        likes: true,
+        bookmarks: true,
+        newReaders: true,
+        chaptersRead: true,
+      } as const;
+
+      const [curAgg, prevAgg] = await Promise.all([
+        this.prisma.novelDailySnapshot.aggregate({
           where: { novelId: novel.id, date: { gte: start, lte: end } },
+          _sum: sumFields,
         }),
-        this.prisma.novelDailySnapshot.findMany({
-          where: {
-            novelId: novel.id,
-            date: { gte: prevRange.start, lte: prevRange.end },
-          },
+        this.prisma.novelDailySnapshot.aggregate({
+          where: { novelId: novel.id, date: { gte: prevRange.start, lte: prevRange.end } },
+          _sum: sumFields,
         }),
       ]);
 
-      const sumField = (
-        snapshots: typeof currentSnapshots,
-        field:
-          | 'views'
-          | 'likes'
-          | 'bookmarks'
-          | 'newReaders'
-          | 'chaptersRead'
-          | 'wordsRead',
-      ) => snapshots.reduce((acc, s) => acc + s[field], 0);
-
-      const cur = {
-        views: sumField(currentSnapshots, 'views'),
-        likes: sumField(currentSnapshots, 'likes'),
-        bookmarks: sumField(currentSnapshots, 'bookmarks'),
-        newReaders: sumField(currentSnapshots, 'newReaders'),
-        chaptersRead: sumField(currentSnapshots, 'chaptersRead'),
-      };
-
-      const prev = {
-        views: sumField(prevSnapshots, 'views'),
-        likes: sumField(prevSnapshots, 'likes'),
-        bookmarks: sumField(prevSnapshots, 'bookmarks'),
-        newReaders: sumField(prevSnapshots, 'newReaders'),
-        chaptersRead: sumField(prevSnapshots, 'chaptersRead'),
-      };
+      const cur = curAgg._sum;
+      const prev = prevAgg._sum;
 
       periodDelta = {
-        views: this.computeDelta(cur.views, prev.views),
-        likes: this.computeDelta(cur.likes, prev.likes),
-        bookmarks: this.computeDelta(cur.bookmarks, prev.bookmarks),
-        newReaders: this.computeDelta(cur.newReaders, prev.newReaders),
-        chaptersRead: this.computeDelta(cur.chaptersRead, prev.chaptersRead),
+        views: this.computeDelta(cur.views ?? 0, prev.views ?? 0),
+        likes: this.computeDelta(cur.likes ?? 0, prev.likes ?? 0),
+        bookmarks: this.computeDelta(cur.bookmarks ?? 0, prev.bookmarks ?? 0),
+        newReaders: this.computeDelta(cur.newReaders ?? 0, prev.newReaders ?? 0),
+        chaptersRead: this.computeDelta(cur.chaptersRead ?? 0, prev.chaptersRead ?? 0),
       };
     }
 
@@ -290,14 +274,7 @@ export class AnalyticsService {
         createdAt: novel.createdAt,
       },
       totals: {
-        views: novel.id
-          ? ((
-              await this.prisma.novel.findUnique({
-                where: { id: novel.id },
-                select: { viewsCount: true },
-              })
-            )?.viewsCount ?? 0)
-          : 0,
+        views: novel.viewsCount ?? 0,
         likes: totalLikes,
         bookmarks: totalBookmarks,
         totalReaders,
@@ -592,13 +569,11 @@ export class AnalyticsService {
       select: { id: true, slug: true, label: true },
     });
 
-    const topGenresResult = topGenres.map((g) => {
-      const genre = genreDetails.find((gd) => gd.id === g.genreId);
-      return {
-        genre: genre ?? { id: g.genreId, slug: '', label: '' },
-        novelCount: g._count.genreId,
-      };
-    });
+    const genreMap = new Map(genreDetails.map((gd) => [gd.id, gd]));
+    const topGenresResult = topGenres.map((g) => ({
+      genre: genreMap.get(g.genreId) ?? { id: g.genreId, slug: '', label: '' },
+      novelCount: g._count.genreId,
+    }));
 
     // Engagement
     const authorNovels = await this.prisma.novel.findMany({

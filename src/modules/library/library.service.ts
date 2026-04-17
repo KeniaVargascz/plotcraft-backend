@@ -128,6 +128,7 @@ export class LibraryService {
     const history = await this.prisma.readingHistory.findMany({
       where: { userId },
       orderBy: { openedAt: 'desc' },
+      take: 5000,
       include: {
         chapter: {
           select: {
@@ -187,21 +188,26 @@ export class LibraryService {
       }
     }
 
-    const progress = await this.prisma.readingProgress.findMany({
-      where: {
-        userId,
-        scrollPct: 1,
-      },
+    const completedProgress = await this.prisma.readingProgress.findMany({
+      where: { userId, scrollPct: { gte: 1 } },
+      select: { novelId: true },
+      distinct: ['novelId'],
     });
 
-    for (const item of progress) {
+    for (const item of completedProgress) {
       completedNovelIds.add(item.novelId);
     }
 
-    const totalWordsRead = [...uniqueChapterIds].reduce((sum, chapterId) => {
-      const match = history.find((entry) => entry.chapterId === chapterId);
-      return sum + (match?.chapter.wordCount ?? 0);
-    }, 0);
+    const chapterWordMap = new Map<string, number>();
+    for (const item of history) {
+      if (!chapterWordMap.has(item.chapterId)) {
+        chapterWordMap.set(item.chapterId, item.chapter.wordCount);
+      }
+    }
+    let totalWordsRead = 0;
+    for (const words of chapterWordMap.values()) {
+      totalWordsRead += words;
+    }
 
     const favoriteGenre =
       [...genreFrequency.values()].sort((a, b) => b.count - a.count)[0] ?? null;
