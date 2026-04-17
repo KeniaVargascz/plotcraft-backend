@@ -54,7 +54,9 @@ describe('PostsService', () => {
   });
 
   it('deletePost performs soft delete', async () => {
-    prisma.post.findUnique.mockResolvedValue(createPostFixture({ authorId: 'user-id' }));
+    prisma.post.findUnique.mockResolvedValue(
+      createPostFixture({ authorId: 'user-id' }),
+    );
 
     await service.deletePost('post-id', 'user-id');
 

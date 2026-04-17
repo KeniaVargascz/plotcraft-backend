@@ -22,7 +22,10 @@ type ProviderKey = keyof typeof PROVIDER_MAP;
     {
       provide: EMAIL_PROVIDER_TOKEN,
       useFactory: (config: ConfigService) => {
-        const key = config.get<string>('EMAIL_PROVIDER', 'resend') as ProviderKey;
+        const key = config.get<string>(
+          'EMAIL_PROVIDER',
+          'resend',
+        ) as ProviderKey;
         const Provider = PROVIDER_MAP[key];
         if (!Provider) {
           throw new Error(

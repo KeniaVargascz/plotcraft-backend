@@ -1,8 +1,16 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
-import { bearer, loginAs, registerUser, unwrapData } from '../helpers/auth.helper';
+import {
+  bearer,
+  loginAs,
+  registerUser,
+  unwrapData,
+} from '../helpers/auth.helper';
 import { createTestApp } from '../helpers/test-app.helper';
-import { cleanupUsersByPrefix, disconnectTestDb } from '../helpers/test-db.helper';
+import {
+  cleanupUsersByPrefix,
+  disconnectTestDb,
+} from '../helpers/test-db.helper';
 
 describe('Feed integration', () => {
   let app: INestApplication;
@@ -50,7 +58,8 @@ describe('Feed integration', () => {
 
     expect(
       exploreFeed.data.some(
-        (item: { content?: string }) => item.content === `Post de integracion ${prefix}`,
+        (item: { content?: string }) =>
+          item.content === `Post de integracion ${prefix}`,
       ),
     ).toBe(true);
 

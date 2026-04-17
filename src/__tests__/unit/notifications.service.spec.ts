@@ -52,8 +52,8 @@ describe('NotificationsService', () => {
       createNotificationFixture({ userId: 'another-user' }),
     );
 
-    await expect(service.markAsRead('notification-id', 'user-id')).rejects.toBeInstanceOf(
-      ForbiddenException,
-    );
+    await expect(
+      service.markAsRead('notification-id', 'user-id'),
+    ).rejects.toBeInstanceOf(ForbiddenException);
   });
 });

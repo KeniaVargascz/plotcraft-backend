@@ -105,10 +105,7 @@ export class ForumController {
   @ApiBearerAuth()
   @Post()
   @ApiOperation({ summary: 'Create a new thread' })
-  createThread(
-    @CurrentUser() user: JwtPayload,
-    @Body() dto: CreateThreadDto,
-  ) {
+  createThread(@CurrentUser() user: JwtPayload, @Body() dto: CreateThreadDto) {
     return this.forumService.createThread(user.sub, dto);
   }
 
@@ -126,10 +123,7 @@ export class ForumController {
   @ApiBearerAuth()
   @Delete(':slug')
   @ApiOperation({ summary: 'Soft-delete own thread' })
-  deleteThread(
-    @Param('slug') slug: string,
-    @CurrentUser() user: JwtPayload,
-  ) {
+  deleteThread(@Param('slug') slug: string, @CurrentUser() user: JwtPayload) {
     return this.forumService.deleteThread(slug, user.sub);
   }
 
@@ -236,10 +230,7 @@ export class ForumController {
   @ApiBearerAuth()
   @Delete(':slug/vote')
   @ApiOperation({ summary: 'Remove poll vote' })
-  removeVote(
-    @Param('slug') slug: string,
-    @CurrentUser() user: JwtPayload,
-  ) {
+  removeVote(@Param('slug') slug: string, @CurrentUser() user: JwtPayload) {
     return this.forumService.removeVote(slug, user.sub);
   }
 
@@ -248,20 +239,14 @@ export class ForumController {
   @ApiBearerAuth()
   @Post(':slug/close')
   @ApiOperation({ summary: 'Close own thread' })
-  closeThread(
-    @Param('slug') slug: string,
-    @CurrentUser() user: JwtPayload,
-  ) {
+  closeThread(@Param('slug') slug: string, @CurrentUser() user: JwtPayload) {
     return this.forumService.closeThread(slug, user.sub);
   }
 
   @ApiBearerAuth()
   @Post(':slug/open')
   @ApiOperation({ summary: 'Reopen own thread' })
-  openThread(
-    @Param('slug') slug: string,
-    @CurrentUser() user: JwtPayload,
-  ) {
+  openThread(@Param('slug') slug: string, @CurrentUser() user: JwtPayload) {
     return this.forumService.openThread(slug, user.sub);
   }
 

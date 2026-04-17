@@ -1,8 +1,16 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
-import { bearer, loginAs, registerUser, unwrapData } from '../helpers/auth.helper';
+import {
+  bearer,
+  loginAs,
+  registerUser,
+  unwrapData,
+} from '../helpers/auth.helper';
 import { createTestApp } from '../helpers/test-app.helper';
-import { cleanupUsersByPrefix, disconnectTestDb } from '../helpers/test-db.helper';
+import {
+  cleanupUsersByPrefix,
+  disconnectTestDb,
+} from '../helpers/test-db.helper';
 
 describe('Novels integration', () => {
   let app: INestApplication;
@@ -63,7 +71,9 @@ describe('Novels integration', () => {
     expect(createChapterResponse.status).toBe(201);
 
     const publishChapterResponse = await request(app.getHttpServer())
-      .post('/api/novels/novela-integracion/chapters/capitulo-integracion/publish')
+      .post(
+        '/api/novels/novela-integracion/chapters/capitulo-integracion/publish',
+      )
       .set('Authorization', bearer(session.accessToken));
 
     expect(publishChapterResponse.status).toBe(201);
@@ -74,9 +84,9 @@ describe('Novels integration', () => {
       .send({ isPublic: true });
 
     expect(publishNovelResponse.status).toBe(200);
-    expect(unwrapData<{ isPublic: boolean }>(publishNovelResponse.body).isPublic).toBe(
-      true,
-    );
+    expect(
+      unwrapData<{ isPublic: boolean }>(publishNovelResponse.body).isPublic,
+    ).toBe(true);
 
     const publicDetailResponse = await request(app.getHttpServer()).get(
       '/api/novels/novela-integracion',

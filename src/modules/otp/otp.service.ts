@@ -2,7 +2,11 @@ import { Injectable } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { OtpType } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
-import { OTP_EXPIRY_MINUTES, OTP_LENGTH, OTP_MAX_ATTEMPTS } from './otp.constants';
+import {
+  OTP_EXPIRY_MINUTES,
+  OTP_LENGTH,
+  OTP_MAX_ATTEMPTS,
+} from './otp.constants';
 
 @Injectable()
 export class OtpService {
@@ -39,7 +43,10 @@ export class OtpService {
     type: OtpType,
   ): Promise<
     | { valid: true }
-    | { valid: false; reason: 'not_found' | 'expired' | 'invalid' | 'too_many_attempts' }
+    | {
+        valid: false;
+        reason: 'not_found' | 'expired' | 'invalid' | 'too_many_attempts';
+      }
   > {
     const otpRecord = await this.prisma.otpCode.findFirst({
       where: { userId, type, usedAt: null },

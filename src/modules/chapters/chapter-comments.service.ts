@@ -14,7 +14,12 @@ export class ChapterCommentsService {
     chapterSlug: string,
     userId: string,
     content: string,
-    anchor?: { anchorId: string; quotedText: string; startOffset: number; endOffset: number },
+    anchor?: {
+      anchorId: string;
+      quotedText: string;
+      startOffset: number;
+      endOffset: number;
+    },
   ) {
     const chapter = await this.findChapter(novelSlug, chapterSlug);
 

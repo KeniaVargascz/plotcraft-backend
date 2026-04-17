@@ -1205,7 +1205,8 @@ export class ForumService {
     return {
       id: reply.id,
       content: reply.content,
-      parentReplyId: (reply as { parentReplyId?: string | null }).parentReplyId ?? null,
+      parentReplyId:
+        (reply as { parentReplyId?: string | null }).parentReplyId ?? null,
       isSolution: reply.isSolution,
       isDeleted: !!reply.deletedAt,
       createdAt: reply.createdAt,

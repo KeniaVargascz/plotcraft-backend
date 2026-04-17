@@ -12,6 +12,8 @@ export async function seed00Genres(prisma: PrismaClient): Promise<void> {
       });
     }
 
-    console.log(`  -> ${CANONICAL_GENRES.length} generos canonicos creados/actualizados`);
+    console.log(
+      `  -> ${CANONICAL_GENRES.length} generos canonicos creados/actualizados`,
+    );
   });
 }

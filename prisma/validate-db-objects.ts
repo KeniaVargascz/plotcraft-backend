@@ -11,12 +11,27 @@ import { PrismaClient } from '@prisma/client';
 
 const ALLOWED_FUNCTION_PREFIXES = [
   // PostgreSQL extensions (pgcrypto, pg_trgm, etc.)
-  'digest', 'hmac', 'crypt', 'gen_salt', 'gen_random',
-  'encrypt', 'decrypt', 'encrypt_iv', 'decrypt_iv',
-  'pgp_', 'armor', 'dearmor',
-  'set_limit', 'show_limit', 'show_trgm',
-  'similarity', 'word_similarity', 'strict_word_similarity',
-  'gtrgm_', 'gin_extract', 'gin_trgm',
+  'digest',
+  'hmac',
+  'crypt',
+  'gen_salt',
+  'gen_random',
+  'encrypt',
+  'decrypt',
+  'encrypt_iv',
+  'decrypt_iv',
+  'pgp_',
+  'armor',
+  'dearmor',
+  'set_limit',
+  'show_limit',
+  'show_trgm',
+  'similarity',
+  'word_similarity',
+  'strict_word_similarity',
+  'gtrgm_',
+  'gin_extract',
+  'gin_trgm',
 ];
 
 function isExtensionFunction(name: string): boolean {
@@ -83,7 +98,9 @@ async function main() {
       process.exit(1);
     }
 
-    console.log('✅ Database validation passed — no orphan triggers or functions.');
+    console.log(
+      '✅ Database validation passed — no orphan triggers or functions.',
+    );
   } finally {
     await prisma.$disconnect();
   }

@@ -36,7 +36,9 @@ export const createProfileFixture = (
   ...overrides,
 });
 
-export const createNovelFixture = (overrides: Record<string, unknown> = {}) => ({
+export const createNovelFixture = (
+  overrides: Record<string, unknown> = {},
+) => ({
   id: '00000000-0000-0000-0001-000000000001',
   authorId: '00000000-0000-0000-0000-000000000001',
   title: 'Fixture Novel',
@@ -135,7 +137,9 @@ export const createNotificationFixture = (
   ...overrides,
 });
 
-export const createWorldFixture = (overrides: Record<string, unknown> = {}) => ({
+export const createWorldFixture = (
+  overrides: Record<string, unknown> = {},
+) => ({
   id: '00000000-0000-0000-0003-000000000001',
   authorId: '00000000-0000-0000-0000-000000000001',
   name: 'Fixture World',

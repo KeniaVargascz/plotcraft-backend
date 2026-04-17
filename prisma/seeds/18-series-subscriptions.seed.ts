@@ -16,7 +16,10 @@ export async function seed18SeriesSubscriptions(
     });
 
     for (const novel of novels) {
-      const total = novel.chapters.reduce((sum, c) => sum + (c.wordCount ?? 0), 0);
+      const total = novel.chapters.reduce(
+        (sum, c) => sum + (c.wordCount ?? 0),
+        0,
+      );
       await prisma.novel.update({
         where: { id: novel.id },
         data: {

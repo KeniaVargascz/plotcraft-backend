@@ -20,27 +20,49 @@ export async function seed25PaginationTestData(
     const userDefs = [
       { id: demoId, email: 'demo@plotcraft.com', username: 'demo_writer' },
       { id: lunaId, email: 'luna@plotcraft.com', username: 'writer_luna' },
-      { id: marcosId, email: 'writer.marcos@plotcraft.com', username: 'writer_marcos' },
-      { id: SEED_IDS.users.reader_alex, email: 'reader.alex@plotcraft.com', username: 'reader_alex' },
+      {
+        id: marcosId,
+        email: 'writer.marcos@plotcraft.com',
+        username: 'writer_marcos',
+      },
+      {
+        id: SEED_IDS.users.reader_alex,
+        email: 'reader.alex@plotcraft.com',
+        username: 'reader_alex',
+      },
     ];
 
     const resolvedAuthors: string[] = [];
     for (const u of userDefs) {
-      let user = await prisma.user.findFirst({ where: { OR: [{ id: u.id }, { email: u.email }] } });
+      let user = await prisma.user.findFirst({
+        where: { OR: [{ id: u.id }, { email: u.email }] },
+      });
       if (!user) {
         user = await prisma.user.create({
-          data: { id: u.id, email: u.email, username: u.username, passwordHash: hash, status: 'ACTIVE' },
+          data: {
+            id: u.id,
+            email: u.email,
+            username: u.username,
+            passwordHash: hash,
+            status: 'ACTIVE',
+          },
         });
       }
-      const existing = await prisma.profile.findUnique({ where: { userId: user.id } });
+      const existing = await prisma.profile.findUnique({
+        where: { userId: user.id },
+      });
       if (!existing) {
-        await prisma.profile.create({ data: { userId: user.id, displayName: u.username.replace('_', ' ') } });
+        await prisma.profile.create({
+          data: { userId: user.id, displayName: u.username.replace('_', ' ') },
+        });
       }
       resolvedAuthors.push(user.id);
     }
 
     // ── Get a language id ──
-    const lang = await prisma.catalogLanguage.findFirst({ where: { code: 'es' } });
+    const lang = await prisma.catalogLanguage.findFirst({
+      where: { code: 'es' },
+    });
     if (!lang) throw new Error('Run language seed first');
 
     const genres = await prisma.genre.findMany({ take: 10 });
@@ -48,23 +70,50 @@ export async function seed25PaginationTestData(
 
     const authors = resolvedAuthors.slice(0, 3);
     let counter = 0;
-    const slug = (prefix: string) => `${prefix}-${++counter}-${Date.now().toString(36)}`;
+    const slug = (prefix: string) =>
+      `${prefix}-${++counter}-${Date.now().toString(36)}`;
 
     // ── 40 Novels ──
     const novelTitles = [
-      'El Despertar del Dragón', 'Sombras en la Niebla', 'Crónicas de Aether',
-      'El Último Hechicero', 'Mar de Estrellas', 'La Torre Infinita',
-      'Reinos Olvidados', 'El Jardín de Cristal', 'Vientos de Guerra',
-      'La Espada del Destino', 'Susurros del Abismo', 'El Trono de Hielo',
-      'Laberintos de Luz', 'La Dama de las Sombras', 'Cenizas del Imperio',
-      'El Bosque Encantado', 'Ríos de Sangre', 'La Profecía Perdida',
-      'Corazones de Acero', 'El Mapa del Tiempo', 'La Isla Prohibida',
-      'Ecos del Pasado', 'El Reloj de Arena', 'Noche Eterna',
-      'El Faro del Fin del Mundo', 'Corona de Espinas', 'Almas Errantes',
-      'El Secreto del Alquimista', 'Puentes de Plata', 'El Valle Oscuro',
-      'Legado de Fuego', 'La Canción del Mar', 'Tierra de Nadie',
-      'El Cazador de Sueños', 'Rosas y Veneno', 'El Pacto del Lobo',
-      'Prisma de Realidades', 'La Puerta Olvidada', 'Estrellas Rotas',
+      'El Despertar del Dragón',
+      'Sombras en la Niebla',
+      'Crónicas de Aether',
+      'El Último Hechicero',
+      'Mar de Estrellas',
+      'La Torre Infinita',
+      'Reinos Olvidados',
+      'El Jardín de Cristal',
+      'Vientos de Guerra',
+      'La Espada del Destino',
+      'Susurros del Abismo',
+      'El Trono de Hielo',
+      'Laberintos de Luz',
+      'La Dama de las Sombras',
+      'Cenizas del Imperio',
+      'El Bosque Encantado',
+      'Ríos de Sangre',
+      'La Profecía Perdida',
+      'Corazones de Acero',
+      'El Mapa del Tiempo',
+      'La Isla Prohibida',
+      'Ecos del Pasado',
+      'El Reloj de Arena',
+      'Noche Eterna',
+      'El Faro del Fin del Mundo',
+      'Corona de Espinas',
+      'Almas Errantes',
+      'El Secreto del Alquimista',
+      'Puentes de Plata',
+      'El Valle Oscuro',
+      'Legado de Fuego',
+      'La Canción del Mar',
+      'Tierra de Nadie',
+      'El Cazador de Sueños',
+      'Rosas y Veneno',
+      'El Pacto del Lobo',
+      'Prisma de Realidades',
+      'La Puerta Olvidada',
+      'Estrellas Rotas',
       'El Veredicto Final',
     ];
 
@@ -106,14 +155,46 @@ export async function seed25PaginationTestData(
 
     // ── 40 Worlds ──
     const worldNames = [
-      'Aetherya', 'Valdris', 'Nocturia', 'Solheim', 'Crystalia',
-      'Umbracrest', 'Pyrothan', 'Lunaris', 'Tempestia', 'Verdantis',
-      'Glacium', 'Infernia', 'Aqualon', 'Caelum', 'Terranova',
-      'Nebulon', 'Mythrandil', 'Obsidiana', 'Starfall', 'Voidreach',
-      'Brighthollow', 'Grimwood', 'Silverdeep', 'Ironpeak', 'Stormrift',
-      'Ashenvale', 'Frostmere', 'Sunspire', 'Thornwall', 'Duskmeadow',
-      'Goldmist', 'Shadowfen', 'Coralheim', 'Blightmoor', 'Windhaven',
-      'Ravencrest', 'Moonvale', 'Fireholm', 'Stonegrasp', 'Tidecrest',
+      'Aetherya',
+      'Valdris',
+      'Nocturia',
+      'Solheim',
+      'Crystalia',
+      'Umbracrest',
+      'Pyrothan',
+      'Lunaris',
+      'Tempestia',
+      'Verdantis',
+      'Glacium',
+      'Infernia',
+      'Aqualon',
+      'Caelum',
+      'Terranova',
+      'Nebulon',
+      'Mythrandil',
+      'Obsidiana',
+      'Starfall',
+      'Voidreach',
+      'Brighthollow',
+      'Grimwood',
+      'Silverdeep',
+      'Ironpeak',
+      'Stormrift',
+      'Ashenvale',
+      'Frostmere',
+      'Sunspire',
+      'Thornwall',
+      'Duskmeadow',
+      'Goldmist',
+      'Shadowfen',
+      'Coralheim',
+      'Blightmoor',
+      'Windhaven',
+      'Ravencrest',
+      'Moonvale',
+      'Fireholm',
+      'Stonegrasp',
+      'Tidecrest',
     ];
 
     const worldIds: string[] = [];
@@ -135,16 +216,68 @@ export async function seed25PaginationTestData(
 
     // ── 50 Characters ──
     const charNames = [
-      'Kael', 'Lyra', 'Seren', 'Theron', 'Aelith', 'Draven', 'Nira',
-      'Orin', 'Vex', 'Mira', 'Cael', 'Rowan', 'Ilya', 'Dain', 'Freya',
-      'Zephyr', 'Nyx', 'Aria', 'Kira', 'Ezra', 'Sage', 'Rune', 'Ember',
-      'Frost', 'Storm', 'Blaze', 'Dawn', 'Shade', 'Hawk', 'Wren',
-      'Asher', 'Luna', 'Felix', 'Nova', 'Ivy', 'Rex', 'Jade', 'Onyx',
-      'Coral', 'Flint', 'Briar', 'Vale', 'Lark', 'Finn', 'Iris',
-      'Gale', 'Mica', 'Rue', 'Sol', 'Elm',
+      'Kael',
+      'Lyra',
+      'Seren',
+      'Theron',
+      'Aelith',
+      'Draven',
+      'Nira',
+      'Orin',
+      'Vex',
+      'Mira',
+      'Cael',
+      'Rowan',
+      'Ilya',
+      'Dain',
+      'Freya',
+      'Zephyr',
+      'Nyx',
+      'Aria',
+      'Kira',
+      'Ezra',
+      'Sage',
+      'Rune',
+      'Ember',
+      'Frost',
+      'Storm',
+      'Blaze',
+      'Dawn',
+      'Shade',
+      'Hawk',
+      'Wren',
+      'Asher',
+      'Luna',
+      'Felix',
+      'Nova',
+      'Ivy',
+      'Rex',
+      'Jade',
+      'Onyx',
+      'Coral',
+      'Flint',
+      'Briar',
+      'Vale',
+      'Lark',
+      'Finn',
+      'Iris',
+      'Gale',
+      'Mica',
+      'Rue',
+      'Sol',
+      'Elm',
     ];
 
-    const roles = ['PROTAGONIST', 'ANTAGONIST', 'SECONDARY', 'MENTOR', 'ALLY', 'RIVAL', 'NEUTRAL', 'BACKGROUND'] as const;
+    const roles = [
+      'PROTAGONIST',
+      'ANTAGONIST',
+      'SECONDARY',
+      'MENTOR',
+      'ALLY',
+      'RIVAL',
+      'NEUTRAL',
+      'BACKGROUND',
+    ] as const;
     const charStatuses = ['ALIVE', 'DECEASED', 'UNKNOWN'] as const;
 
     const characterIds: string[] = [];
@@ -169,16 +302,36 @@ export async function seed25PaginationTestData(
 
     // ── 30 Communities ──
     const communityNames = [
-      'Escritores de Fantasía', 'Club de Ciencia Ficción', 'Romance Literario',
-      'Terror Nocturno', 'Misterio y Suspense', 'Aventureros Épicos',
-      'Drama Contemporáneo', 'Thriller Psicológico', 'Historia Viva',
-      'Comedia Creativa', 'Distopía y Utopía', 'Paranormal Activity',
-      'Slice of Life Club', 'Acción Sin Límites', 'Poetas del Alma',
-      'Fanfic Universe', 'Worldbuilders', 'Character Designers',
-      'Beta Readers', 'NaNoWriMo LATAM', 'Escribiendo Juntos',
-      'Críticos Constructivos', 'Ilustradores Narrativos', 'Editores Independientes',
-      'Novelistas Novatos', 'Autores Publicados', 'Fantasía Oscura',
-      'Sci-Fi Hard', 'Cuentos Cortos', 'Microrrelatos',
+      'Escritores de Fantasía',
+      'Club de Ciencia Ficción',
+      'Romance Literario',
+      'Terror Nocturno',
+      'Misterio y Suspense',
+      'Aventureros Épicos',
+      'Drama Contemporáneo',
+      'Thriller Psicológico',
+      'Historia Viva',
+      'Comedia Creativa',
+      'Distopía y Utopía',
+      'Paranormal Activity',
+      'Slice of Life Club',
+      'Acción Sin Límites',
+      'Poetas del Alma',
+      'Fanfic Universe',
+      'Worldbuilders',
+      'Character Designers',
+      'Beta Readers',
+      'NaNoWriMo LATAM',
+      'Escribiendo Juntos',
+      'Críticos Constructivos',
+      'Ilustradores Narrativos',
+      'Editores Independientes',
+      'Novelistas Novatos',
+      'Autores Publicados',
+      'Fantasía Oscura',
+      'Sci-Fi Hard',
+      'Cuentos Cortos',
+      'Microrrelatos',
     ];
 
     const communityTypes = ['PUBLIC', 'PRIVATE', 'FANDOM'] as const;
@@ -199,14 +352,30 @@ export async function seed25PaginationTestData(
 
     // ── 25 Series ──
     const seriesNames = [
-      'Crónicas del Velo', 'Trilogía de las Sombras', 'Saga de Aether',
-      'Dilema del Hechicero', 'Las Estrellas Perdidas', 'Serie Infinita',
-      'Reinos en Guerra', 'Cristales de Poder', 'El Ciclo del Viento',
-      'Espadas del Destino', 'Susurros Ancestrales', 'La Era del Hielo',
-      'Laberintos Dorados', 'Sombras y Damas', 'Imperios Caídos',
-      'Bosques Malditos', 'Ríos Carmesí', 'Profecías Antiguas',
-      'Corazones Blindados', 'Crononautas', 'Islas del Olvido',
-      'Ecos Inmortales', 'Arenas del Tiempo', 'Noches Sin Fin',
+      'Crónicas del Velo',
+      'Trilogía de las Sombras',
+      'Saga de Aether',
+      'Dilema del Hechicero',
+      'Las Estrellas Perdidas',
+      'Serie Infinita',
+      'Reinos en Guerra',
+      'Cristales de Poder',
+      'El Ciclo del Viento',
+      'Espadas del Destino',
+      'Susurros Ancestrales',
+      'La Era del Hielo',
+      'Laberintos Dorados',
+      'Sombras y Damas',
+      'Imperios Caídos',
+      'Bosques Malditos',
+      'Ríos Carmesí',
+      'Profecías Antiguas',
+      'Corazones Blindados',
+      'Crononautas',
+      'Islas del Olvido',
+      'Ecos Inmortales',
+      'Arenas del Tiempo',
+      'Noches Sin Fin',
       'Faros Extintos',
     ];
 
@@ -240,8 +409,15 @@ export async function seed25PaginationTestData(
 
     // ── 30 Forum Threads ──
     const forumCategories = [
-      'GENERAL', 'FEEDBACK', 'WRITING_TIPS', 'WORLD_BUILDING',
-      'CHARACTERS', 'SHOWCASE', 'ANNOUNCEMENTS', 'HELP', 'OFF_TOPIC',
+      'GENERAL',
+      'FEEDBACK',
+      'WRITING_TIPS',
+      'WORLD_BUILDING',
+      'CHARACTERS',
+      'SHOWCASE',
+      'ANNOUNCEMENTS',
+      'HELP',
+      'OFF_TOPIC',
     ] as const;
 
     const threadTitles = [
@@ -274,7 +450,7 @@ export async function seed25PaginationTestData(
       'Mapas para tu mundo fantástico',
       'La regla de las tres escenas',
       'Nombres para personajes de fantasía',
-      'Show, don\'t tell — ejemplos prácticos',
+      "Show, don't tell — ejemplos prácticos",
     ];
 
     for (let i = 0; i < threadTitles.length; i++) {

@@ -69,9 +69,7 @@ export class SeriesService {
     const rows = await this.prisma.series.findMany({
       where,
       take: limit + 1,
-      ...(query.cursor
-        ? { skip: 1, cursor: { id: query.cursor } }
-        : {}),
+      ...(query.cursor ? { skip: 1, cursor: { id: query.cursor } } : {}),
       orderBy: { createdAt: 'desc' },
       include: this.seriesInclude(),
     });
@@ -303,11 +301,7 @@ export class SeriesService {
     return this.getSeriesBySlug(series.slug);
   }
 
-  async removeNovelFromSeries(
-    slug: string,
-    userId: string,
-    novelId: string,
-  ) {
+  async removeNovelFromSeries(slug: string, userId: string, novelId: string) {
     const series = await this.findOwnedSeries(slug, userId);
     const link = await this.prisma.seriesNovel.findUnique({
       where: { seriesId_novelId: { seriesId: series.id, novelId } },
@@ -366,11 +360,7 @@ export class SeriesService {
     return this.getSeriesBySlug(series.slug);
   }
 
-  async reorderNovels(
-    slug: string,
-    userId: string,
-    dto: ReorderNovelsDto,
-  ) {
+  async reorderNovels(slug: string, userId: string, dto: ReorderNovelsDto) {
     const series = await this.findOwnedSeries(slug, userId);
     const links = await this.prisma.seriesNovel.findMany({
       where: { seriesId: series.id },

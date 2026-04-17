@@ -140,9 +140,7 @@ export class WorldsService {
         ...(dto.mapUrl !== undefined
           ? { mapUrl: dto.mapUrl?.trim() || null }
           : {}),
-        ...(dto.genre !== undefined
-          ? { genre: dto.genre }
-          : {}),
+        ...(dto.genre !== undefined ? { genre: dto.genre } : {}),
         ...(dto.visibility !== undefined ? { visibility: dto.visibility } : {}),
         ...(dto.tags !== undefined
           ? {
@@ -265,7 +263,11 @@ export class WorldsService {
     return { linked: false };
   }
 
-  async listLinkedNovels(slug: string, viewerId?: string | null, query: { cursor?: string; limit?: number } = {}) {
+  async listLinkedNovels(
+    slug: string,
+    viewerId?: string | null,
+    query: { cursor?: string; limit?: number } = {},
+  ) {
     const world = await this.getWorldEntity(slug, viewerId);
     const limit = query.limit ?? 12;
 
@@ -281,7 +283,12 @@ export class WorldsService {
       },
       take: limit + 1,
       ...(query.cursor
-        ? { skip: 1, cursor: { novelId_worldId: { novelId: query.cursor, worldId: world.id } } }
+        ? {
+            skip: 1,
+            cursor: {
+              novelId_worldId: { novelId: query.cursor, worldId: world.id },
+            },
+          }
         : {}),
       orderBy: { novel: { updatedAt: 'desc' } },
       include: {
@@ -427,7 +434,9 @@ export class WorldsService {
       const totalPages = Math.ceil(total / limit);
 
       return {
-        data: worlds.map((world) => this.toWorldResponse(world, options.viewerId)),
+        data: worlds.map((world) =>
+          this.toWorldResponse(world, options.viewerId),
+        ),
         pagination: {
           page,
           limit,

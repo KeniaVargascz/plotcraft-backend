@@ -1,4 +1,9 @@
-import { ForbiddenException, Injectable, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+  UnprocessableEntityException,
+} from '@nestjs/common';
 import { Prisma, VisualBoard } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AddItemDto } from './dto/add-item.dto';
@@ -18,8 +23,13 @@ type LinkedType = 'novel' | 'world' | 'character' | 'series';
 export class VisualBoardsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async assertBoardOwner(boardId: string, userId: string): Promise<VisualBoard> {
-    const board = await this.prisma.visualBoard.findUnique({ where: { id: boardId } });
+  async assertBoardOwner(
+    boardId: string,
+    userId: string,
+  ): Promise<VisualBoard> {
+    const board = await this.prisma.visualBoard.findUnique({
+      where: { id: boardId },
+    });
     if (!board) throw new NotFoundException('Tablero no encontrado');
     if (board.authorId !== userId) {
       throw new ForbiddenException('No puedes gestionar este tablero');
@@ -55,7 +65,9 @@ export class VisualBoardsService {
     });
 
     const hasMore = rows.length > limit;
-    const items = rows.slice(0, limit).map((board) => this.toBoardListItem(board));
+    const items = rows
+      .slice(0, limit)
+      .map((board) => this.toBoardListItem(board));
 
     return {
       data: items,
@@ -89,7 +101,10 @@ export class VisualBoardsService {
       throw new NotFoundException('Tablero no encontrado');
     }
 
-    const linked = await this.resolveLinkedEntity(board.linkedType, board.linkedId);
+    const linked = await this.resolveLinkedEntity(
+      board.linkedType,
+      board.linkedId,
+    );
 
     return {
       id: board.id,
@@ -107,7 +122,10 @@ export class VisualBoardsService {
         avatarUrl: board.author.profile?.avatarUrl ?? null,
       },
       sectionsCount: board.sections.length,
-      totalImagesCount: board.sections.reduce((sum, section) => sum + section.items.length, 0),
+      totalImagesCount: board.sections.reduce(
+        (sum, section) => sum + section.items.length,
+        0,
+      ),
       createdAt: board.createdAt,
       updatedAt: board.updatedAt,
       sections: board.sections.map((section) => ({
@@ -156,11 +174,19 @@ export class VisualBoardsService {
       where: { id },
       data: {
         ...(dto.title !== undefined ? { title: dto.title.trim() } : {}),
-        ...(dto.description !== undefined ? { description: dto.description?.trim() || null } : {}),
-        ...(dto.coverUrl !== undefined ? { coverUrl: dto.coverUrl?.trim() || null } : {}),
+        ...(dto.description !== undefined
+          ? { description: dto.description?.trim() || null }
+          : {}),
+        ...(dto.coverUrl !== undefined
+          ? { coverUrl: dto.coverUrl?.trim() || null }
+          : {}),
         ...(dto.isPublic !== undefined ? { isPublic: dto.isPublic } : {}),
-        ...(dto.linkedType !== undefined ? { linkedType: dto.linkedType || null } : {}),
-        ...(dto.linkedId !== undefined ? { linkedId: dto.linkedId || null } : {}),
+        ...(dto.linkedType !== undefined
+          ? { linkedType: dto.linkedType || null }
+          : {}),
+        ...(dto.linkedId !== undefined
+          ? { linkedId: dto.linkedId || null }
+          : {}),
       },
       include: this.boardListInclude(),
     });
@@ -194,7 +220,12 @@ export class VisualBoardsService {
     return section;
   }
 
-  async updateSection(boardId: string, sectionId: string, userId: string, dto: UpdateSectionDto) {
+  async updateSection(
+    boardId: string,
+    sectionId: string,
+    userId: string,
+    dto: UpdateSectionDto,
+  ) {
     await this.assertBoardOwner(boardId, userId);
     await this.findSectionOrThrow(boardId, sectionId);
     const section = await this.prisma.$transaction(async (tx) => {
@@ -221,9 +252,15 @@ export class VisualBoardsService {
     });
   }
 
-  async reorderSections(boardId: string, userId: string, dto: ReorderSectionsDto) {
+  async reorderSections(
+    boardId: string,
+    userId: string,
+    dto: ReorderSectionsDto,
+  ) {
     await this.assertBoardOwner(boardId, userId);
-    const sections = await this.prisma.visualBoardSection.findMany({ where: { boardId } });
+    const sections = await this.prisma.visualBoardSection.findMany({
+      where: { boardId },
+    });
     this.validateReorderSet(
       sections.map((section) => section.id),
       dto.sections.map((section) => section.sectionId),
@@ -249,7 +286,12 @@ export class VisualBoardsService {
     return this.getById(boardId, userId);
   }
 
-  async addItem(boardId: string, sectionId: string, userId: string, dto: AddItemDto) {
+  async addItem(
+    boardId: string,
+    sectionId: string,
+    userId: string,
+    dto: AddItemDto,
+  ) {
     await this.assertBoardOwner(boardId, userId);
     await this.findSectionOrThrow(boardId, sectionId);
     const item = await this.prisma.$transaction(async (tx) => {
@@ -285,7 +327,9 @@ export class VisualBoardsService {
       const updated = await tx.visualBoardItem.update({
         where: { id: itemId },
         data: {
-          ...(dto.caption !== undefined ? { caption: dto.caption?.trim() || null } : {}),
+          ...(dto.caption !== undefined
+            ? { caption: dto.caption?.trim() || null }
+            : {}),
         },
       });
       await this.touchBoard(tx, boardId);
@@ -295,7 +339,12 @@ export class VisualBoardsService {
     return item;
   }
 
-  async removeItem(boardId: string, sectionId: string, itemId: string, userId: string) {
+  async removeItem(
+    boardId: string,
+    sectionId: string,
+    itemId: string,
+    userId: string,
+  ) {
     await this.assertBoardOwner(boardId, userId);
     await this.findItemOrThrow(sectionId, itemId);
     await this.prisma.$transaction(async (tx) => {
@@ -305,10 +354,17 @@ export class VisualBoardsService {
     });
   }
 
-  async reorderItems(boardId: string, sectionId: string, userId: string, dto: ReorderItemsDto) {
+  async reorderItems(
+    boardId: string,
+    sectionId: string,
+    userId: string,
+    dto: ReorderItemsDto,
+  ) {
     await this.assertBoardOwner(boardId, userId);
     await this.findSectionOrThrow(boardId, sectionId);
-    const items = await this.prisma.visualBoardItem.findMany({ where: { sectionId } });
+    const items = await this.prisma.visualBoardItem.findMany({
+      where: { sectionId },
+    });
     this.validateReorderSet(
       items.map((item) => item.id),
       dto.items.map((item) => item.itemId),
@@ -334,7 +390,9 @@ export class VisualBoardsService {
     return this.getById(boardId, userId);
   }
 
-  private buildBoardWhere(query: VisualBoardQueryDto): Prisma.VisualBoardWhereInput {
+  private buildBoardWhere(
+    query: VisualBoardQueryDto,
+  ): Prisma.VisualBoardWhereInput {
     const where: Prisma.VisualBoardWhereInput = {};
 
     if (query.linkedType === 'free') {
@@ -394,7 +452,10 @@ export class VisualBoardsService {
       linkedType: board.linkedType,
       linkedId: board.linkedId,
       sectionsCount: board.sections.length,
-      totalImagesCount: board.sections.reduce((sum, section) => sum + section.items.length, 0),
+      totalImagesCount: board.sections.reduce(
+        (sum, section) => sum + section.items.length,
+        0,
+      ),
       previewImages,
       author: {
         username: board.author.username,
@@ -406,21 +467,37 @@ export class VisualBoardsService {
     };
   }
 
-  private async validateLinkedTarget(userId: string, linkedType?: string | null, linkedId?: string | null) {
+  private async validateLinkedTarget(
+    userId: string,
+    linkedType?: string | null,
+    linkedId?: string | null,
+  ) {
     if ((linkedType && !linkedId) || (!linkedType && linkedId)) {
-      throw new UnprocessableEntityException('linkedType y linkedId deben enviarse juntos.');
+      throw new UnprocessableEntityException(
+        'linkedType y linkedId deben enviarse juntos.',
+      );
     }
     if (!linkedType || !linkedId) {
       return;
     }
 
-    const target = await this.resolveOwnedLinkedEntity(userId, linkedType as LinkedType, linkedId);
+    const target = await this.resolveOwnedLinkedEntity(
+      userId,
+      linkedType as LinkedType,
+      linkedId,
+    );
     if (!target) {
-      throw new UnprocessableEntityException('El elemento vinculado no existe o no pertenece al autor.');
+      throw new UnprocessableEntityException(
+        'El elemento vinculado no existe o no pertenece al autor.',
+      );
     }
   }
 
-  private async resolveOwnedLinkedEntity(userId: string, linkedType: LinkedType, linkedId: string) {
+  private async resolveOwnedLinkedEntity(
+    userId: string,
+    linkedType: LinkedType,
+    linkedId: string,
+  ) {
     switch (linkedType) {
       case 'novel':
         return this.prisma.novel.findFirst({
@@ -447,7 +524,10 @@ export class VisualBoardsService {
     }
   }
 
-  private async resolveLinkedEntity(linkedType?: string | null, linkedId?: string | null) {
+  private async resolveLinkedEntity(
+    linkedType?: string | null,
+    linkedId?: string | null,
+  ) {
     if (!linkedType || !linkedId) return null;
 
     switch (linkedType as LinkedType) {
@@ -457,15 +537,23 @@ export class VisualBoardsService {
           select: { title: true, slug: true },
         });
       case 'world':
-        return this.prisma.world.findUnique({
-          where: { id: linkedId },
-          select: { name: true, slug: true },
-        }).then((world) => (world ? { title: world.name, slug: world.slug } : null));
+        return this.prisma.world
+          .findUnique({
+            where: { id: linkedId },
+            select: { name: true, slug: true },
+          })
+          .then((world) =>
+            world ? { title: world.name, slug: world.slug } : null,
+          );
       case 'character':
-        return this.prisma.character.findUnique({
-          where: { id: linkedId },
-          select: { name: true, slug: true },
-        }).then((character) => (character ? { title: character.name, slug: character.slug } : null));
+        return this.prisma.character
+          .findUnique({
+            where: { id: linkedId },
+            select: { name: true, slug: true },
+          })
+          .then((character) =>
+            character ? { title: character.name, slug: character.slug } : null,
+          );
       case 'series':
         return this.prisma.series.findUnique({
           where: { id: linkedId },
@@ -538,21 +626,31 @@ export class VisualBoardsService {
     }
   }
 
-  private validateReorderSet(existingIds: string[], requestedIds: string[], label: string) {
+  private validateReorderSet(
+    existingIds: string[],
+    requestedIds: string[],
+    label: string,
+  ) {
     if (existingIds.length !== requestedIds.length) {
-      throw new UnprocessableEntityException(`Debes incluir todas las ${label} en el reorden.`);
+      throw new UnprocessableEntityException(
+        `Debes incluir todas las ${label} en el reorden.`,
+      );
     }
 
     const existing = new Set(existingIds);
     const requested = new Set(requestedIds);
 
     if (requested.size !== requestedIds.length) {
-      throw new UnprocessableEntityException(`La lista de ${label} contiene ids duplicados.`);
+      throw new UnprocessableEntityException(
+        `La lista de ${label} contiene ids duplicados.`,
+      );
     }
 
     for (const id of requestedIds) {
       if (!existing.has(id)) {
-        throw new UnprocessableEntityException(`Una o mas ${label} no pertenecen al recurso indicado.`);
+        throw new UnprocessableEntityException(
+          `Una o mas ${label} no pertenecen al recurso indicado.`,
+        );
       }
     }
   }

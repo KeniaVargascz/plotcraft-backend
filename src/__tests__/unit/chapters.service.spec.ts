@@ -1,5 +1,8 @@
 import { ChaptersService } from '../../modules/chapters/chapters.service';
-import { createChapterFixture, createNovelFixture } from '../helpers/fixtures.helper';
+import {
+  createChapterFixture,
+  createNovelFixture,
+} from '../helpers/fixtures.helper';
 
 describe('ChaptersService', () => {
   const prisma = {
@@ -67,7 +70,10 @@ describe('ChaptersService', () => {
     const chapter = createChapterFixture({
       title: 'Capitulo Uno',
       content: 'Contenido suficiente para publicar el capitulo con exito.',
-      novel: createNovelFixture({ title: 'Fixture Novel', slug: 'fixture-novel' }),
+      novel: createNovelFixture({
+        title: 'Fixture Novel',
+        slug: 'fixture-novel',
+      }),
     });
     novelsService.findOwnedNovel.mockResolvedValue(createNovelFixture());
     prisma.chapter.findFirst.mockResolvedValue(chapter);
@@ -75,7 +81,10 @@ describe('ChaptersService', () => {
       ...chapter,
       status: 'PUBLISHED',
       publishedAt: new Date(),
-      novel: createNovelFixture({ title: 'Fixture Novel', slug: 'fixture-novel' }),
+      novel: createNovelFixture({
+        title: 'Fixture Novel',
+        slug: 'fixture-novel',
+      }),
     });
     prisma.follow.findMany.mockResolvedValue(
       Array.from({ length: 100 }, (_, index) => ({
@@ -85,7 +94,11 @@ describe('ChaptersService', () => {
     prisma.notification.createMany.mockResolvedValue({ count: 100 });
     prisma.novelSubscription.findMany.mockResolvedValue([]);
 
-    await service.publishChapter('fixture-novel', 'fixture-chapter', 'author-id');
+    await service.publishChapter(
+      'fixture-novel',
+      'fixture-chapter',
+      'author-id',
+    );
 
     expect(prisma.follow.findMany).toHaveBeenCalled();
     expect(novelsService.recalculateNovelWordCount).toHaveBeenCalled();

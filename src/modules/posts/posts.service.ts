@@ -347,8 +347,7 @@ export class PostsService {
             hasSaved: post.savedBy.length > 0,
           }
         : null,
-      commentsEnabled:
-        post.author.privacySettings?.allowPostComments ?? true,
+      commentsEnabled: post.author.privacySettings?.allowPostComments ?? true,
       linkedContent: this.buildLinkedContent(post, characterMap),
     };
   }
@@ -374,8 +373,7 @@ export class PostsService {
             author: {
               id: post.novel.author.id,
               username: post.novel.author.username,
-              displayName:
-                post.novel.author.profile?.displayName ?? null,
+              displayName: post.novel.author.profile?.displayName ?? null,
               avatarUrl: post.novel.author.profile?.avatarUrl ?? null,
             },
           }
@@ -474,9 +472,7 @@ export class PostsService {
         throw new ForbiddenException('No puedes vincular este capitulo');
       }
       if (dto.novel_id && chapter.novelId !== dto.novel_id) {
-        throw new BadRequestException(
-          'El capitulo no pertenece a la novela',
-        );
+        throw new BadRequestException('El capitulo no pertenece a la novela');
       }
     }
 

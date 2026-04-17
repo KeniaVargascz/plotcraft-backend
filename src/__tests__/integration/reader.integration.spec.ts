@@ -58,9 +58,9 @@ describe('Reader integration', () => {
       });
 
     expect(progressResponse.status).toBe(201);
-    expect(unwrapData<{ scroll_pct: number }>(progressResponse.body).scroll_pct).toBe(
-      0.42,
-    );
+    expect(
+      unwrapData<{ scroll_pct: number }>(progressResponse.body).scroll_pct,
+    ).toBe(0.42);
 
     const historyResponse = await request(app.getHttpServer())
       .post('/api/reader/history')

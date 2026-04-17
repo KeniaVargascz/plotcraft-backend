@@ -33,10 +33,7 @@ export class HighlightsController {
 
   @Get()
   @ApiOperation({ summary: 'Todos los highlights del usuario' })
-  listAll(
-    @CurrentUser() user: JwtPayload,
-    @Query() query: HighlightQueryDto,
-  ) {
+  listAll(@CurrentUser() user: JwtPayload, @Query() query: HighlightQueryDto) {
     return this.highlightsService.listAll(user.sub, query);
   }
 

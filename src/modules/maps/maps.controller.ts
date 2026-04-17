@@ -41,7 +41,8 @@ export class MapsController {
   updateMap(
     @CurrentUser() user: JwtPayload,
     @Param('slug') slug: string,
-    @Body() dto: { baseImageUrl?: string; canvasWidth?: number; canvasHeight?: number },
+    @Body()
+    dto: { baseImageUrl?: string; canvasWidth?: number; canvasHeight?: number },
   ) {
     return this.mapsService.updateMap(slug, user.sub, dto);
   }

@@ -141,15 +141,25 @@ export class AuthService {
 
   async registerInitiate(dto: RegisterInitiateDto): Promise<void> {
     const [existingUsername, existingEmail] = await Promise.all([
-      this.prisma.user.findFirst({ where: { username: { equals: dto.username, mode: 'insensitive' } } }),
+      this.prisma.user.findFirst({
+        where: { username: { equals: dto.username, mode: 'insensitive' } },
+      }),
       this.prisma.user.findUnique({ where: { email: dto.email } }),
     ]);
 
     if (existingUsername) {
-      throw new ConflictException({ field: 'username', code: 'USERNAME_TAKEN', message: 'username already taken' });
+      throw new ConflictException({
+        field: 'username',
+        code: 'USERNAME_TAKEN',
+        message: 'username already taken',
+      });
     }
     if (existingEmail) {
-      throw new ConflictException({ field: 'email', code: 'EMAIL_TAKEN', message: 'email already taken' });
+      throw new ConflictException({
+        field: 'email',
+        code: 'EMAIL_TAKEN',
+        message: 'email already taken',
+      });
     }
 
     const passwordHash = await bcrypt.hash(dto.password, this.saltRounds);
@@ -187,7 +197,9 @@ export class AuthService {
     });
 
     if (!result.success) {
-      this.logger.warn(`Email OTP no enviado para userId=${user.id}: ${result.error}`);
+      this.logger.warn(
+        `Email OTP no enviado para userId=${user.id}: ${result.error}`,
+      );
     }
   }
 
@@ -201,14 +213,21 @@ export class AuthService {
       throw new BadRequestException('Solicitud de verificacion invalida');
     }
 
-    const result = await this.otpService.verify(user.id, dto.code, 'REGISTER_VERIFY');
+    const result = await this.otpService.verify(
+      user.id,
+      dto.code,
+      'REGISTER_VERIFY',
+    );
 
     if (!result.valid) {
       switch (result.reason) {
         case 'expired':
           throw new HttpException({ code: 'OTP_EXPIRED' }, HttpStatus.GONE);
         case 'too_many_attempts':
-          throw new HttpException({ code: 'TOO_MANY_ATTEMPTS' }, HttpStatus.TOO_MANY_REQUESTS);
+          throw new HttpException(
+            { code: 'TOO_MANY_ATTEMPTS' },
+            HttpStatus.TOO_MANY_REQUESTS,
+          );
         default:
           throw new BadRequestException({ code: 'OTP_INVALID' });
       }
@@ -249,9 +268,12 @@ export class AuthService {
     });
 
     if (lastOtp) {
-      const secondsSinceCreation = (Date.now() - lastOtp.createdAt.getTime()) / 1000;
+      const secondsSinceCreation =
+        (Date.now() - lastOtp.createdAt.getTime()) / 1000;
       if (secondsSinceCreation < OTP_RESEND_COOLDOWN) {
-        const retryAfter = Math.ceil(OTP_RESEND_COOLDOWN - secondsSinceCreation);
+        const retryAfter = Math.ceil(
+          OTP_RESEND_COOLDOWN - secondsSinceCreation,
+        );
         throw new HttpException(
           { code: 'RESEND_COOLDOWN', retryAfter },
           HttpStatus.TOO_MANY_REQUESTS,
@@ -283,9 +305,12 @@ export class AuthService {
     });
 
     if (lastOtp) {
-      const secondsSinceCreation = (Date.now() - lastOtp.createdAt.getTime()) / 1000;
+      const secondsSinceCreation =
+        (Date.now() - lastOtp.createdAt.getTime()) / 1000;
       if (secondsSinceCreation < OTP_RESEND_COOLDOWN) {
-        const retryAfter = Math.ceil(OTP_RESEND_COOLDOWN - secondsSinceCreation);
+        const retryAfter = Math.ceil(
+          OTP_RESEND_COOLDOWN - secondsSinceCreation,
+        );
         throw new HttpException(
           { code: 'RESEND_COOLDOWN', retryAfter },
           HttpStatus.TOO_MANY_REQUESTS,
@@ -303,7 +328,9 @@ export class AuthService {
     });
 
     if (!result.success) {
-      this.logger.warn(`Email de recuperacion no enviado para userId=${user.id}: ${result.error}`);
+      this.logger.warn(
+        `Email de recuperacion no enviado para userId=${user.id}: ${result.error}`,
+      );
     }
   }
 
@@ -316,14 +343,21 @@ export class AuthService {
       throw new BadRequestException('Solicitud de restablecimiento invalida');
     }
 
-    const result = await this.otpService.verify(user.id, dto.code, 'PASSWORD_RESET');
+    const result = await this.otpService.verify(
+      user.id,
+      dto.code,
+      'PASSWORD_RESET',
+    );
 
     if (!result.valid) {
       switch (result.reason) {
         case 'expired':
           throw new HttpException({ code: 'OTP_EXPIRED' }, HttpStatus.GONE);
         case 'too_many_attempts':
-          throw new HttpException({ code: 'TOO_MANY_ATTEMPTS' }, HttpStatus.TOO_MANY_REQUESTS);
+          throw new HttpException(
+            { code: 'TOO_MANY_ATTEMPTS' },
+            HttpStatus.TOO_MANY_REQUESTS,
+          );
         default:
           throw new BadRequestException({ code: 'OTP_INVALID' });
       }

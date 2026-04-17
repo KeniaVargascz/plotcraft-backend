@@ -39,7 +39,10 @@ export class NovelsService {
   async createNovel(userId: string, dto: CreateNovelDto) {
     await this.assertGenresExist(dto.genreIds ?? []);
     const languageId = await this.resolveLanguageId(dto.languageId);
-    await this.assertOwnsCharacters(userId, this.collectPairingCharacterIds(dto.pairings));
+    await this.assertOwnsCharacters(
+      userId,
+      this.collectPairingCharacterIds(dto.pairings),
+    );
 
     const novelType = dto.novelType ?? NovelType.ORIGINAL;
     let linkedCommunityId: string | null = null;
@@ -140,7 +143,9 @@ export class NovelsService {
     return this.toNovelResponse(novel, userId);
   }
 
-  private collectPairingCharacterIds(pairings?: { characterAId: string; characterBId: string }[]): string[] {
+  private collectPairingCharacterIds(
+    pairings?: { characterAId: string; characterBId: string }[],
+  ): string[] {
     if (!pairings?.length) return [];
     const ids = new Set<string>();
     for (const p of pairings) {
@@ -150,7 +155,10 @@ export class NovelsService {
     return Array.from(ids);
   }
 
-  private async assertOwnsCharacters(userId: string, ids: string[]): Promise<void> {
+  private async assertOwnsCharacters(
+    userId: string,
+    ids: string[],
+  ): Promise<void> {
     if (!ids.length) return;
     const characters = await this.prisma.character.findMany({
       where: { id: { in: ids } },
@@ -169,7 +177,11 @@ export class NovelsService {
 
   private async replacePairings(
     novelId: string,
-    pairings: { characterAId: string; characterBId: string; isMain?: boolean }[],
+    pairings: {
+      characterAId: string;
+      characterBId: string;
+      isMain?: boolean;
+    }[],
   ): Promise<void> {
     await this.prisma.$transaction([
       this.prisma.novelPairing.deleteMany({ where: { novelId } }),
@@ -263,10 +275,14 @@ export class NovelsService {
     if (viewerId && viewerId !== baseNovel.authorId && response.viewerContext) {
       const [kudo, sub] = await Promise.all([
         this.prisma.novelKudo.findUnique({
-          where: { novelId_userId: { novelId: baseNovel.id, userId: viewerId } },
+          where: {
+            novelId_userId: { novelId: baseNovel.id, userId: viewerId },
+          },
         }),
         this.prisma.novelSubscription.findUnique({
-          where: { novelId_userId: { novelId: baseNovel.id, userId: viewerId } },
+          where: {
+            novelId_userId: { novelId: baseNovel.id, userId: viewerId },
+          },
         }),
       ]);
       response.viewerContext.hasKudo = !!kudo;
@@ -285,7 +301,10 @@ export class NovelsService {
       dto.languageId !== undefined
         ? await this.resolveLanguageId(dto.languageId)
         : undefined;
-    await this.assertOwnsCharacters(userId, this.collectPairingCharacterIds(dto.pairings));
+    await this.assertOwnsCharacters(
+      userId,
+      this.collectPairingCharacterIds(dto.pairings),
+    );
 
     if (dto.isPublic) {
       await this.assertPublicRequirements(novel.id);
@@ -413,7 +432,9 @@ export class NovelsService {
 
     if (novel.authorId !== userId) {
       // Check milestones: 100, 500, 1000, 5000
-      const likesCount = await this.prisma.novelLike.count({ where: { novelId: novel.id } });
+      const likesCount = await this.prisma.novelLike.count({
+        where: { novelId: novel.id },
+      });
       const milestones = [100, 500, 1000, 5000];
       if (milestones.includes(likesCount)) {
         void this.notificationsService.createNotification({
@@ -546,7 +567,9 @@ export class NovelsService {
       }
     }
     const where: Prisma.NovelWhereInput = {
-      ...(options.query.novelType ? { novelType: options.query.novelType } : {}),
+      ...(options.query.novelType
+        ? { novelType: options.query.novelType }
+        : {}),
       ...(fandomCommunityId ? { linkedCommunityId: fandomCommunityId } : {}),
       ...(options.authorId ? { authorId: options.authorId } : {}),
       ...(options.authorUsername
@@ -591,7 +614,9 @@ export class NovelsService {
             ],
           }
         : {}),
-      ...(options.query.languageId ? { languageId: options.query.languageId } : {}),
+      ...(options.query.languageId
+        ? { languageId: options.query.languageId }
+        : {}),
       ...(options.query.romanceGenreIds?.length
         ? {
             romanceGenres: {
@@ -644,24 +669,48 @@ export class NovelsService {
             OR: [
               {
                 AND: [
-                  { characterA: { name: { contains: entry.a, mode: 'insensitive' as const } } },
-                  { characterB: { name: { contains: entry.b, mode: 'insensitive' as const } } },
+                  {
+                    characterA: {
+                      name: { contains: entry.a, mode: 'insensitive' as const },
+                    },
+                  },
+                  {
+                    characterB: {
+                      name: { contains: entry.b, mode: 'insensitive' as const },
+                    },
+                  },
                 ],
               },
               {
                 AND: [
-                  { characterA: { name: { contains: entry.b, mode: 'insensitive' as const } } },
-                  { characterB: { name: { contains: entry.a, mode: 'insensitive' as const } } },
+                  {
+                    characterA: {
+                      name: { contains: entry.b, mode: 'insensitive' as const },
+                    },
+                  },
+                  {
+                    characterB: {
+                      name: { contains: entry.a, mode: 'insensitive' as const },
+                    },
+                  },
                 ],
               },
             ],
           };
         }
-        const term = (entry.a || entry.b) as string;
+        const term = entry.a || entry.b;
         return {
           OR: [
-            { characterA: { name: { contains: term, mode: 'insensitive' as const } } },
-            { characterB: { name: { contains: term, mode: 'insensitive' as const } } },
+            {
+              characterA: {
+                name: { contains: term, mode: 'insensitive' as const },
+              },
+            },
+            {
+              characterB: {
+                name: { contains: term, mode: 'insensitive' as const },
+              },
+            },
           ],
         };
       };
@@ -682,7 +731,9 @@ export class NovelsService {
           where,
           take: limit,
           skip: (page - 1) * limit,
-          orderBy: this.resolveOrderBy(options.query.sortBy ?? options.query.sort),
+          orderBy: this.resolveOrderBy(
+            options.query.sortBy ?? options.query.sort,
+          ),
           include: this.novelInclude(options.viewerId, false),
         }),
         this.prisma.novel.count({ where }),
@@ -691,7 +742,9 @@ export class NovelsService {
       const totalPages = Math.ceil(total / limit);
 
       return {
-        data: novels.map((novel) => this.toNovelResponse(novel, options.viewerId)),
+        data: novels.map((novel) =>
+          this.toNovelResponse(novel, options.viewerId),
+        ),
         pagination: {
           page,
           limit,
@@ -734,7 +787,7 @@ export class NovelsService {
   }
 
   private resolveOrderBy(
-    sort?: NovelQueryDto['sort'] | NovelQueryDto['sortBy'],
+    sort?: NovelQueryDto['sort'],
   ): Prisma.NovelOrderByWithRelationInput[] {
     switch (sort) {
       case 'views':
@@ -975,7 +1028,8 @@ export class NovelsService {
           (item) =>
             item.communityCharacter ||
             (item.character &&
-              (item.character.isPublic || item.character.authorId === viewerId)),
+              (item.character.isPublic ||
+                item.character.authorId === viewerId)),
         )
       : [];
 
@@ -1118,33 +1172,33 @@ export class NovelsService {
             characters: linkedCharacters
               .filter((item) => !item.communityCharacter && item.character)
               .map((item) => {
-              const ch = item.character!;
-              return {
-                id: ch.id,
-                name: ch.name,
-                slug: ch.slug,
-                avatarUrl: ch.avatarUrl,
-                role: ch.role,
-                roleInNovel: item.roleInNovel ?? ch.role,
-                status: ch.status,
-                isPublic: ch.isPublic,
-                source: 'character' as const,
-                communityCharacterId: null,
-                author: {
-                  id: ch.author.id,
-                  username: ch.author.username,
-                  displayName:
-                    ch.author.profile?.displayName ?? ch.author.username,
-                  avatarUrl: ch.author.profile?.avatarUrl ?? null,
-                },
-                world:
-                  ch.world &&
-                  (ch.world.visibility === 'PUBLIC' ||
-                    ch.authorId === viewerId)
-                    ? ch.world
-                    : null,
-              };
-            }),
+                const ch = item.character!;
+                return {
+                  id: ch.id,
+                  name: ch.name,
+                  slug: ch.slug,
+                  avatarUrl: ch.avatarUrl,
+                  role: ch.role,
+                  roleInNovel: item.roleInNovel ?? ch.role,
+                  status: ch.status,
+                  isPublic: ch.isPublic,
+                  source: 'character' as const,
+                  communityCharacterId: null,
+                  author: {
+                    id: ch.author.id,
+                    username: ch.author.username,
+                    displayName:
+                      ch.author.profile?.displayName ?? ch.author.username,
+                    avatarUrl: ch.author.profile?.avatarUrl ?? null,
+                  },
+                  world:
+                    ch.world &&
+                    (ch.world.visibility === 'PUBLIC' ||
+                      ch.authorId === viewerId)
+                      ? ch.world
+                      : null,
+                };
+              }),
           }
         : {}),
     };
@@ -1266,7 +1320,11 @@ export class NovelsService {
     return { unlinked: true };
   }
 
-  async listNovelCharacters(slug: string, viewerId?: string | null, query: { cursor?: string; limit?: number } = {}) {
+  async listNovelCharacters(
+    slug: string,
+    viewerId?: string | null,
+    query: { cursor?: string; limit?: number } = {},
+  ) {
     const novel = await this.findAccessibleNovel(slug, viewerId);
     const limit = query.limit ?? 20;
 
@@ -1300,61 +1358,62 @@ export class NovelsService {
     const hasMore = items.length > limit;
     const sliced = items.slice(0, limit);
 
-    const data = sliced.map((item) => {
-      if (item.communityCharacter) {
-        return {
-          id: item.communityCharacter.id,
-          novelCharacterId: item.id,
-          name: item.communityCharacter.name,
-          slug: null,
-          avatarUrl: item.communityCharacter.avatarUrl,
-          description: item.communityCharacter.description,
-          role: null,
-          roleInNovel: item.roleInNovel ?? null,
-          status: item.communityCharacter.status,
-          isPublic: true,
-          source: 'community' as const,
-          communityCharacterId: item.communityCharacter.id,
-          author: null,
-          world: null,
-        };
-      }
+    const data = sliced
+      .map((item) => {
+        if (item.communityCharacter) {
+          return {
+            id: item.communityCharacter.id,
+            novelCharacterId: item.id,
+            name: item.communityCharacter.name,
+            slug: null,
+            avatarUrl: item.communityCharacter.avatarUrl,
+            description: item.communityCharacter.description,
+            role: null,
+            roleInNovel: item.roleInNovel ?? null,
+            status: item.communityCharacter.status,
+            isPublic: true,
+            source: 'community' as const,
+            communityCharacterId: item.communityCharacter.id,
+            author: null,
+            world: null,
+          };
+        }
 
-      if (
-        item.character &&
-        (item.character.isPublic || item.character.authorId === viewerId)
-      ) {
-        const ch = item.character;
-        return {
-          id: ch.id,
-          novelCharacterId: item.id,
-          name: ch.name,
-          slug: ch.slug,
-          avatarUrl: ch.avatarUrl,
-          description: null,
-          role: ch.role,
-          roleInNovel: item.roleInNovel ?? ch.role,
-          status: ch.status,
-          isPublic: ch.isPublic,
-          source: 'character' as const,
-          communityCharacterId: null,
-          author: {
-            id: ch.author.id,
-            username: ch.author.username,
-            displayName:
-              ch.author.profile?.displayName ?? ch.author.username,
-            avatarUrl: ch.author.profile?.avatarUrl ?? null,
-          },
-          world:
-            ch.world &&
-            (ch.world.visibility === 'PUBLIC' || ch.authorId === viewerId)
-              ? ch.world
-              : null,
-        };
-      }
+        if (
+          item.character &&
+          (item.character.isPublic || item.character.authorId === viewerId)
+        ) {
+          const ch = item.character;
+          return {
+            id: ch.id,
+            novelCharacterId: item.id,
+            name: ch.name,
+            slug: ch.slug,
+            avatarUrl: ch.avatarUrl,
+            description: null,
+            role: ch.role,
+            roleInNovel: item.roleInNovel ?? ch.role,
+            status: ch.status,
+            isPublic: ch.isPublic,
+            source: 'character' as const,
+            communityCharacterId: null,
+            author: {
+              id: ch.author.id,
+              username: ch.author.username,
+              displayName: ch.author.profile?.displayName ?? ch.author.username,
+              avatarUrl: ch.author.profile?.avatarUrl ?? null,
+            },
+            world:
+              ch.world &&
+              (ch.world.visibility === 'PUBLIC' || ch.authorId === viewerId)
+                ? ch.world
+                : null,
+          };
+        }
 
-      return null;
-    }).filter(Boolean);
+        return null;
+      })
+      .filter(Boolean);
 
     return {
       data,
@@ -1423,7 +1482,9 @@ export class NovelsService {
     });
 
     if (!fallback || !fallback.isActive) {
-      throw new BadRequestException('No existe un idioma por defecto configurado');
+      throw new BadRequestException(
+        'No existe un idioma por defecto configurado',
+      );
     }
 
     return fallback.id;

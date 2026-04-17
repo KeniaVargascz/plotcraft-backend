@@ -128,7 +128,9 @@ export class CharactersService {
 
     if (viewerId && !isOwner && response.viewerContext) {
       const kudo = await this.prisma.characterKudo.findUnique({
-        where: { characterId_userId: { characterId: character.id, userId: viewerId } },
+        where: {
+          characterId_userId: { characterId: character.id, userId: viewerId },
+        },
       });
       (response.viewerContext as any).hasKudo = !!kudo;
     }
@@ -503,7 +505,9 @@ export class CharactersService {
     const items = relationships.slice(0, limit);
 
     return {
-      data: items.map((relationship) => this.toRelationshipResponse(relationship)),
+      data: items.map((relationship) =>
+        this.toRelationshipResponse(relationship),
+      ),
       pagination: {
         nextCursor: hasMore ? (items.at(-1)?.id ?? null) : null,
         hasMore,
@@ -604,7 +608,11 @@ export class CharactersService {
 
     return items
       .filter(
-        (item): item is typeof item & { character: NonNullable<typeof item.character> } =>
+        (
+          item,
+        ): item is typeof item & {
+          character: NonNullable<typeof item.character>;
+        } =>
           !!item.character &&
           (item.character.isPublic || item.character.authorId === viewerId),
       )

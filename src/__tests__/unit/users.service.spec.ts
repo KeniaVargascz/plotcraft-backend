@@ -1,7 +1,10 @@
 import { ConflictException, ForbiddenException } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { UsersService } from '../../modules/users/users.service';
-import { createProfileFixture, createUserFixture } from '../helpers/fixtures.helper';
+import {
+  createProfileFixture,
+  createUserFixture,
+} from '../helpers/fixtures.helper';
 
 jest.mock('bcrypt', () => ({
   hash: jest.fn(),
@@ -33,7 +36,9 @@ describe('UsersService', () => {
 
   it('updateCurrentUser hashes the new password after validating currentPassword', async () => {
     prisma.user.findUnique
-      .mockResolvedValueOnce(createUserFixture({ profile: createProfileFixture() }))
+      .mockResolvedValueOnce(
+        createUserFixture({ profile: createProfileFixture() }),
+      )
       .mockResolvedValueOnce(null)
       .mockResolvedValueOnce(null);
     bcryptCompare.mockResolvedValue(true as never);
@@ -60,7 +65,9 @@ describe('UsersService', () => {
 
   it('updateCurrentUser throws ConflictException when email already exists', async () => {
     prisma.user.findUnique
-      .mockResolvedValueOnce(createUserFixture({ profile: createProfileFixture() }))
+      .mockResolvedValueOnce(
+        createUserFixture({ profile: createProfileFixture() }),
+      )
       .mockResolvedValueOnce(createUserFixture({ id: 'other-user' }))
       .mockResolvedValueOnce(null);
 

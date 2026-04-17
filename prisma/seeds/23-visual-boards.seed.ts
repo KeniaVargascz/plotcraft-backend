@@ -42,7 +42,11 @@ export async function seed23VisualBoards(prisma: PrismaClient): Promise<void> {
     });
 
     const sections = [
-      { id: 'da58a795-bd3c-4df8-a5f8-1cf116adc3ab', title: 'Paleta de colores', orderIndex: 1 },
+      {
+        id: 'da58a795-bd3c-4df8-a5f8-1cf116adc3ab',
+        title: 'Paleta de colores',
+        orderIndex: 1,
+      },
       {
         id: '354a352a-8d48-4810-aaad-d1d6ae2fe7e9',
         title: 'Referencias de personajes',

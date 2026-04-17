@@ -77,10 +77,7 @@ export class CommunitiesController {
   @ApiBearerAuth()
   @Post('communities')
   @ApiOperation({ summary: 'Crear una nueva comunidad' })
-  create(
-    @CurrentUser() user: JwtPayload,
-    @Body() dto: CreateCommunityDto,
-  ) {
+  create(@CurrentUser() user: JwtPayload, @Body() dto: CreateCommunityDto) {
     return this.communitiesService.create(dto, user.sub);
   }
 
@@ -169,7 +166,11 @@ export class CommunitiesController {
     @Body() body: { novelId: string },
     @CurrentUser() user: JwtPayload,
   ) {
-    return this.communitiesService.addRelatedNovel(slug, body.novelId, user.sub);
+    return this.communitiesService.addRelatedNovel(
+      slug,
+      body.novelId,
+      user.sub,
+    );
   }
 
   @ApiBearerAuth()

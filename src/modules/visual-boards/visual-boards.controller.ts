@@ -1,4 +1,15 @@
-import { Body, Controller, Delete, Get, Headers, HttpCode, Param, Patch, Post, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Headers,
+  HttpCode,
+  Param,
+  Patch,
+  Post,
+  Query,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Public } from '../../common/decorators/public.decorator';
@@ -26,14 +37,20 @@ export class VisualBoardsController {
   @ApiBearerAuth()
   @Get()
   @ApiOperation({ summary: 'Lista tableros propios' })
-  listMine(@CurrentUser() user: JwtPayload, @Query() query: VisualBoardQueryDto) {
+  listMine(
+    @CurrentUser() user: JwtPayload,
+    @Query() query: VisualBoardQueryDto,
+  ) {
     return this.visualBoardsService.listMine(user.sub, query);
   }
 
   @Public()
   @Get('public/:username')
   @ApiOperation({ summary: 'Lista tableros publicos de un autor' })
-  listPublic(@Param('username') username: string, @Query() query: VisualBoardQueryDto) {
+  listPublic(
+    @Param('username') username: string,
+    @Query() query: VisualBoardQueryDto,
+  ) {
     return this.visualBoardsService.listPublicByUsername(username, query);
   }
 
@@ -143,7 +160,13 @@ export class VisualBoardsController {
     @CurrentUser() user: JwtPayload,
     @Body() dto: UpdateItemDto,
   ) {
-    return this.visualBoardsService.updateItem(id, sectionId, itemId, user.sub, dto);
+    return this.visualBoardsService.updateItem(
+      id,
+      sectionId,
+      itemId,
+      user.sub,
+      dto,
+    );
   }
 
   @ApiBearerAuth()

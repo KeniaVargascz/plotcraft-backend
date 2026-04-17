@@ -51,7 +51,9 @@ export class ExportsService {
     }
 
     if (novel.authorId !== userId) {
-      throw new ForbiddenException('No tienes permiso para exportar esta novela');
+      throw new ForbiddenException(
+        'No tienes permiso para exportar esta novela',
+      );
     }
 
     const chapter = await this.prisma.chapter.findUnique({
@@ -123,7 +125,9 @@ export class ExportsService {
     }
 
     if (world.authorId !== userId) {
-      throw new ForbiddenException('No tienes permiso para exportar este mundo');
+      throw new ForbiddenException(
+        'No tienes permiso para exportar este mundo',
+      );
     }
 
     return formatWorldJson(
@@ -233,7 +237,9 @@ export class ExportsService {
     }
 
     if (novel.authorId !== userId) {
-      throw new ForbiddenException('No tienes permiso para exportar esta novela');
+      throw new ForbiddenException(
+        'No tienes permiso para exportar esta novela',
+      );
     }
 
     const authorName =

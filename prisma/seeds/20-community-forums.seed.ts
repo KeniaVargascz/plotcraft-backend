@@ -71,7 +71,9 @@ const PLOTCRAFT_FORUMS: Array<{
   },
 ];
 
-export async function seed20CommunityForums(prisma: PrismaClient): Promise<void> {
+export async function seed20CommunityForums(
+  prisma: PrismaClient,
+): Promise<void> {
   await runSeedStep(prisma, 'community-forums', async () => {
     const admin = await prisma.user.findUnique({
       where: { email: 'admin@plotcraft.com' },
@@ -166,8 +168,7 @@ export async function seed20CommunityForums(prisma: PrismaClient): Promise<void>
           communityId: velo.id,
           name: 'Teorías del Velo',
           slug: 'teorias-del-velo',
-          description:
-            'Discute teorías sobre Las Crónicas del Velo.',
+          description: 'Discute teorías sobre Las Crónicas del Velo.',
           isPublic: false,
         },
       });

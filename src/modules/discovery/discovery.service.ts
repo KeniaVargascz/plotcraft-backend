@@ -2,7 +2,10 @@ import { Inject, Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { APP_CONFIG } from '../../config/constants';
-import { CacheService, CACHE_SERVICE } from '../../common/services/cache.service';
+import {
+  CacheService,
+  CACHE_SERVICE,
+} from '../../common/services/cache.service';
 
 @Injectable()
 export class DiscoveryService {

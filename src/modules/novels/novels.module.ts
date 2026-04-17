@@ -11,9 +11,25 @@ import { SubscriptionsService } from './subscriptions.service';
 import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
-  imports: [PrismaModule, AuthModule, TimelineModule, PlannerModule, NotificationsModule],
+  imports: [
+    PrismaModule,
+    AuthModule,
+    TimelineModule,
+    PlannerModule,
+    NotificationsModule,
+  ],
   controllers: [NovelsController],
-  providers: [NovelsService, KudosService, NovelCommentsService, SubscriptionsService],
-  exports: [NovelsService, KudosService, NovelCommentsService, SubscriptionsService],
+  providers: [
+    NovelsService,
+    KudosService,
+    NovelCommentsService,
+    SubscriptionsService,
+  ],
+  exports: [
+    NovelsService,
+    KudosService,
+    NovelCommentsService,
+    SubscriptionsService,
+  ],
 })
 export class NovelsModule {}

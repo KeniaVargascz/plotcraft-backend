@@ -2,7 +2,7 @@ import { buildSearchQuery } from '../../modules/search/utils/search-query-builde
 
 describe('SearchService - QueryBuilder', () => {
   it('sanitizes tsquery special characters from input', () => {
-    const result = buildSearchQuery("magia & oscura");
+    const result = buildSearchQuery('magia & oscura');
     expect(result.normalized).toBe('magia oscura');
     expect(result.tsquery).toBe('magia & oscura');
   });

@@ -1,7 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Resend } from 'resend';
-import { EmailProvider, SendEmailDto, EmailResult } from '../interfaces/email-provider.interface';
+import {
+  EmailProvider,
+  SendEmailDto,
+  EmailResult,
+} from '../interfaces/email-provider.interface';
 
 @Injectable()
 export class ResendProvider implements EmailProvider {
@@ -25,20 +29,35 @@ export class ResendProvider implements EmailProvider {
         text: payload.text,
         replyTo: payload.replyTo,
         tags: payload.tags
-          ? Object.entries(payload.tags).map(([name, value]) => ({ name, value }))
+          ? Object.entries(payload.tags).map(([name, value]) => ({
+              name,
+              value,
+            }))
           : undefined,
       });
 
       if (error) {
         this.logger.error(`Resend send error: ${error.message}`);
-        return { success: false, provider: this.providerName, error: error.message };
+        return {
+          success: false,
+          provider: this.providerName,
+          error: error.message,
+        };
       }
 
       this.logger.log(`Email sent via Resend. messageId=${data?.id}`);
-      return { success: true, provider: this.providerName, messageId: data?.id };
+      return {
+        success: true,
+        provider: this.providerName,
+        messageId: data?.id,
+      };
     } catch (err: any) {
       this.logger.error('Unexpected error in ResendProvider', err?.message);
-      return { success: false, provider: this.providerName, error: err?.message };
+      return {
+        success: false,
+        provider: this.providerName,
+        error: err?.message,
+      };
     }
   }
 }

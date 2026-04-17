@@ -1,5 +1,8 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { EmailProvider, EmailResult } from './interfaces/email-provider.interface';
+import {
+  EmailProvider,
+  EmailResult,
+} from './interfaces/email-provider.interface';
 import { EMAIL_PROVIDER_TOKEN } from './constants/email-tokens';
 import { buildOtpTemplate } from './templates/otp-verification.template';
 import { buildPasswordResetTemplate } from './templates/password-reset.template';

@@ -83,7 +83,10 @@ export class UpdateCharacterDto {
   arc?: string;
 
   @IsOptional()
-  @IsUrl({ require_tld: false }, { message: 'avatarUrl debe ser una URL valida' })
+  @IsUrl(
+    { require_tld: false },
+    { message: 'avatarUrl debe ser una URL valida' },
+  )
   avatarUrl?: string;
 
   @IsOptional()

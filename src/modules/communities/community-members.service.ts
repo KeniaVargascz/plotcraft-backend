@@ -27,9 +27,7 @@ export class CommunityMembersService {
     });
     if (!community) throw new NotFoundException('Comunidad no encontrada');
     if (community.status !== CommunityStatus.ACTIVE) {
-      throw new UnprocessableEntityException(
-        'Esta comunidad no esta activa.',
-      );
+      throw new UnprocessableEntityException('Esta comunidad no esta activa.');
     }
     if (community.ownerId === userId) {
       throw new ConflictException('Ya eres el creador de esta comunidad.');
@@ -97,7 +95,8 @@ export class CommunityMembersService {
         communityId_userId: { communityId: community.id, userId },
       },
     });
-    if (!member) throw new NotFoundException('No eres miembro de esta comunidad');
+    if (!member)
+      throw new NotFoundException('No eres miembro de esta comunidad');
 
     const [, updated] = await this.prisma.$transaction([
       this.prisma.communityMember.delete({
@@ -171,9 +170,7 @@ export class CommunityMembersService {
     });
     if (!community) throw new NotFoundException('Comunidad no encontrada');
     if (community.status !== CommunityStatus.ACTIVE) {
-      throw new UnprocessableEntityException(
-        'Esta comunidad no esta activa.',
-      );
+      throw new UnprocessableEntityException('Esta comunidad no esta activa.');
     }
 
     const existing = await this.prisma.communityFollow.findUnique({

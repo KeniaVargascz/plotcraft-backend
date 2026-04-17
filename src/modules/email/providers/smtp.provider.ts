@@ -1,7 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as nodemailer from 'nodemailer';
-import { EmailProvider, SendEmailDto, EmailResult } from '../interfaces/email-provider.interface';
+import {
+  EmailProvider,
+  SendEmailDto,
+  EmailResult,
+} from '../interfaces/email-provider.interface';
 
 @Injectable()
 export class SmtpProvider implements EmailProvider {
@@ -35,10 +39,18 @@ export class SmtpProvider implements EmailProvider {
       });
 
       this.logger.log(`Email sent via SMTP. messageId=${info.messageId}`);
-      return { success: true, provider: this.providerName, messageId: info.messageId };
+      return {
+        success: true,
+        provider: this.providerName,
+        messageId: info.messageId,
+      };
     } catch (err: any) {
       this.logger.error(`SMTP send error: ${err?.message}`);
-      return { success: false, provider: this.providerName, error: err?.message };
+      return {
+        success: false,
+        provider: this.providerName,
+        error: err?.message,
+      };
     }
   }
 }

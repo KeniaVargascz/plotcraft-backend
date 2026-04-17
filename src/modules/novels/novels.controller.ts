@@ -116,12 +116,18 @@ export class NovelsController {
     const viewer =
       await this.authService.getOptionalJwtPayloadFromAuthHeader(authorization);
 
-    return this.novelsService.listNovelCharacters(slug, viewer?.sub ?? null, query);
+    return this.novelsService.listNovelCharacters(
+      slug,
+      viewer?.sub ?? null,
+      query,
+    );
   }
 
   @ApiBearerAuth()
   @Post(':slug/characters')
-  @ApiOperation({ summary: 'Vincular un personaje (propio o de catálogo) a una novela' })
+  @ApiOperation({
+    summary: 'Vincular un personaje (propio o de catálogo) a una novela',
+  })
   linkNovelCharacter(
     @Param('slug') slug: string,
     @CurrentUser() user: JwtPayload,
@@ -148,14 +154,20 @@ export class NovelsController {
   @ApiBearerAuth()
   @Get(':slug/timeline')
   @ApiOperation({ summary: 'Timeline vinculado a esta novela (upsert)' })
-  getNovelTimeline(@Param('slug') slug: string, @CurrentUser() user: JwtPayload) {
+  getNovelTimeline(
+    @Param('slug') slug: string,
+    @CurrentUser() user: JwtPayload,
+  ) {
     return this.timelineService.upsertByNovel(slug, user.sub);
   }
 
   @ApiBearerAuth()
   @Get(':slug/planner')
   @ApiOperation({ summary: 'Planner vinculado a esta novela (upsert)' })
-  getNovelPlanner(@Param('slug') slug: string, @CurrentUser() user: JwtPayload) {
+  getNovelPlanner(
+    @Param('slug') slug: string,
+    @CurrentUser() user: JwtPayload,
+  ) {
     return this.plannerService.upsertByNovel(slug, user.sub);
   }
 

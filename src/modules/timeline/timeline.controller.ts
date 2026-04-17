@@ -44,10 +44,7 @@ export class TimelineController {
 
   @Get(':id')
   @ApiOperation({ summary: 'Get timeline detail with all events' })
-  getTimeline(
-    @Param('id') id: string,
-    @CurrentUser() user: JwtPayload,
-  ) {
+  getTimeline(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
     return this.timelineService.getTimeline(id, user.sub);
   }
 

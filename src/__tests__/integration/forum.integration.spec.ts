@@ -1,8 +1,16 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
-import { bearer, loginAs, registerUser, unwrapData } from '../helpers/auth.helper';
+import {
+  bearer,
+  loginAs,
+  registerUser,
+  unwrapData,
+} from '../helpers/auth.helper';
 import { createTestApp } from '../helpers/test-app.helper';
-import { cleanupUsersByPrefix, disconnectTestDb } from '../helpers/test-db.helper';
+import {
+  cleanupUsersByPrefix,
+  disconnectTestDb,
+} from '../helpers/test-db.helper';
 
 describe('Forum integration', () => {
   let app: INestApplication;
@@ -56,7 +64,9 @@ describe('Forum integration', () => {
       });
 
     expect(createThreadResponse.status).toBe(201);
-    const createdThread = unwrapData<{ slug: string }>(createThreadResponse.body);
+    const createdThread = unwrapData<{ slug: string }>(
+      createThreadResponse.body,
+    );
     const slug = createdThread.slug;
 
     const threadDetailResponse = await request(app.getHttpServer()).get(
@@ -65,7 +75,7 @@ describe('Forum integration', () => {
     const threadDetail = unwrapData<{
       poll: { options: Array<{ id: string }> };
     }>(threadDetailResponse.body);
-    const optionId = threadDetail.poll.options[0]?.id as string;
+    const optionId = threadDetail.poll.options[0]?.id;
 
     const voteResponse = await request(app.getHttpServer())
       .post(`/api/forum/${slug}/vote`)

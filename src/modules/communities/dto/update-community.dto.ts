@@ -1,4 +1,10 @@
-import { IsOptional, IsString, IsUrl, MaxLength, MinLength } from 'class-validator';
+import {
+  IsOptional,
+  IsString,
+  IsUrl,
+  MaxLength,
+  MinLength,
+} from 'class-validator';
 
 export class UpdateCommunityDto {
   @IsOptional()
@@ -18,10 +24,16 @@ export class UpdateCommunityDto {
   rules?: string;
 
   @IsOptional()
-  @IsUrl({ require_tld: false }, { message: 'coverUrl debe ser una URL valida' })
+  @IsUrl(
+    { require_tld: false },
+    { message: 'coverUrl debe ser una URL valida' },
+  )
   coverUrl?: string;
 
   @IsOptional()
-  @IsUrl({ require_tld: false }, { message: 'bannerUrl debe ser una URL valida' })
+  @IsUrl(
+    { require_tld: false },
+    { message: 'bannerUrl debe ser una URL valida' },
+  )
   bannerUrl?: string;
 }

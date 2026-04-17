@@ -1,8 +1,16 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
-import { bearer, loginAs, registerUser, unwrapData } from '../helpers/auth.helper';
+import {
+  bearer,
+  loginAs,
+  registerUser,
+  unwrapData,
+} from '../helpers/auth.helper';
 import { createTestApp } from '../helpers/test-app.helper';
-import { cleanupUsersByPrefix, disconnectTestDb } from '../helpers/test-db.helper';
+import {
+  cleanupUsersByPrefix,
+  disconnectTestDb,
+} from '../helpers/test-db.helper';
 
 describe('Characters relationships integration', () => {
   let app: INestApplication;
@@ -49,7 +57,9 @@ describe('Characters relationships integration', () => {
     expect(parentResponse.status).toBe(201);
     expect(childResponse.status).toBe(201);
 
-    const parent = unwrapData<{ id: string; slug: string }>(parentResponse.body);
+    const parent = unwrapData<{ id: string; slug: string }>(
+      parentResponse.body,
+    );
     const child = unwrapData<{ id: string; slug: string }>(childResponse.body);
 
     const createRelationshipResponse = await request(app.getHttpServer())
@@ -111,7 +121,9 @@ describe('Characters relationships integration', () => {
     );
 
     const deleteResponse = await request(app.getHttpServer())
-      .delete(`/api/characters/${prefix}/${parent.slug}/relationships/${relationship.id}`)
+      .delete(
+        `/api/characters/${prefix}/${parent.slug}/relationships/${relationship.id}`,
+      )
       .set('Authorization', bearer(session.accessToken));
 
     expect(deleteResponse.status).toBe(200);
@@ -123,8 +135,12 @@ describe('Characters relationships integration', () => {
       `/api/characters/${prefix}/${child.slug}/relationships`,
     );
 
-    expect(unwrapData<unknown[]>(parentAfterDeleteResponse.body)).toHaveLength(0);
-    expect(unwrapData<unknown[]>(childAfterDeleteResponse.body)).toHaveLength(0);
+    expect(unwrapData<unknown[]>(parentAfterDeleteResponse.body)).toHaveLength(
+      0,
+    );
+    expect(unwrapData<unknown[]>(childAfterDeleteResponse.body)).toHaveLength(
+      0,
+    );
   });
 
   it('rejects self relationships', async () => {
@@ -149,7 +165,9 @@ describe('Characters relationships integration', () => {
       });
 
     expect(characterResponse.status).toBe(201);
-    const character = unwrapData<{ id: string; slug: string }>(characterResponse.body);
+    const character = unwrapData<{ id: string; slug: string }>(
+      characterResponse.body,
+    );
 
     const createRelationshipResponse = await request(app.getHttpServer())
       .post(`/api/characters/${username}/${character.slug}/relationships`)

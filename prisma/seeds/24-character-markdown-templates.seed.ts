@@ -504,19 +504,31 @@ const RELATIONSHIP_GROUP_IDS = {
   naerysCaelan: '3dfc6d32-bd7f-42d6-ad50-6bbd5b5dfd42',
 } as const;
 
-export async function seed24CharacterMarkdownTemplates(prisma: PrismaClient): Promise<void> {
+export async function seed24CharacterMarkdownTemplates(
+  prisma: PrismaClient,
+): Promise<void> {
   await runSeedStep(prisma, 'character markdown templates', async () => {
     const users = await prisma.user.findMany({
-      where: { username: { in: [...new Set(CHARACTER_SEEDS.map((entry) => entry.username))] } },
+      where: {
+        username: {
+          in: [...new Set(CHARACTER_SEEDS.map((entry) => entry.username))],
+        },
+      },
       select: { id: true, username: true },
     });
 
     const worlds = await prisma.world.findMany({
-      where: { slug: { in: [...new Set(CHARACTER_SEEDS.map((entry) => entry.worldSlug))] } },
+      where: {
+        slug: {
+          in: [...new Set(CHARACTER_SEEDS.map((entry) => entry.worldSlug))],
+        },
+      },
       select: { id: true, slug: true },
     });
 
-    const userByUsername = new Map(users.map((user) => [user.username, user.id]));
+    const userByUsername = new Map(
+      users.map((user) => [user.username, user.id]),
+    );
     const worldBySlug = new Map(worlds.map((world) => [world.slug, world.id]));
 
     const characterIds = new Map<string, string>();
@@ -526,7 +538,9 @@ export async function seed24CharacterMarkdownTemplates(prisma: PrismaClient): Pr
       const worldId = worldBySlug.get(entry.worldSlug);
 
       if (!authorId || !worldId) {
-        console.log(`    Skipping character ${entry.slug}: missing author or world`);
+        console.log(
+          `    Skipping character ${entry.slug}: missing author or world`,
+        );
         continue;
       }
 
@@ -591,7 +605,8 @@ export async function seed24CharacterMarkdownTemplates(prisma: PrismaClient): Pr
         inverseType: 'Hijo',
         forwardKinship: CharacterKinshipType.PARENT,
         inverseKinship: CharacterKinshipType.CHILD,
-        description: 'Linaje central del Faro de Ceniza y custodios del borde occidental.',
+        description:
+          'Linaje central del Faro de Ceniza y custodios del borde occidental.',
         groupId: RELATIONSHIP_GROUP_IDS.isoldeTarek,
       },
     );
@@ -605,7 +620,8 @@ export async function seed24CharacterMarkdownTemplates(prisma: PrismaClient): Pr
         inverseType: 'Hermano',
         forwardKinship: CharacterKinshipType.SIBLING,
         inverseKinship: CharacterKinshipType.SIBLING,
-        description: 'Hermanos del Cielo Bajo, unidos por ingenieria, cartografia y reforma social.',
+        description:
+          'Hermanos del Cielo Bajo, unidos por ingenieria, cartografia y reforma social.',
         groupId: RELATIONSHIP_GROUP_IDS.naerysCaelan,
       },
     );

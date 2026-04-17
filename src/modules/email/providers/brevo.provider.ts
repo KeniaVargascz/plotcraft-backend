@@ -1,5 +1,9 @@
 import { Injectable } from '@nestjs/common';
-import { EmailProvider, SendEmailDto, EmailResult } from '../interfaces/email-provider.interface';
+import {
+  EmailProvider,
+  SendEmailDto,
+  EmailResult,
+} from '../interfaces/email-provider.interface';
 
 @Injectable()
 export class BrevoProvider implements EmailProvider {

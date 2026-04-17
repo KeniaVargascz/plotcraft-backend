@@ -22,7 +22,10 @@ export class HttpExceptionFilter implements ExceptionFilter {
       exception instanceof HttpException ? exception.getResponse() : null;
 
     if (!(exception instanceof HttpException)) {
-      this.logger.error('Unhandled exception', exception instanceof Error ? exception.stack : exception);
+      this.logger.error(
+        'Unhandled exception',
+        exception instanceof Error ? exception.stack : exception,
+      );
     }
 
     let message = 'Error interno del servidor';

@@ -180,7 +180,10 @@ export class AnalyticsService {
           _sum: sumFields,
         }),
         this.prisma.novelDailySnapshot.aggregate({
-          where: { novelId: novel.id, date: { gte: prevRange.start, lte: prevRange.end } },
+          where: {
+            novelId: novel.id,
+            date: { gte: prevRange.start, lte: prevRange.end },
+          },
           _sum: sumFields,
         }),
       ]);
@@ -192,8 +195,14 @@ export class AnalyticsService {
         views: this.computeDelta(cur.views ?? 0, prev.views ?? 0),
         likes: this.computeDelta(cur.likes ?? 0, prev.likes ?? 0),
         bookmarks: this.computeDelta(cur.bookmarks ?? 0, prev.bookmarks ?? 0),
-        newReaders: this.computeDelta(cur.newReaders ?? 0, prev.newReaders ?? 0),
-        chaptersRead: this.computeDelta(cur.chaptersRead ?? 0, prev.chaptersRead ?? 0),
+        newReaders: this.computeDelta(
+          cur.newReaders ?? 0,
+          prev.newReaders ?? 0,
+        ),
+        chaptersRead: this.computeDelta(
+          cur.chaptersRead ?? 0,
+          prev.chaptersRead ?? 0,
+        ),
       };
     }
 

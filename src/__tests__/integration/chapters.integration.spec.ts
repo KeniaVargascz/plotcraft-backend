@@ -1,8 +1,16 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
-import { bearer, loginAs, registerUser, unwrapData } from '../helpers/auth.helper';
+import {
+  bearer,
+  loginAs,
+  registerUser,
+  unwrapData,
+} from '../helpers/auth.helper';
 import { createTestApp } from '../helpers/test-app.helper';
-import { cleanupUsersByPrefix, disconnectTestDb } from '../helpers/test-db.helper';
+import {
+  cleanupUsersByPrefix,
+  disconnectTestDb,
+} from '../helpers/test-db.helper';
 
 describe('Chapters integration', () => {
   let app: INestApplication;
@@ -66,9 +74,9 @@ describe('Chapters integration', () => {
       });
 
     expect(autosaveResponse.status).toBe(200);
-    expect(unwrapData<{ wordCount: number }>(autosaveResponse.body).wordCount).toBeGreaterThan(
-      0,
-    );
+    expect(
+      unwrapData<{ wordCount: number }>(autosaveResponse.body).wordCount,
+    ).toBeGreaterThan(0);
 
     const reorderResponse = await request(app.getHttpServer())
       .patch('/api/novels/novela-capitulos/chapters/reorder')
@@ -102,6 +110,8 @@ describe('Chapters integration', () => {
       .set('Authorization', bearer(session.accessToken));
 
     expect(draftsResponse.status).toBe(200);
-    expect(unwrapData<{ data: unknown[] }>(draftsResponse.body).data).toHaveLength(2);
+    expect(
+      unwrapData<{ data: unknown[] }>(draftsResponse.body).data,
+    ).toHaveLength(2);
   });
 });

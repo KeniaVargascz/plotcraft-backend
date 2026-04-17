@@ -3,7 +3,10 @@ import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { AuthService } from '../../modules/auth/auth.service';
-import { createProfileFixture, createUserFixture } from '../helpers/fixtures.helper';
+import {
+  createProfileFixture,
+  createUserFixture,
+} from '../helpers/fixtures.helper';
 
 jest.mock('bcrypt', () => ({
   hash: jest.fn(),
@@ -56,8 +59,18 @@ describe('AuthService', () => {
     bcryptHash.mockReset();
     bcryptCompare.mockReset();
     const otpService = { create: jest.fn(), verify: jest.fn() } as any;
-    const emailService = { sendOtpVerification: jest.fn(), sendWelcome: jest.fn() } as any;
-    service = new AuthService(prisma, usersService, jwtService, configService, otpService, emailService);
+    const emailService = {
+      sendOtpVerification: jest.fn(),
+      sendWelcome: jest.fn(),
+    } as any;
+    service = new AuthService(
+      prisma,
+      usersService,
+      jwtService,
+      configService,
+      otpService,
+      emailService,
+    );
   });
 
   it('login throws UnauthorizedException when password does not match', async () => {

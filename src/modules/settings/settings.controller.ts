@@ -45,17 +45,11 @@ export class SettingsController {
 
   @Post('export')
   @ApiOperation({ summary: 'Export all user data as JSON file' })
-  async exportData(
-    @CurrentUser() user: JwtPayload,
-    @Res() res: Response,
-  ) {
+  async exportData(@CurrentUser() user: JwtPayload, @Res() res: Response) {
     const data = await this.settingsService.exportData(user.sub);
     const filename = `plotcraft-data-${user.username}-${new Date().toISOString().split('T')[0]}.json`;
     res.setHeader('Content-Type', 'application/json');
-    res.setHeader(
-      'Content-Disposition',
-      `attachment; filename="${filename}"`,
-    );
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     res.send(JSON.stringify(data, null, 2));
   }
 }

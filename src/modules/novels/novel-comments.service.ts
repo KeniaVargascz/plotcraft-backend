@@ -22,9 +22,7 @@ export class NovelCommentsService {
         where: { userId: novel.authorId },
       });
       if (privacy && !privacy.allowNovelComments) {
-        throw new ForbiddenException(
-          'El autor ha limitado los comentarios.',
-        );
+        throw new ForbiddenException('El autor ha limitado los comentarios.');
       }
     }
 

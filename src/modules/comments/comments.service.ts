@@ -37,9 +37,7 @@ export class CommentsService {
         where: { userId: post.authorId },
       });
       if (privacy && !privacy.allowPostComments) {
-        throw new ForbiddenException(
-          'El autor ha limitado los comentarios.',
-        );
+        throw new ForbiddenException('El autor ha limitado los comentarios.');
       }
     }
 

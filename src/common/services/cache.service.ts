@@ -48,9 +48,7 @@ export class MemoryCacheService implements CacheService {
   }
 
   async invalidatePattern(pattern: string): Promise<void> {
-    const regex = new RegExp(
-      '^' + pattern.replace(/\*/g, '.*') + '$',
-    );
+    const regex = new RegExp('^' + pattern.replace(/\*/g, '.*') + '$');
     for (const key of this.store.keys()) {
       if (regex.test(key)) {
         this.store.delete(key);

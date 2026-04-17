@@ -71,12 +71,14 @@ export class NotificationsService {
       },
       orderBy: { createdAt: 'desc' },
       take: take + 1,
-      ...(query.cursor
-        ? { cursor: { id: query.cursor }, skip: 1 }
-        : {}),
+      ...(query.cursor ? { cursor: { id: query.cursor }, skip: 1 } : {}),
       include: {
         actor: {
-          select: { id: true, username: true, profile: { select: { displayName: true, avatarUrl: true } } },
+          select: {
+            id: true,
+            username: true,
+            profile: { select: { displayName: true, avatarUrl: true } },
+          },
         },
       },
     });

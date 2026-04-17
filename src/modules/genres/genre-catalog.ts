@@ -17,7 +17,9 @@ export const CANONICAL_GENRES = [
   { slug: 'fanfiction', label: 'Fanfiction' },
 ] as const;
 
-export const CANONICAL_GENRE_SLUGS = CANONICAL_GENRES.map((genre) => genre.slug);
+export const CANONICAL_GENRE_SLUGS = CANONICAL_GENRES.map(
+  (genre) => genre.slug,
+);
 
 export const GENRE_SLUG_MAPPINGS: Record<string, string> = {
   fantasia: 'fantasia',

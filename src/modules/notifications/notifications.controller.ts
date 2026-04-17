@@ -1,11 +1,4 @@
-import {
-  Controller,
-  Delete,
-  Get,
-  Param,
-  Post,
-  Query,
-} from '@nestjs/common';
+import { Controller, Delete, Get, Param, Post, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import type { JwtPayload } from '../auth/strategies/jwt.strategy';
@@ -41,19 +34,13 @@ export class NotificationsController {
 
   @Post(':id/read')
   @ApiOperation({ summary: 'Mark a notification as read' })
-  markAsRead(
-    @Param('id') id: string,
-    @CurrentUser() user: JwtPayload,
-  ) {
+  markAsRead(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
     return this.notificationsService.markAsRead(id, user.sub);
   }
 
   @Delete(':id')
   @ApiOperation({ summary: 'Delete a notification' })
-  deleteNotification(
-    @Param('id') id: string,
-    @CurrentUser() user: JwtPayload,
-  ) {
+  deleteNotification(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
     return this.notificationsService.deleteNotification(id, user.sub);
   }
 

@@ -22,10 +22,7 @@ type SearchSection = {
 export class SearchService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async searchUnified(
-    query: SearchUnifiedQueryDto,
-    userId?: string | null,
-  ) {
+  async searchUnified(query: SearchUnifiedQueryDto, userId?: string | null) {
     this.recordHistoryAsync(userId, query.q);
 
     const allTypes = [
@@ -45,14 +42,17 @@ export class SearchService {
         ? [query.types]
         : [];
     const requested = rawTypes.length
-      ? (rawTypes.filter((t): t is AllowedType =>
+      ? rawTypes.filter((t): t is AllowedType =>
           (allTypes as readonly string[]).includes(t),
-        ) as AllowedType[])
+        )
       : (allTypes as readonly AllowedType[] as AllowedType[]);
 
     const limit = query.limit ?? 20;
     const term = query.q.trim();
-    const containsInsensitive = { contains: term, mode: 'insensitive' as const };
+    const containsInsensitive = {
+      contains: term,
+      mode: 'insensitive' as const,
+    };
 
     const results: Array<Record<string, unknown>> = [];
 
@@ -81,8 +81,7 @@ export class SearchService {
           excerpt: (n.synopsis ?? '').slice(0, 150),
           author: {
             username: n.author.username,
-            displayName:
-              n.author.profile?.displayName ?? n.author.username,
+            displayName: n.author.profile?.displayName ?? n.author.username,
             avatarUrl: n.author.profile?.avatarUrl ?? null,
           },
           url: `/novelas/${n.slug}`,
@@ -118,8 +117,7 @@ export class SearchService {
           excerpt: (w.tagline ?? w.description ?? '').slice(0, 150),
           author: {
             username: w.author.username,
-            displayName:
-              w.author.profile?.displayName ?? w.author.username,
+            displayName: w.author.profile?.displayName ?? w.author.username,
             avatarUrl: w.author.profile?.avatarUrl ?? null,
           },
           url: `/mundos/${w.slug}`,
@@ -147,8 +145,7 @@ export class SearchService {
           excerpt: (c.personality ?? '').slice(0, 150),
           author: {
             username: c.author.username,
-            displayName:
-              c.author.profile?.displayName ?? c.author.username,
+            displayName: c.author.profile?.displayName ?? c.author.username,
             avatarUrl: c.author.profile?.avatarUrl ?? null,
           },
           url: `/personajes/${c.author.username}/${c.slug}`,
@@ -210,8 +207,7 @@ export class SearchService {
           excerpt: p.content.slice(0, 150),
           author: {
             username: p.author.username,
-            displayName:
-              p.author.profile?.displayName ?? p.author.username,
+            displayName: p.author.profile?.displayName ?? p.author.username,
             avatarUrl: p.author.profile?.avatarUrl ?? null,
           },
           url: `/explorar`,
@@ -256,8 +252,7 @@ export class SearchService {
           excerpt: t.content.slice(0, 150),
           author: {
             username: t.author.username,
-            displayName:
-              t.author.profile?.displayName ?? t.author.username,
+            displayName: t.author.profile?.displayName ?? t.author.username,
             avatarUrl: t.author.profile?.avatarUrl ?? null,
           },
           url: `/comunidades/${t.forum.community.slug}/foros/${t.forum.slug}/hilos/${t.slug}`,
@@ -549,81 +544,82 @@ export class SearchService {
     // Max 10 results per category before merge, capped to 3 per type in final output
     const perCategoryLimit = 10;
 
-    const [novels, users, worlds, characters, genres, communities] = await Promise.all([
-      this.prisma.novel.findMany({
-        where: {
-          isPublic: true,
-          title: { contains: normalized, mode: 'insensitive' },
-        },
-        include: {
-          author: { include: { profile: true } },
-        },
-        take: perCategoryLimit,
-        orderBy: { updatedAt: 'desc' },
-      }),
-      this.prisma.user.findMany({
-        where: {
-          isActive: true,
-          NOT: { privacySettings: { searchable: false } },
-          OR: [
-            { username: { contains: normalized, mode: 'insensitive' } },
-            {
-              profile: {
-                displayName: { contains: normalized, mode: 'insensitive' },
-              },
-            },
-          ],
-        },
-        include: { profile: true },
-        take: perCategoryLimit,
-        orderBy: { createdAt: 'desc' },
-      }),
-      this.prisma.world.findMany({
-        where: {
-          visibility: 'PUBLIC',
-          name: { contains: normalized, mode: 'insensitive' },
-        },
-        include: {
-          author: { include: { profile: true } },
-        },
-        take: perCategoryLimit,
-        orderBy: { updatedAt: 'desc' },
-      }),
-      this.prisma.character.findMany({
-        where: {
-          isPublic: true,
-          name: { contains: normalized, mode: 'insensitive' },
-        },
-        include: {
-          author: { include: { profile: true } },
-          world: {
-            select: { id: true, name: true, slug: true, visibility: true },
+    const [novels, users, worlds, characters, genres, communities] =
+      await Promise.all([
+        this.prisma.novel.findMany({
+          where: {
+            isPublic: true,
+            title: { contains: normalized, mode: 'insensitive' },
           },
-        },
-        take: perCategoryLimit,
-        orderBy: { updatedAt: 'desc' },
-      }),
-      this.prisma.genre.findMany({
-        where: {
-          OR: [
-            { label: { contains: normalized, mode: 'insensitive' } },
-            { slug: { contains: normalized, mode: 'insensitive' } },
-          ],
-        },
-        take: perCategoryLimit,
-      }),
-      this.prisma.community.findMany({
-        where: {
-          status: 'ACTIVE',
-          OR: [
-            { name: { contains: normalized, mode: 'insensitive' } },
-            { description: { contains: normalized, mode: 'insensitive' } },
-          ],
-        },
-        take: perCategoryLimit,
-        orderBy: { membersCount: 'desc' },
-      }),
-    ]);
+          include: {
+            author: { include: { profile: true } },
+          },
+          take: perCategoryLimit,
+          orderBy: { updatedAt: 'desc' },
+        }),
+        this.prisma.user.findMany({
+          where: {
+            isActive: true,
+            NOT: { privacySettings: { searchable: false } },
+            OR: [
+              { username: { contains: normalized, mode: 'insensitive' } },
+              {
+                profile: {
+                  displayName: { contains: normalized, mode: 'insensitive' },
+                },
+              },
+            ],
+          },
+          include: { profile: true },
+          take: perCategoryLimit,
+          orderBy: { createdAt: 'desc' },
+        }),
+        this.prisma.world.findMany({
+          where: {
+            visibility: 'PUBLIC',
+            name: { contains: normalized, mode: 'insensitive' },
+          },
+          include: {
+            author: { include: { profile: true } },
+          },
+          take: perCategoryLimit,
+          orderBy: { updatedAt: 'desc' },
+        }),
+        this.prisma.character.findMany({
+          where: {
+            isPublic: true,
+            name: { contains: normalized, mode: 'insensitive' },
+          },
+          include: {
+            author: { include: { profile: true } },
+            world: {
+              select: { id: true, name: true, slug: true, visibility: true },
+            },
+          },
+          take: perCategoryLimit,
+          orderBy: { updatedAt: 'desc' },
+        }),
+        this.prisma.genre.findMany({
+          where: {
+            OR: [
+              { label: { contains: normalized, mode: 'insensitive' } },
+              { slug: { contains: normalized, mode: 'insensitive' } },
+            ],
+          },
+          take: perCategoryLimit,
+        }),
+        this.prisma.community.findMany({
+          where: {
+            status: 'ACTIVE',
+            OR: [
+              { name: { contains: normalized, mode: 'insensitive' } },
+              { description: { contains: normalized, mode: 'insensitive' } },
+            ],
+          },
+          take: perCategoryLimit,
+          orderBy: { membersCount: 'desc' },
+        }),
+      ]);
 
     const rankByPrefix = <T extends { label: string }>(items: T[]) =>
       [...items].sort((left, right) => {

@@ -89,15 +89,15 @@ export class AdminCommunitiesController {
       },
     });
 
-    return this.communitiesService.findBySlug(community.slug, community.ownerId);
+    return this.communitiesService.findBySlug(
+      community.slug,
+      community.ownerId,
+    );
   }
 
   @Post(':slug/reject')
   @ApiOperation({ summary: 'Rechazar comunidad pendiente' })
-  async reject(
-    @Param('slug') slug: string,
-    @Body() dto: ReviewCommunityDto,
-  ) {
+  async reject(@Param('slug') slug: string, @Body() dto: ReviewCommunityDto) {
     if (!dto.reason || !dto.reason.trim()) {
       throw new UnprocessableEntityException(
         'Debes indicar el motivo del rechazo.',

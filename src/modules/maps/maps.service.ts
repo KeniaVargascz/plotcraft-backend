@@ -94,18 +94,18 @@ export class MapsService {
     await this.prisma.worldMap.update({
       where: { id: map.id },
       data: {
-        viewport: { x: dto.x, y: dto.y, zoom: dto.zoom } as Prisma.InputJsonValue,
+        viewport: {
+          x: dto.x,
+          y: dto.y,
+          zoom: dto.zoom,
+        } as Prisma.InputJsonValue,
       },
     });
 
     return { saved: true };
   }
 
-  async createMarker(
-    worldSlug: string,
-    userId: string,
-    dto: CreateMarkerDto,
-  ) {
+  async createMarker(worldSlug: string, userId: string, dto: CreateMarkerDto) {
     const world = await this.worldsService.findOwnedWorld(userId, worldSlug);
 
     if (dto.locationId && dto.wbEntryId) {
@@ -219,9 +219,7 @@ export class MapsService {
         ...(dto.description !== undefined
           ? { description: dto.description?.trim() || null }
           : {}),
-        ...(dto.icon !== undefined
-          ? { icon: dto.icon?.trim() || null }
-          : {}),
+        ...(dto.icon !== undefined ? { icon: dto.icon?.trim() || null } : {}),
         ...(dto.color !== undefined ? { color: dto.color || null } : {}),
         ...(dto.locationId !== undefined
           ? { locationId: dto.locationId || null }
@@ -260,11 +258,7 @@ export class MapsService {
     return { message: 'Marcador eliminado correctamente' };
   }
 
-  async createRegion(
-    worldSlug: string,
-    userId: string,
-    dto: CreateRegionDto,
-  ) {
+  async createRegion(worldSlug: string, userId: string, dto: CreateRegionDto) {
     const world = await this.worldsService.findOwnedWorld(userId, worldSlug);
 
     const map = await this.findOrCreateMap(world.id);

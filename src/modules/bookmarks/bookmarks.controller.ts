@@ -1,4 +1,12 @@
-import { Body, Controller, Delete, Get, Param, Post, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Post,
+  Query,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import type { JwtPayload } from '../auth/strategies/jwt.strategy';
@@ -14,10 +22,7 @@ export class BookmarksController {
 
   @Get()
   @ApiOperation({ summary: 'Bookmarks del usuario paginados' })
-  listAll(
-    @CurrentUser() user: JwtPayload,
-    @Query() query: BookmarkQueryDto,
-  ) {
+  listAll(@CurrentUser() user: JwtPayload, @Query() query: BookmarkQueryDto) {
     return this.bookmarksService.listAll(user.sub, query);
   }
 

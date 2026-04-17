@@ -31,15 +31,19 @@ describe('FollowsService', () => {
   });
 
   it('followUser throws when user tries to follow themselves', async () => {
-    prisma.user.findUnique.mockResolvedValue(createUserFixture({ id: 'me-id' }));
-
-    await expect(service.followUser('me-id', 'testuser')).rejects.toBeInstanceOf(
-      BadRequestException,
+    prisma.user.findUnique.mockResolvedValue(
+      createUserFixture({ id: 'me-id' }),
     );
+
+    await expect(
+      service.followUser('me-id', 'testuser'),
+    ).rejects.toBeInstanceOf(BadRequestException);
   });
 
   it('followUser throws ConflictException if already following', async () => {
-    prisma.user.findUnique.mockResolvedValue(createUserFixture({ id: 'target-id' }));
+    prisma.user.findUnique.mockResolvedValue(
+      createUserFixture({ id: 'target-id' }),
+    );
     prisma.follow.findUnique.mockResolvedValue({ id: 'follow-id' });
 
     await expect(service.followUser('me-id', 'target')).rejects.toBeInstanceOf(
@@ -48,12 +52,14 @@ describe('FollowsService', () => {
   });
 
   it('unfollowUser throws NotFoundException if not following', async () => {
-    prisma.user.findUnique.mockResolvedValue(createUserFixture({ id: 'target-id' }));
+    prisma.user.findUnique.mockResolvedValue(
+      createUserFixture({ id: 'target-id' }),
+    );
     prisma.follow.findUnique.mockResolvedValue(null);
 
-    await expect(service.unfollowUser('me-id', 'target')).rejects.toBeInstanceOf(
-      NotFoundException,
-    );
+    await expect(
+      service.unfollowUser('me-id', 'target'),
+    ).rejects.toBeInstanceOf(NotFoundException);
   });
 
   it('getSuggestions excludes requesting user and limits results to 10', async () => {

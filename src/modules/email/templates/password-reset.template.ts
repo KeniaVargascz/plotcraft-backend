@@ -4,7 +4,10 @@ interface PasswordResetTemplateParams {
   expiresInMinutes: number;
 }
 
-export function buildPasswordResetTemplate(p: PasswordResetTemplateParams): { html: string; text: string } {
+export function buildPasswordResetTemplate(p: PasswordResetTemplateParams): {
+  html: string;
+  text: string;
+} {
   const formatted = `${p.code.slice(0, 3)} ${p.code.slice(3)}`;
 
   const html = `

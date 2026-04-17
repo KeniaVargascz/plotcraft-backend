@@ -149,9 +149,7 @@ export class CommunityCharactersService {
     const items = await this.prisma.communityCharacter.findMany({
       where,
       take: limit + 1,
-      ...(options.cursor
-        ? { skip: 1, cursor: { id: options.cursor } }
-        : {}),
+      ...(options.cursor ? { skip: 1, cursor: { id: options.cursor } } : {}),
       orderBy:
         requestedStatus === CommunityCharacterStatus.SUGGESTED
           ? { createdAt: 'asc' }
@@ -196,11 +194,7 @@ export class CommunityCharactersService {
     return this.toResponse(cc);
   }
 
-  async create(
-    slug: string,
-    userId: string,
-    dto: CreateCommunityCharacterDto,
-  ) {
+  async create(slug: string, userId: string, dto: CreateCommunityCharacterDto) {
     const community = await this.getFandomCommunity(slug);
 
     const isMember = await this.isActiveMember(community, userId);

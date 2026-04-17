@@ -1,8 +1,16 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
-import { bearer, loginAs, registerUser, unwrapData } from '../helpers/auth.helper';
+import {
+  bearer,
+  loginAs,
+  registerUser,
+  unwrapData,
+} from '../helpers/auth.helper';
 import { createTestApp } from '../helpers/test-app.helper';
-import { cleanupUsersByPrefix, disconnectTestDb } from '../helpers/test-db.helper';
+import {
+  cleanupUsersByPrefix,
+  disconnectTestDb,
+} from '../helpers/test-db.helper';
 
 describe('Auth integration', () => {
   let app: INestApplication;
@@ -70,8 +78,8 @@ describe('Auth integration', () => {
       .send({ refreshToken: refreshSession.refreshToken });
 
     expect(logoutResponse.status).toBe(200);
-    expect(unwrapData<{ message: string }>(logoutResponse.body).message).toMatch(
-      /Sesion cerrada/i,
-    );
+    expect(
+      unwrapData<{ message: string }>(logoutResponse.body).message,
+    ).toMatch(/Sesion cerrada/i);
   });
 });

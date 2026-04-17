@@ -1,6 +1,8 @@
 import { PrismaClient } from '@prisma/client';
 import { runSeedStep } from './seed-step.util';
 
-export async function seed03PrivacySettings(prisma: PrismaClient): Promise<void> {
+export async function seed03PrivacySettings(
+  prisma: PrismaClient,
+): Promise<void> {
   await runSeedStep(prisma, 'privacy-settings', async () => {});
 }

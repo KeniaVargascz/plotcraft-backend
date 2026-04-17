@@ -3,7 +3,10 @@ interface WelcomeTemplateParams {
   nickname: string;
 }
 
-export function buildWelcomeTemplate(p: WelcomeTemplateParams): { html: string; text: string } {
+export function buildWelcomeTemplate(p: WelcomeTemplateParams): {
+  html: string;
+  text: string;
+} {
   const html = `
     <!DOCTYPE html>
     <html lang="es">

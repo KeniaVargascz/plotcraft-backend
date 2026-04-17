@@ -171,7 +171,8 @@ async function upsertUsers() {
         displayName: entry.profile.displayName,
         bio: entry.profile.bio,
         website: entry.profile.website,
-        avatarUrl: 'avatarUrl' in entry.profile ? entry.profile.avatarUrl : undefined,
+        avatarUrl:
+          'avatarUrl' in entry.profile ? entry.profile.avatarUrl : undefined,
         isPublic: true,
       },
       create: {
@@ -179,7 +180,8 @@ async function upsertUsers() {
         displayName: entry.profile.displayName,
         bio: entry.profile.bio,
         website: entry.profile.website,
-        avatarUrl: 'avatarUrl' in entry.profile ? entry.profile.avatarUrl : undefined,
+        avatarUrl:
+          'avatarUrl' in entry.profile ? entry.profile.avatarUrl : undefined,
         isPublic: true,
       },
     });
@@ -504,8 +506,11 @@ async function upsertNovelWithChapters(input: {
   });
   const slug = normalizeSlug(input.title);
 
-  const language = await prisma.catalogLanguage.findUnique({ where: { code: 'es' } });
-  if (!language) throw new Error('CatalogLanguage "es" not found – run language seed first');
+  const language = await prisma.catalogLanguage.findUnique({
+    where: { code: 'es' },
+  });
+  if (!language)
+    throw new Error('CatalogLanguage "es" not found – run language seed first');
 
   const novel = await prisma.novel.upsert({
     where: { slug },
@@ -1578,11 +1583,56 @@ async function seedWorldbuilding() {
       color: '#8b5cf6',
       description: 'Razas y pueblos del mundo del Velo.',
       fieldSchema: [
-        { key: 'origin', label: 'Origen', type: 'textarea', required: false, placeholder: null, options: null, default: null, sortOrder: 1 },
-        { key: 'traits', label: 'Rasgos', type: 'textarea', required: false, placeholder: null, options: null, default: null, sortOrder: 2 },
-        { key: 'lifespan', label: 'Esperanza de vida', type: 'text', required: false, placeholder: null, options: null, default: null, sortOrder: 3 },
-        { key: 'population', label: 'Poblacion', type: 'text', required: false, placeholder: null, options: null, default: null, sortOrder: 4 },
-        { key: 'is_extinct', label: 'Extinta', type: 'boolean', required: false, placeholder: null, options: null, default: null, sortOrder: 5 },
+        {
+          key: 'origin',
+          label: 'Origen',
+          type: 'textarea',
+          required: false,
+          placeholder: null,
+          options: null,
+          default: null,
+          sortOrder: 1,
+        },
+        {
+          key: 'traits',
+          label: 'Rasgos',
+          type: 'textarea',
+          required: false,
+          placeholder: null,
+          options: null,
+          default: null,
+          sortOrder: 2,
+        },
+        {
+          key: 'lifespan',
+          label: 'Esperanza de vida',
+          type: 'text',
+          required: false,
+          placeholder: null,
+          options: null,
+          default: null,
+          sortOrder: 3,
+        },
+        {
+          key: 'population',
+          label: 'Poblacion',
+          type: 'text',
+          required: false,
+          placeholder: null,
+          options: null,
+          default: null,
+          sortOrder: 4,
+        },
+        {
+          key: 'is_extinct',
+          label: 'Extinta',
+          type: 'boolean',
+          required: false,
+          placeholder: null,
+          options: null,
+          default: null,
+          sortOrder: 5,
+        },
       ],
       sortOrder: 1,
       isSystem: false,
@@ -1606,10 +1656,53 @@ async function seedWorldbuilding() {
       color: '#3db05a',
       description: 'Ciudades y asentamientos del mundo del Velo.',
       fieldSchema: [
-        { key: 'region', label: 'Region', type: 'text', required: false, placeholder: null, options: null, default: null, sortOrder: 1 },
-        { key: 'population', label: 'Poblacion', type: 'text', required: false, placeholder: null, options: null, default: null, sortOrder: 2 },
-        { key: 'government', label: 'Gobierno', type: 'text', required: false, placeholder: null, options: null, default: null, sortOrder: 3 },
-        { key: 'current_status', label: 'Estado actual', type: 'select', required: false, placeholder: null, options: ['Floreciente', 'En decadencia', 'Destruida', 'Abandonada', 'Legendaria', 'Desconocida'], default: null, sortOrder: 4 },
+        {
+          key: 'region',
+          label: 'Region',
+          type: 'text',
+          required: false,
+          placeholder: null,
+          options: null,
+          default: null,
+          sortOrder: 1,
+        },
+        {
+          key: 'population',
+          label: 'Poblacion',
+          type: 'text',
+          required: false,
+          placeholder: null,
+          options: null,
+          default: null,
+          sortOrder: 2,
+        },
+        {
+          key: 'government',
+          label: 'Gobierno',
+          type: 'text',
+          required: false,
+          placeholder: null,
+          options: null,
+          default: null,
+          sortOrder: 3,
+        },
+        {
+          key: 'current_status',
+          label: 'Estado actual',
+          type: 'select',
+          required: false,
+          placeholder: null,
+          options: [
+            'Floreciente',
+            'En decadencia',
+            'Destruida',
+            'Abandonada',
+            'Legendaria',
+            'Desconocida',
+          ],
+          default: null,
+          sortOrder: 4,
+        },
       ],
       sortOrder: 2,
       isSystem: false,
@@ -1633,10 +1726,46 @@ async function seedWorldbuilding() {
       color: '#c9a84c',
       description: 'Sistemas de magia del Velo.',
       fieldSchema: [
-        { key: 'source', label: 'Fuente', type: 'textarea', required: false, placeholder: null, options: null, default: null, sortOrder: 1 },
-        { key: 'limitations', label: 'Limitaciones', type: 'textarea', required: false, placeholder: null, options: null, default: null, sortOrder: 2 },
-        { key: 'power_level', label: 'Nivel de poder', type: 'select', required: false, placeholder: null, options: ['Menor', 'Moderado', 'Mayor', 'Legendario'], default: null, sortOrder: 3 },
-        { key: 'is_learnable', label: 'Se puede aprender', type: 'boolean', required: false, placeholder: null, options: null, default: null, sortOrder: 4 },
+        {
+          key: 'source',
+          label: 'Fuente',
+          type: 'textarea',
+          required: false,
+          placeholder: null,
+          options: null,
+          default: null,
+          sortOrder: 1,
+        },
+        {
+          key: 'limitations',
+          label: 'Limitaciones',
+          type: 'textarea',
+          required: false,
+          placeholder: null,
+          options: null,
+          default: null,
+          sortOrder: 2,
+        },
+        {
+          key: 'power_level',
+          label: 'Nivel de poder',
+          type: 'select',
+          required: false,
+          placeholder: null,
+          options: ['Menor', 'Moderado', 'Mayor', 'Legendario'],
+          default: null,
+          sortOrder: 3,
+        },
+        {
+          key: 'is_learnable',
+          label: 'Se puede aprender',
+          type: 'boolean',
+          required: false,
+          placeholder: null,
+          options: null,
+          default: null,
+          sortOrder: 4,
+        },
       ],
       sortOrder: 3,
       isSystem: false,
@@ -1660,10 +1789,46 @@ async function seedWorldbuilding() {
       color: '#9088a0',
       description: 'Historia y leyendas del mundo del Velo.',
       fieldSchema: [
-        { key: 'date_in_world', label: 'Fecha en el mundo', type: 'text', required: false, placeholder: null, options: null, default: null, sortOrder: 1 },
-        { key: 'participants', label: 'Participantes', type: 'textarea', required: false, placeholder: null, options: null, default: null, sortOrder: 2 },
-        { key: 'consequences', label: 'Consecuencias', type: 'textarea', required: false, placeholder: null, options: null, default: null, sortOrder: 3 },
-        { key: 'is_verified', label: 'Verificado', type: 'boolean', required: false, placeholder: null, options: null, default: null, sortOrder: 4 },
+        {
+          key: 'date_in_world',
+          label: 'Fecha en el mundo',
+          type: 'text',
+          required: false,
+          placeholder: null,
+          options: null,
+          default: null,
+          sortOrder: 1,
+        },
+        {
+          key: 'participants',
+          label: 'Participantes',
+          type: 'textarea',
+          required: false,
+          placeholder: null,
+          options: null,
+          default: null,
+          sortOrder: 2,
+        },
+        {
+          key: 'consequences',
+          label: 'Consecuencias',
+          type: 'textarea',
+          required: false,
+          placeholder: null,
+          options: null,
+          default: null,
+          sortOrder: 3,
+        },
+        {
+          key: 'is_verified',
+          label: 'Verificado',
+          type: 'boolean',
+          required: false,
+          placeholder: null,
+          options: null,
+          default: null,
+          sortOrder: 4,
+        },
       ],
       sortOrder: 4,
       isSystem: false,
@@ -1672,11 +1837,18 @@ async function seedWorldbuilding() {
 
   // ---- Entries for el-mundo-del-velo ----
   const entryCartografos = await prisma.wbEntry.upsert({
-    where: { worldId_slug: { worldId: veloWorld.id, slug: 'cartografos-del-velo' } },
+    where: {
+      worldId_slug: { worldId: veloWorld.id, slug: 'cartografos-del-velo' },
+    },
     update: {
       name: 'Cartografos del Velo',
       summary: 'Linaje ancestral que traza rutas entre umbrales de agua negra.',
-      fields: { origin: 'Se remontan a la primera apertura del Velo.', traits: 'Marcas de tinta ritual en las manos. Memoria prodigiosa.', lifespan: '80-120 anos', is_extinct: false },
+      fields: {
+        origin: 'Se remontan a la primera apertura del Velo.',
+        traits: 'Marcas de tinta ritual en las manos. Memoria prodigiosa.',
+        lifespan: '80-120 anos',
+        is_extinct: false,
+      },
       tags: ['linaje', 'cartografia', 'ritual'],
       isPublic: true,
       sortOrder: 1,
@@ -1688,8 +1860,14 @@ async function seedWorldbuilding() {
       name: 'Cartografos del Velo',
       slug: 'cartografos-del-velo',
       summary: 'Linaje ancestral que traza rutas entre umbrales de agua negra.',
-      content: 'Los Cartografos del Velo son un linaje casi extinto que custodia los mapas vivos del mundo sumergido. Sus miembros nacen con marcas rituales que permiten leer corrientes invisibles y trazar caminos entre portales.',
-      fields: { origin: 'Se remontan a la primera apertura del Velo.', traits: 'Marcas de tinta ritual en las manos. Memoria prodigiosa.', lifespan: '80-120 anos', is_extinct: false },
+      content:
+        'Los Cartografos del Velo son un linaje casi extinto que custodia los mapas vivos del mundo sumergido. Sus miembros nacen con marcas rituales que permiten leer corrientes invisibles y trazar caminos entre portales.',
+      fields: {
+        origin: 'Se remontan a la primera apertura del Velo.',
+        traits: 'Marcas de tinta ritual en las manos. Memoria prodigiosa.',
+        lifespan: '80-120 anos',
+        is_extinct: false,
+      },
       tags: ['linaje', 'cartografia', 'ritual'],
       isPublic: true,
       sortOrder: 1,
@@ -1700,8 +1878,14 @@ async function seedWorldbuilding() {
     where: { worldId_slug: { worldId: veloWorld.id, slug: 'nacar-de-bruma' } },
     update: {
       name: 'Nacar de Bruma',
-      summary: 'Capital costera levantada sobre pilotes de cobre y puentes ceremoniales.',
-      fields: { region: 'Archipielago central', population: '~45.000', government: 'Consejo de Campanas', current_status: 'Floreciente' },
+      summary:
+        'Capital costera levantada sobre pilotes de cobre y puentes ceremoniales.',
+      fields: {
+        region: 'Archipielago central',
+        population: '~45.000',
+        government: 'Consejo de Campanas',
+        current_status: 'Floreciente',
+      },
       tags: ['capital', 'puerto', 'cobre'],
       isPublic: true,
       sortOrder: 1,
@@ -1712,9 +1896,16 @@ async function seedWorldbuilding() {
       authorId: demoWriter.id,
       name: 'Nacar de Bruma',
       slug: 'nacar-de-bruma',
-      summary: 'Capital costera levantada sobre pilotes de cobre y puentes ceremoniales.',
-      content: 'Nacar de Bruma es la ciudad mas grande del mundo del Velo, construida sobre una red de pilotes en el delta de tres rios que desembocan en agua negra. Sus tejados de cobre oxidado brillan con un verde particular al atardecer.',
-      fields: { region: 'Archipielago central', population: '~45.000', government: 'Consejo de Campanas', current_status: 'Floreciente' },
+      summary:
+        'Capital costera levantada sobre pilotes de cobre y puentes ceremoniales.',
+      content:
+        'Nacar de Bruma es la ciudad mas grande del mundo del Velo, construida sobre una red de pilotes en el delta de tres rios que desembocan en agua negra. Sus tejados de cobre oxidado brillan con un verde particular al atardecer.',
+      fields: {
+        region: 'Archipielago central',
+        population: '~45.000',
+        government: 'Consejo de Campanas',
+        current_status: 'Floreciente',
+      },
       tags: ['capital', 'puerto', 'cobre'],
       isPublic: true,
       sortOrder: 1,
@@ -1722,11 +1913,18 @@ async function seedWorldbuilding() {
   });
 
   const entryArchivoSumergido = await prisma.wbEntry.upsert({
-    where: { worldId_slug: { worldId: veloWorld.id, slug: 'archivo-sumergido' } },
+    where: {
+      worldId_slug: { worldId: veloWorld.id, slug: 'archivo-sumergido' },
+    },
     update: {
       name: 'Archivo Sumergido',
       summary: 'Camara subacuatica donde se conservan los mapas mas antiguos.',
-      fields: { region: 'Profundidades del delta', population: 'Ninguna permanente', government: 'Sin gobierno', current_status: 'Legendaria' },
+      fields: {
+        region: 'Profundidades del delta',
+        population: 'Ninguna permanente',
+        government: 'Sin gobierno',
+        current_status: 'Legendaria',
+      },
       tags: ['ruina', 'mapas', 'ritual'],
       isPublic: true,
       sortOrder: 2,
@@ -1738,8 +1936,14 @@ async function seedWorldbuilding() {
       name: 'Archivo Sumergido',
       slug: 'archivo-sumergido',
       summary: 'Camara subacuatica donde se conservan los mapas mas antiguos.',
-      content: 'El Archivo Sumergido es una estructura parcialmente inundada en la que los cartografos copiaban rutas sobre piel mineral. Solo quienes portan las marcas rituales pueden respirar en sus salas mas profundas.',
-      fields: { region: 'Profundidades del delta', population: 'Ninguna permanente', government: 'Sin gobierno', current_status: 'Legendaria' },
+      content:
+        'El Archivo Sumergido es una estructura parcialmente inundada en la que los cartografos copiaban rutas sobre piel mineral. Solo quienes portan las marcas rituales pueden respirar en sus salas mas profundas.',
+      fields: {
+        region: 'Profundidades del delta',
+        population: 'Ninguna permanente',
+        government: 'Sin gobierno',
+        current_status: 'Legendaria',
+      },
       tags: ['ruina', 'mapas', 'ritual'],
       isPublic: true,
       sortOrder: 2,
@@ -1747,11 +1951,18 @@ async function seedWorldbuilding() {
   });
 
   const entryMagiaDeLasDeudas = await prisma.wbEntry.upsert({
-    where: { worldId_slug: { worldId: veloWorld.id, slug: 'magia-de-las-deudas' } },
+    where: {
+      worldId_slug: { worldId: veloWorld.id, slug: 'magia-de-las-deudas' },
+    },
     update: {
       name: 'Magia de las Deudas',
       summary: 'Sistema donde toda travesia exige ofrecer recuerdos como pago.',
-      fields: { source: 'El Velo mismo: una membrana entre realidades.', limitations: 'Cada uso borra fragmentos de memoria personal.', power_level: 'Mayor', is_learnable: false },
+      fields: {
+        source: 'El Velo mismo: una membrana entre realidades.',
+        limitations: 'Cada uso borra fragmentos de memoria personal.',
+        power_level: 'Mayor',
+        is_learnable: false,
+      },
       tags: ['sistema-magico', 'memoria', 'deuda'],
       isPublic: true,
       sortOrder: 1,
@@ -1763,8 +1974,14 @@ async function seedWorldbuilding() {
       name: 'Magia de las Deudas',
       slug: 'magia-de-las-deudas',
       summary: 'Sistema donde toda travesia exige ofrecer recuerdos como pago.',
-      content: 'La magia del Velo no se aprende ni se hereda: se negocia. Cada vez que alguien cruza un umbral debe ofrecer algo personal, normalmente un recuerdo, un nombre o una cancion. El precio sube con la distancia y con la importancia del destino.',
-      fields: { source: 'El Velo mismo: una membrana entre realidades.', limitations: 'Cada uso borra fragmentos de memoria personal.', power_level: 'Mayor', is_learnable: false },
+      content:
+        'La magia del Velo no se aprende ni se hereda: se negocia. Cada vez que alguien cruza un umbral debe ofrecer algo personal, normalmente un recuerdo, un nombre o una cancion. El precio sube con la distancia y con la importancia del destino.',
+      fields: {
+        source: 'El Velo mismo: una membrana entre realidades.',
+        limitations: 'Cada uso borra fragmentos de memoria personal.',
+        power_level: 'Mayor',
+        is_learnable: false,
+      },
       tags: ['sistema-magico', 'memoria', 'deuda'],
       isPublic: true,
       sortOrder: 1,
@@ -1772,11 +1989,20 @@ async function seedWorldbuilding() {
   });
 
   const entryCartaDelSilencio = await prisma.wbEntry.upsert({
-    where: { worldId_slug: { worldId: veloWorld.id, slug: 'carta-del-silencio' } },
+    where: {
+      worldId_slug: { worldId: veloWorld.id, slug: 'carta-del-silencio' },
+    },
     update: {
       name: 'Carta del Silencio',
-      summary: 'Ritual magico que permite comunicarse sin palabras a traves del Velo.',
-      fields: { source: 'Derivada de la Magia de las Deudas.', limitations: 'Solo funciona entre personas que comparten un recuerdo perdido.', power_level: 'Menor', is_learnable: true },
+      summary:
+        'Ritual magico que permite comunicarse sin palabras a traves del Velo.',
+      fields: {
+        source: 'Derivada de la Magia de las Deudas.',
+        limitations:
+          'Solo funciona entre personas que comparten un recuerdo perdido.',
+        power_level: 'Menor',
+        is_learnable: true,
+      },
       tags: ['ritual', 'comunicacion', 'silencio'],
       isPublic: true,
       sortOrder: 2,
@@ -1787,9 +2013,17 @@ async function seedWorldbuilding() {
       authorId: demoWriter.id,
       name: 'Carta del Silencio',
       slug: 'carta-del-silencio',
-      summary: 'Ritual magico que permite comunicarse sin palabras a traves del Velo.',
-      content: 'La Carta del Silencio es un metodo de comunicacion ritual que nacio como efecto secundario de la Magia de las Deudas. Dos personas que hayan perdido el mismo recuerdo pueden intercambiar impresiones a traves del Velo sin hablar.',
-      fields: { source: 'Derivada de la Magia de las Deudas.', limitations: 'Solo funciona entre personas que comparten un recuerdo perdido.', power_level: 'Menor', is_learnable: true },
+      summary:
+        'Ritual magico que permite comunicarse sin palabras a traves del Velo.',
+      content:
+        'La Carta del Silencio es un metodo de comunicacion ritual que nacio como efecto secundario de la Magia de las Deudas. Dos personas que hayan perdido el mismo recuerdo pueden intercambiar impresiones a traves del Velo sin hablar.',
+      fields: {
+        source: 'Derivada de la Magia de las Deudas.',
+        limitations:
+          'Solo funciona entre personas que comparten un recuerdo perdido.',
+        power_level: 'Menor',
+        is_learnable: true,
+      },
       tags: ['ritual', 'comunicacion', 'silencio'],
       isPublic: true,
       sortOrder: 2,
@@ -1797,11 +2031,20 @@ async function seedWorldbuilding() {
   });
 
   const entryPrimeraApertura = await prisma.wbEntry.upsert({
-    where: { worldId_slug: { worldId: veloWorld.id, slug: 'la-primera-apertura' } },
+    where: {
+      worldId_slug: { worldId: veloWorld.id, slug: 'la-primera-apertura' },
+    },
     update: {
       name: 'La Primera Apertura',
-      summary: 'Evento mitico que dio origen al Velo y a las rutas entre mundos.',
-      fields: { date_in_world: 'Era Cero, ciclo desconocido', participants: 'Los Fundadores sin nombre', consequences: 'Creacion de las rutas, nacimiento de los Cartografos, perdida del idioma original.', is_verified: false },
+      summary:
+        'Evento mitico que dio origen al Velo y a las rutas entre mundos.',
+      fields: {
+        date_in_world: 'Era Cero, ciclo desconocido',
+        participants: 'Los Fundadores sin nombre',
+        consequences:
+          'Creacion de las rutas, nacimiento de los Cartografos, perdida del idioma original.',
+        is_verified: false,
+      },
       tags: ['evento', 'mito', 'fundacion'],
       isPublic: true,
       sortOrder: 1,
@@ -1812,9 +2055,17 @@ async function seedWorldbuilding() {
       authorId: demoWriter.id,
       name: 'La Primera Apertura',
       slug: 'la-primera-apertura',
-      summary: 'Evento mitico que dio origen al Velo y a las rutas entre mundos.',
-      content: 'Nadie sabe con certeza cuando ocurrio la Primera Apertura. Los relatos fragmentarios hablan de un grupo de navegantes que encontraron un punto donde el agua dejaba de reflejar el cielo y empezaba a mostrar otro lugar.',
-      fields: { date_in_world: 'Era Cero, ciclo desconocido', participants: 'Los Fundadores sin nombre', consequences: 'Creacion de las rutas, nacimiento de los Cartografos, perdida del idioma original.', is_verified: false },
+      summary:
+        'Evento mitico que dio origen al Velo y a las rutas entre mundos.',
+      content:
+        'Nadie sabe con certeza cuando ocurrio la Primera Apertura. Los relatos fragmentarios hablan de un grupo de navegantes que encontraron un punto donde el agua dejaba de reflejar el cielo y empezaba a mostrar otro lugar.',
+      fields: {
+        date_in_world: 'Era Cero, ciclo desconocido',
+        participants: 'Los Fundadores sin nombre',
+        consequences:
+          'Creacion de las rutas, nacimiento de los Cartografos, perdida del idioma original.',
+        is_verified: false,
+      },
       tags: ['evento', 'mito', 'fundacion'],
       isPublic: true,
       sortOrder: 1,
@@ -1823,9 +2074,24 @@ async function seedWorldbuilding() {
 
   // ---- 3 cross-reference links ----
   const linkData = [
-    { source: entryCartografos, target: entryMagiaDeLasDeudas, relation: 'usa', isMutual: false },
-    { source: entryNacar, target: entryArchivoSumergido, relation: 'contiene', isMutual: false },
-    { source: entryMagiaDeLasDeudas, target: entryCartaDelSilencio, relation: 'deriva en', isMutual: true },
+    {
+      source: entryCartografos,
+      target: entryMagiaDeLasDeudas,
+      relation: 'usa',
+      isMutual: false,
+    },
+    {
+      source: entryNacar,
+      target: entryArchivoSumergido,
+      relation: 'contiene',
+      isMutual: false,
+    },
+    {
+      source: entryMagiaDeLasDeudas,
+      target: entryCartaDelSilencio,
+      relation: 'deriva en',
+      isMutual: true,
+    },
   ];
 
   for (const ld of linkData) {
@@ -1884,11 +2150,56 @@ async function seedWorldbuilding() {
       color: '#50c87a',
       description: 'Organizaciones y facciones de Aetherya.',
       fieldSchema: [
-        { key: 'founded', label: 'Fundacion', type: 'text', required: false, placeholder: null, options: null, default: null, sortOrder: 1 },
-        { key: 'leader', label: 'Lider', type: 'text', required: false, placeholder: null, options: null, default: null, sortOrder: 2 },
-        { key: 'headquarters', label: 'Sede', type: 'text', required: false, placeholder: null, options: null, default: null, sortOrder: 3 },
-        { key: 'goals', label: 'Objetivos', type: 'textarea', required: false, placeholder: null, options: null, default: null, sortOrder: 4 },
-        { key: 'is_active', label: 'Activa', type: 'boolean', required: false, placeholder: null, options: null, default: null, sortOrder: 5 },
+        {
+          key: 'founded',
+          label: 'Fundacion',
+          type: 'text',
+          required: false,
+          placeholder: null,
+          options: null,
+          default: null,
+          sortOrder: 1,
+        },
+        {
+          key: 'leader',
+          label: 'Lider',
+          type: 'text',
+          required: false,
+          placeholder: null,
+          options: null,
+          default: null,
+          sortOrder: 2,
+        },
+        {
+          key: 'headquarters',
+          label: 'Sede',
+          type: 'text',
+          required: false,
+          placeholder: null,
+          options: null,
+          default: null,
+          sortOrder: 3,
+        },
+        {
+          key: 'goals',
+          label: 'Objetivos',
+          type: 'textarea',
+          required: false,
+          placeholder: null,
+          options: null,
+          default: null,
+          sortOrder: 4,
+        },
+        {
+          key: 'is_active',
+          label: 'Activa',
+          type: 'boolean',
+          required: false,
+          placeholder: null,
+          options: null,
+          default: null,
+          sortOrder: 5,
+        },
       ],
       sortOrder: 1,
       isSystem: false,
@@ -1896,11 +2207,23 @@ async function seedWorldbuilding() {
   });
 
   await prisma.wbEntry.upsert({
-    where: { worldId_slug: { worldId: aetheryaWorld.id, slug: 'senado-de-las-corrientes' } },
+    where: {
+      worldId_slug: {
+        worldId: aetheryaWorld.id,
+        slug: 'senado-de-las-corrientes',
+      },
+    },
     update: {
       name: 'Senado de las Corrientes',
-      summary: 'Organo politico que regula el trafico aereo y los pactos entre ciudades flotantes.',
-      fields: { founded: 'Hace 200 ciclos', leader: 'Rotativo entre tres casas', headquarters: 'Heliora', goals: 'Mantener el equilibrio entre estratos del cielo.', is_active: true },
+      summary:
+        'Organo politico que regula el trafico aereo y los pactos entre ciudades flotantes.',
+      fields: {
+        founded: 'Hace 200 ciclos',
+        leader: 'Rotativo entre tres casas',
+        headquarters: 'Heliora',
+        goals: 'Mantener el equilibrio entre estratos del cielo.',
+        is_active: true,
+      },
       tags: ['gobierno', 'politica', 'aereo'],
       isPublic: true,
       sortOrder: 1,
@@ -1911,9 +2234,17 @@ async function seedWorldbuilding() {
       authorId: mateoWorlds.id,
       name: 'Senado de las Corrientes',
       slug: 'senado-de-las-corrientes',
-      summary: 'Organo politico que regula el trafico aereo y los pactos entre ciudades flotantes.',
-      content: 'El Senado de las Corrientes fue establecido despues de la Guerra de los Vientos como organo de mediacion. Se reune en la torre central de Heliora y sus decisiones determinan que ciudades pueden acceder a las corrientes superiores.',
-      fields: { founded: 'Hace 200 ciclos', leader: 'Rotativo entre tres casas', headquarters: 'Heliora', goals: 'Mantener el equilibrio entre estratos del cielo.', is_active: true },
+      summary:
+        'Organo politico que regula el trafico aereo y los pactos entre ciudades flotantes.',
+      content:
+        'El Senado de las Corrientes fue establecido despues de la Guerra de los Vientos como organo de mediacion. Se reune en la torre central de Heliora y sus decisiones determinan que ciudades pueden acceder a las corrientes superiores.',
+      fields: {
+        founded: 'Hace 200 ciclos',
+        leader: 'Rotativo entre tres casas',
+        headquarters: 'Heliora',
+        goals: 'Mantener el equilibrio entre estratos del cielo.',
+        is_active: true,
+      },
       tags: ['gobierno', 'politica', 'aereo'],
       isPublic: true,
       sortOrder: 1,
@@ -1948,17 +2279,28 @@ async function seedSearchHistory() {
 }
 
 async function seedTimelineAndPlanner() {
-  const demoWriter = await prisma.user.findUniqueOrThrow({ where: { username: 'demo_writer' } });
-  const novel = await prisma.novel.findFirst({ where: { authorId: demoWriter.id, slug: { contains: 'cronicas' } } });
+  const demoWriter = await prisma.user.findUniqueOrThrow({
+    where: { username: 'demo_writer' },
+  });
+  const novel = await prisma.novel.findFirst({
+    where: { authorId: demoWriter.id, slug: { contains: 'cronicas' } },
+  });
   if (!novel) return;
 
-  const kael = await prisma.character.findFirst({ where: { authorId: demoWriter.id, slug: 'kael' } });
-  const tejedor = await prisma.character.findFirst({ where: { authorId: demoWriter.id, slug: 'el-tejedor' } });
+  const kael = await prisma.character.findFirst({
+    where: { authorId: demoWriter.id, slug: 'kael' },
+  });
+  const tejedor = await prisma.character.findFirst({
+    where: { authorId: demoWriter.id, slug: 'el-tejedor' },
+  });
 
   // ── Timeline ──
   const timeline = await prisma.timeline.upsert({
     where: { authorId_novelId: { authorId: demoWriter.id, novelId: novel.id } },
-    update: { name: 'Timeline de Las Cronicas del Velo', description: 'Cronologia de los eventos del mundo del Velo' },
+    update: {
+      name: 'Timeline de Las Cronicas del Velo',
+      description: 'Cronologia de los eventos del mundo del Velo',
+    },
     create: {
       authorId: demoWriter.id,
       novelId: novel.id,
@@ -1968,78 +2310,292 @@ async function seedTimelineAndPlanner() {
   });
 
   const timelineEvents = [
-    { sortOrder: 1, title: 'El primer desgarro del Velo', type: 'WORLD_EVENT' as const, relevance: 'CRITICAL' as const, dateLabel: 'Ano 0 del Velo', description: 'El momento en que la membrana se rompio por primera vez', characterId: null },
-    { sortOrder: 2, title: 'Fundacion del Consejo de los Anclados', type: 'WORLD_EVENT' as const, relevance: 'MAJOR' as const, dateLabel: 'Ano 12 del Velo', description: null, characterId: null },
-    { sortOrder: 3, title: 'Nacimiento de Kael', type: 'CHARACTER_ARC' as const, relevance: 'MINOR' as const, dateLabel: 'Ano 280 del Velo', description: null, characterId: kael?.id ?? null },
-    { sortOrder: 4, title: 'El Tejedor cruza el Velo por primera vez', type: 'CHARACTER_ARC' as const, relevance: 'MAJOR' as const, dateLabel: 'Ano 298 del Velo', description: null, characterId: tejedor?.id ?? null },
-    { sortOrder: 5, title: 'Kael descubre su habilidad', type: 'STORY_EVENT' as const, relevance: 'CRITICAL' as const, dateLabel: 'Ano 302 del Velo, Capitulo 1', description: null, characterId: kael?.id ?? null },
-    { sortOrder: 6, title: 'El umbral comienza a debilitarse', type: 'WORLD_EVENT' as const, relevance: 'MAJOR' as const, dateLabel: 'Ano 302 del Velo', description: null, characterId: null },
+    {
+      sortOrder: 1,
+      title: 'El primer desgarro del Velo',
+      type: 'WORLD_EVENT' as const,
+      relevance: 'CRITICAL' as const,
+      dateLabel: 'Ano 0 del Velo',
+      description: 'El momento en que la membrana se rompio por primera vez',
+      characterId: null,
+    },
+    {
+      sortOrder: 2,
+      title: 'Fundacion del Consejo de los Anclados',
+      type: 'WORLD_EVENT' as const,
+      relevance: 'MAJOR' as const,
+      dateLabel: 'Ano 12 del Velo',
+      description: null,
+      characterId: null,
+    },
+    {
+      sortOrder: 3,
+      title: 'Nacimiento de Kael',
+      type: 'CHARACTER_ARC' as const,
+      relevance: 'MINOR' as const,
+      dateLabel: 'Ano 280 del Velo',
+      description: null,
+      characterId: kael?.id ?? null,
+    },
+    {
+      sortOrder: 4,
+      title: 'El Tejedor cruza el Velo por primera vez',
+      type: 'CHARACTER_ARC' as const,
+      relevance: 'MAJOR' as const,
+      dateLabel: 'Ano 298 del Velo',
+      description: null,
+      characterId: tejedor?.id ?? null,
+    },
+    {
+      sortOrder: 5,
+      title: 'Kael descubre su habilidad',
+      type: 'STORY_EVENT' as const,
+      relevance: 'CRITICAL' as const,
+      dateLabel: 'Ano 302 del Velo, Capitulo 1',
+      description: null,
+      characterId: kael?.id ?? null,
+    },
+    {
+      sortOrder: 6,
+      title: 'El umbral comienza a debilitarse',
+      type: 'WORLD_EVENT' as const,
+      relevance: 'MAJOR' as const,
+      dateLabel: 'Ano 302 del Velo',
+      description: null,
+      characterId: null,
+    },
   ];
 
   for (const evt of timelineEvents) {
-    const existing = await prisma.timelineEvent.findFirst({ where: { timelineId: timeline.id, title: evt.title } });
+    const existing = await prisma.timelineEvent.findFirst({
+      where: { timelineId: timeline.id, title: evt.title },
+    });
     if (existing) {
-      await prisma.timelineEvent.update({ where: { id: existing.id }, data: { sortOrder: evt.sortOrder, type: evt.type, relevance: evt.relevance, dateLabel: evt.dateLabel, description: evt.description, characterId: evt.characterId } });
+      await prisma.timelineEvent.update({
+        where: { id: existing.id },
+        data: {
+          sortOrder: evt.sortOrder,
+          type: evt.type,
+          relevance: evt.relevance,
+          dateLabel: evt.dateLabel,
+          description: evt.description,
+          characterId: evt.characterId,
+        },
+      });
     } else {
-      await prisma.timelineEvent.create({ data: { timelineId: timeline.id, authorId: demoWriter.id, title: evt.title, sortOrder: evt.sortOrder, type: evt.type, relevance: evt.relevance, dateLabel: evt.dateLabel, description: evt.description, characterId: evt.characterId } });
+      await prisma.timelineEvent.create({
+        data: {
+          timelineId: timeline.id,
+          authorId: demoWriter.id,
+          title: evt.title,
+          sortOrder: evt.sortOrder,
+          type: evt.type,
+          relevance: evt.relevance,
+          dateLabel: evt.dateLabel,
+          description: evt.description,
+          characterId: evt.characterId,
+        },
+      });
     }
   }
 
   // ── Planner ──
-  let project = await prisma.writingProject.findFirst({ where: { authorId: demoWriter.id, novelId: novel.id } });
+  let project = await prisma.writingProject.findFirst({
+    where: { authorId: demoWriter.id, novelId: novel.id },
+  });
   if (!project) {
-    project = await prisma.writingProject.create({ data: { authorId: demoWriter.id, novelId: novel.id, name: 'Las Cronicas del Velo — Planner', color: '#c9a84c' } });
+    project = await prisma.writingProject.create({
+      data: {
+        authorId: demoWriter.id,
+        novelId: novel.id,
+        name: 'Las Cronicas del Velo — Planner',
+        color: '#c9a84c',
+      },
+    });
   } else {
-    await prisma.writingProject.update({ where: { id: project.id }, data: { name: 'Las Cronicas del Velo — Planner', color: '#c9a84c' } });
+    await prisma.writingProject.update({
+      where: { id: project.id },
+      data: { name: 'Las Cronicas del Velo — Planner', color: '#c9a84c' },
+    });
   }
 
   const now = new Date();
   const tasks = [
-    { title: 'Escribir Cap. 15 — Los hilos rotos', type: 'CHAPTER' as const, priority: 'HIGH' as const, status: 'IN_PROGRESS' as const, targetWords: 3000, actualWords: 1240, dueDate: new Date(now.getTime() + 7 * 86400000), completedAt: null, sortOrder: 1 },
-    { title: 'Revisar arco de Seren — consistencia emocional', type: 'REVISION' as const, priority: 'MEDIUM' as const, status: 'IN_PROGRESS' as const, targetWords: null, actualWords: null, dueDate: null, completedAt: null, sortOrder: 2 },
-    { title: 'Desarrollar historia de origen del Tejedor', type: 'WORLDBUILDING' as const, priority: 'HIGH' as const, status: 'BACKLOG' as const, targetWords: null, actualWords: null, dueDate: null, completedAt: null, sortOrder: 1 },
-    { title: 'Mapa del Mundo del Velo', type: 'WORLDBUILDING' as const, priority: 'MEDIUM' as const, status: 'BACKLOG' as const, targetWords: null, actualWords: null, dueDate: null, completedAt: null, sortOrder: 2 },
-    { title: 'Definir reglas del cruce del Velo', type: 'PLANNING' as const, priority: 'LOW' as const, status: 'BACKLOG' as const, targetWords: null, actualWords: null, dueDate: null, completedAt: null, sortOrder: 3 },
-    { title: 'Cap. 14 — segunda lectura y edicion', type: 'REVISION' as const, priority: 'HIGH' as const, status: 'REVIEW' as const, targetWords: null, actualWords: null, dueDate: null, completedAt: null, sortOrder: 1 },
-    { title: 'Publicar Cap. 14 — El umbral', type: 'PUBLICATION' as const, priority: 'HIGH' as const, status: 'DONE' as const, targetWords: null, actualWords: null, dueDate: null, completedAt: new Date(now.getTime() - 2 * 86400000), sortOrder: 1 },
-    { title: 'Ficha de personaje: El Tejedor', type: 'CHARACTER' as const, priority: 'MEDIUM' as const, status: 'DONE' as const, targetWords: null, actualWords: null, dueDate: null, completedAt: new Date(now.getTime() - 7 * 86400000), sortOrder: 2 },
+    {
+      title: 'Escribir Cap. 15 — Los hilos rotos',
+      type: 'CHAPTER' as const,
+      priority: 'HIGH' as const,
+      status: 'IN_PROGRESS' as const,
+      targetWords: 3000,
+      actualWords: 1240,
+      dueDate: new Date(now.getTime() + 7 * 86400000),
+      completedAt: null,
+      sortOrder: 1,
+    },
+    {
+      title: 'Revisar arco de Seren — consistencia emocional',
+      type: 'REVISION' as const,
+      priority: 'MEDIUM' as const,
+      status: 'IN_PROGRESS' as const,
+      targetWords: null,
+      actualWords: null,
+      dueDate: null,
+      completedAt: null,
+      sortOrder: 2,
+    },
+    {
+      title: 'Desarrollar historia de origen del Tejedor',
+      type: 'WORLDBUILDING' as const,
+      priority: 'HIGH' as const,
+      status: 'BACKLOG' as const,
+      targetWords: null,
+      actualWords: null,
+      dueDate: null,
+      completedAt: null,
+      sortOrder: 1,
+    },
+    {
+      title: 'Mapa del Mundo del Velo',
+      type: 'WORLDBUILDING' as const,
+      priority: 'MEDIUM' as const,
+      status: 'BACKLOG' as const,
+      targetWords: null,
+      actualWords: null,
+      dueDate: null,
+      completedAt: null,
+      sortOrder: 2,
+    },
+    {
+      title: 'Definir reglas del cruce del Velo',
+      type: 'PLANNING' as const,
+      priority: 'LOW' as const,
+      status: 'BACKLOG' as const,
+      targetWords: null,
+      actualWords: null,
+      dueDate: null,
+      completedAt: null,
+      sortOrder: 3,
+    },
+    {
+      title: 'Cap. 14 — segunda lectura y edicion',
+      type: 'REVISION' as const,
+      priority: 'HIGH' as const,
+      status: 'REVIEW' as const,
+      targetWords: null,
+      actualWords: null,
+      dueDate: null,
+      completedAt: null,
+      sortOrder: 1,
+    },
+    {
+      title: 'Publicar Cap. 14 — El umbral',
+      type: 'PUBLICATION' as const,
+      priority: 'HIGH' as const,
+      status: 'DONE' as const,
+      targetWords: null,
+      actualWords: null,
+      dueDate: null,
+      completedAt: new Date(now.getTime() - 2 * 86400000),
+      sortOrder: 1,
+    },
+    {
+      title: 'Ficha de personaje: El Tejedor',
+      type: 'CHARACTER' as const,
+      priority: 'MEDIUM' as const,
+      status: 'DONE' as const,
+      targetWords: null,
+      actualWords: null,
+      dueDate: null,
+      completedAt: new Date(now.getTime() - 7 * 86400000),
+      sortOrder: 2,
+    },
   ];
 
   for (const t of tasks) {
-    const existing = await prisma.writingTask.findFirst({ where: { projectId: project.id, title: t.title } });
+    const existing = await prisma.writingTask.findFirst({
+      where: { projectId: project.id, title: t.title },
+    });
     if (existing) {
-      await prisma.writingTask.update({ where: { id: existing.id }, data: { type: t.type, priority: t.priority, status: t.status, targetWords: t.targetWords, actualWords: t.actualWords, dueDate: t.dueDate, completedAt: t.completedAt, sortOrder: t.sortOrder } });
+      await prisma.writingTask.update({
+        where: { id: existing.id },
+        data: {
+          type: t.type,
+          priority: t.priority,
+          status: t.status,
+          targetWords: t.targetWords,
+          actualWords: t.actualWords,
+          dueDate: t.dueDate,
+          completedAt: t.completedAt,
+          sortOrder: t.sortOrder,
+        },
+      });
     } else {
-      await prisma.writingTask.create({ data: { projectId: project.id, authorId: demoWriter.id, title: t.title, type: t.type, priority: t.priority, status: t.status, targetWords: t.targetWords, actualWords: t.actualWords, dueDate: t.dueDate, completedAt: t.completedAt, sortOrder: t.sortOrder } });
+      await prisma.writingTask.create({
+        data: {
+          projectId: project.id,
+          authorId: demoWriter.id,
+          title: t.title,
+          type: t.type,
+          priority: t.priority,
+          status: t.status,
+          targetWords: t.targetWords,
+          actualWords: t.actualWords,
+          dueDate: t.dueDate,
+          completedAt: t.completedAt,
+          sortOrder: t.sortOrder,
+        },
+      });
     }
   }
 }
 
 async function seedForumAndSettings() {
-  const demoWriter = await prisma.user.findUniqueOrThrow({ where: { username: 'demo_writer' } });
-  const writerLuna = await prisma.user.findUniqueOrThrow({ where: { username: 'writer_luna' } });
-  const readerAlex = await prisma.user.findUniqueOrThrow({ where: { username: 'reader_alex' } });
-  const writerMarcos = await prisma.user.findUniqueOrThrow({ where: { username: 'writer_marcos' } });
+  const demoWriter = await prisma.user.findUniqueOrThrow({
+    where: { username: 'demo_writer' },
+  });
+  const writerLuna = await prisma.user.findUniqueOrThrow({
+    where: { username: 'writer_luna' },
+  });
+  const readerAlex = await prisma.user.findUniqueOrThrow({
+    where: { username: 'reader_alex' },
+  });
+  const writerMarcos = await prisma.user.findUniqueOrThrow({
+    where: { username: 'writer_marcos' },
+  });
 
   // ── Forum Threads ──
-  const slugify = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').substring(0, 300);
+  const slugify = (s: string) =>
+    s
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '')
+      .substring(0, 300);
 
-  let thread1 = await prisma.forumThread.findFirst({ where: { slug: slugify('Como construis el sistema de magia de vuestras historias') } });
+  let thread1 = await prisma.forumThread.findFirst({
+    where: {
+      slug: slugify('Como construis el sistema de magia de vuestras historias'),
+    },
+  });
   if (!thread1) {
     thread1 = await prisma.forumThread.create({
       data: {
         authorId: demoWriter.id,
         category: 'WRITING_TIPS',
         title: 'Como construis el sistema de magia de vuestras historias?',
-        slug: slugify('Como construis el sistema de magia de vuestras historias'),
-        content: '## Sistemas de magia\n\nEstoy desarrollando un sistema de magia basado en el sacrificio de recuerdos. Me pregunto como otros autores abordan la creacion de sus sistemas magicos.\n\n- Partis de las limitaciones o de las posibilidades?\n- Usais alguna estructura (ley de Sanderson, etc.)?\n- Como evitais el deus ex machina?\n\nMe encantaria leer vuestras experiencias.',
+        slug: slugify(
+          'Como construis el sistema de magia de vuestras historias',
+        ),
+        content:
+          '## Sistemas de magia\n\nEstoy desarrollando un sistema de magia basado en el sacrificio de recuerdos. Me pregunto como otros autores abordan la creacion de sus sistemas magicos.\n\n- Partis de las limitaciones o de las posibilidades?\n- Usais alguna estructura (ley de Sanderson, etc.)?\n- Como evitais el deus ex machina?\n\nMe encantaria leer vuestras experiencias.',
         status: 'OPEN',
         tags: { create: [{ tag: 'magia' }, { tag: 'world-building' }] },
       },
     });
   }
 
-  let thread2 = await prisma.forumThread.findFirst({ where: { slug: slugify('Feedback para El Septimo Silencio Capitulo 1') } });
+  let thread2 = await prisma.forumThread.findFirst({
+    where: { slug: slugify('Feedback para El Septimo Silencio Capitulo 1') },
+  });
   if (!thread2) {
     thread2 = await prisma.forumThread.create({
       data: {
@@ -2047,14 +2603,17 @@ async function seedForumAndSettings() {
         category: 'FEEDBACK',
         title: 'Feedback para El Septimo Silencio — Capitulo 1',
         slug: slugify('Feedback para El Septimo Silencio Capitulo 1'),
-        content: '## Primer capitulo\n\nAcabo de publicar el primer capitulo de mi nueva novela. Me gustaria recibir feedback honesto sobre:\n\n1. El ritmo narrativo\n2. La voz del personaje principal\n3. El hook inicial\n\nGracias de antemano!',
+        content:
+          '## Primer capitulo\n\nAcabo de publicar el primer capitulo de mi nueva novela. Me gustaria recibir feedback honesto sobre:\n\n1. El ritmo narrativo\n2. La voz del personaje principal\n3. El hook inicial\n\nGracias de antemano!',
         status: 'OPEN',
         tags: { create: [{ tag: 'feedback' }, { tag: 'revision' }] },
       },
     });
 
     // Create poll for thread2
-    const existingPoll = await prisma.forumPoll.findUnique({ where: { threadId: thread2.id } });
+    const existingPoll = await prisma.forumPoll.findUnique({
+      where: { threadId: thread2.id },
+    });
     if (!existingPoll) {
       const poll = await prisma.forumPoll.create({
         data: {
@@ -2074,61 +2633,97 @@ async function seedForumAndSettings() {
       });
 
       // Votes
-      const excellentOption = poll.options.find(o => o.text === 'Excelente');
-      const goodOption = poll.options.find(o => o.text === 'Bueno');
+      const excellentOption = poll.options.find((o) => o.text === 'Excelente');
+      const goodOption = poll.options.find((o) => o.text === 'Bueno');
       if (excellentOption) {
         await prisma.pollVote.upsert({
           where: { pollId_userId: { pollId: poll.id, userId: readerAlex.id } },
           update: { optionId: excellentOption.id },
-          create: { pollId: poll.id, optionId: excellentOption.id, userId: readerAlex.id },
+          create: {
+            pollId: poll.id,
+            optionId: excellentOption.id,
+            userId: readerAlex.id,
+          },
         });
       }
       if (goodOption) {
         await prisma.pollVote.upsert({
-          where: { pollId_userId: { pollId: poll.id, userId: writerMarcos.id } },
+          where: {
+            pollId_userId: { pollId: poll.id, userId: writerMarcos.id },
+          },
           update: { optionId: goodOption.id },
-          create: { pollId: poll.id, optionId: goodOption.id, userId: writerMarcos.id },
+          create: {
+            pollId: poll.id,
+            optionId: goodOption.id,
+            userId: writerMarcos.id,
+          },
         });
       }
     }
   }
 
   // ── Forum Replies ──
-  let reply1 = await prisma.forumReply.findFirst({ where: { threadId: thread1.id, authorId: writerLuna.id } });
+  let reply1 = await prisma.forumReply.findFirst({
+    where: { threadId: thread1.id, authorId: writerLuna.id },
+  });
   if (!reply1) {
     reply1 = await prisma.forumReply.create({
       data: {
         threadId: thread1.id,
         authorId: writerLuna.id,
-        content: 'En mi caso uso un sistema elemental con 4 pilares: fuego, agua, tierra y aire. Cada uno tiene un costo fisico diferente. La clave para mi fue definir primero las **limitaciones** — que NO puede hacer la magia. Eso le da tension a las escenas.',
+        content:
+          'En mi caso uso un sistema elemental con 4 pilares: fuego, agua, tierra y aire. Cada uno tiene un costo fisico diferente. La clave para mi fue definir primero las **limitaciones** — que NO puede hacer la magia. Eso le da tension a las escenas.',
         isSolution: true,
       },
     });
   }
 
-  let reply2 = await prisma.forumReply.findFirst({ where: { threadId: thread1.id, authorId: readerAlex.id } });
+  let reply2 = await prisma.forumReply.findFirst({
+    where: { threadId: thread1.id, authorId: readerAlex.id },
+  });
   if (!reply2) {
     reply2 = await prisma.forumReply.create({
       data: {
         threadId: thread1.id,
         authorId: readerAlex.id,
-        content: 'Interesante tema! Me pregunto: como manejas la consistencia del sistema cuando la trama se complica? Alguna vez tuviste que reescribir escenas porque el sistema no lo permitia?',
+        content:
+          'Interesante tema! Me pregunto: como manejas la consistencia del sistema cuando la trama se complica? Alguna vez tuviste que reescribir escenas porque el sistema no lo permitia?',
       },
     });
   }
 
   // ── Forum Reactions ──
   await prisma.forumReaction.upsert({
-    where: { userId_threadId_reactionType: { userId: readerAlex.id, threadId: thread1.id, reactionType: 'HELPFUL' } },
+    where: {
+      userId_threadId_reactionType: {
+        userId: readerAlex.id,
+        threadId: thread1.id,
+        reactionType: 'HELPFUL',
+      },
+    },
     update: {},
-    create: { userId: readerAlex.id, threadId: thread1.id, reactionType: 'HELPFUL' },
+    create: {
+      userId: readerAlex.id,
+      threadId: thread1.id,
+      reactionType: 'HELPFUL',
+    },
   });
 
   if (reply1) {
     await prisma.forumReaction.upsert({
-      where: { userId_replyId_reactionType: { userId: writerMarcos.id, replyId: reply1.id, reactionType: 'LIKE' } },
+      where: {
+        userId_replyId_reactionType: {
+          userId: writerMarcos.id,
+          replyId: reply1.id,
+          reactionType: 'LIKE',
+        },
+      },
       update: {},
-      create: { userId: writerMarcos.id, replyId: reply1.id, reactionType: 'LIKE' },
+      create: {
+        userId: writerMarcos.id,
+        replyId: reply1.id,
+        reactionType: 'LIKE',
+      },
     });
   }
 
@@ -2158,13 +2753,37 @@ async function seedForumAndSettings() {
 
   // ── Notifications demo ──
   const notifData = [
-    { userId: demoWriter.id, type: 'NEW_FOLLOWER' as const, title: 'writer_luna te empezo a seguir', body: 'Tienes un nuevo seguidor', url: '/perfil/writer_luna', actorId: writerLuna.id, isRead: false },
-    { userId: demoWriter.id, type: 'NEW_CHAPTER' as const, title: 'Nuevo capitulo publicado', body: 'Capitulo 1 — El umbral', url: '/novelas/las-cronicas-del-velo', actorId: demoWriter.id, isRead: false },
-    { userId: demoWriter.id, type: 'NOVEL_MILESTONE' as const, title: 'Tu novela alcanzo 100 likes!', body: 'Las Cronicas del Velo', isRead: true },
+    {
+      userId: demoWriter.id,
+      type: 'NEW_FOLLOWER' as const,
+      title: 'writer_luna te empezo a seguir',
+      body: 'Tienes un nuevo seguidor',
+      url: '/perfil/writer_luna',
+      actorId: writerLuna.id,
+      isRead: false,
+    },
+    {
+      userId: demoWriter.id,
+      type: 'NEW_CHAPTER' as const,
+      title: 'Nuevo capitulo publicado',
+      body: 'Capitulo 1 — El umbral',
+      url: '/novelas/las-cronicas-del-velo',
+      actorId: demoWriter.id,
+      isRead: false,
+    },
+    {
+      userId: demoWriter.id,
+      type: 'NOVEL_MILESTONE' as const,
+      title: 'Tu novela alcanzo 100 likes!',
+      body: 'Las Cronicas del Velo',
+      isRead: true,
+    },
   ];
 
   for (const n of notifData) {
-    const existing = await prisma.notification.findFirst({ where: { userId: n.userId, title: n.title } });
+    const existing = await prisma.notification.findFirst({
+      where: { userId: n.userId, title: n.title },
+    });
     if (!existing) {
       await prisma.notification.create({ data: n as any });
     }
@@ -2172,8 +2791,12 @@ async function seedForumAndSettings() {
 }
 
 async function seedAnalyticsAndMaps() {
-  const demoWriter = await prisma.user.findUniqueOrThrow({ where: { username: 'demo_writer' } });
-  const novel = await prisma.novel.findFirst({ where: { authorId: demoWriter.id, slug: { contains: 'cronicas' } } });
+  const demoWriter = await prisma.user.findUniqueOrThrow({
+    where: { username: 'demo_writer' },
+  });
+  const novel = await prisma.novel.findFirst({
+    where: { authorId: demoWriter.id, slug: { contains: 'cronicas' } },
+  });
   if (!novel) return;
 
   // ── Novel Daily Snapshots (14 days) ──
@@ -2187,9 +2810,14 @@ async function seedAnalyticsAndMaps() {
       where: { novelId_date: { novelId: novel.id, date: dateOnly } },
       update: {},
       create: {
-        novelId: novel.id, date: dateOnly,
-        views: 5 + dayIdx * 2, likes: Math.min(dayIdx, 5), bookmarks: Math.floor(dayIdx / 3),
-        newReaders: 1 + Math.floor(dayIdx * 0.3), chaptersRead: 3 + dayIdx, wordsRead: (3 + dayIdx) * 800,
+        novelId: novel.id,
+        date: dateOnly,
+        views: 5 + dayIdx * 2,
+        likes: Math.min(dayIdx, 5),
+        bookmarks: Math.floor(dayIdx / 3),
+        newReaders: 1 + Math.floor(dayIdx * 0.3),
+        chaptersRead: 3 + dayIdx,
+        wordsRead: (3 + dayIdx) * 800,
       },
     });
   }
@@ -2204,14 +2832,19 @@ async function seedAnalyticsAndMaps() {
       where: { authorId_date: { authorId: demoWriter.id, date: dateOnly } },
       update: {},
       create: {
-        authorId: demoWriter.id, date: dateOnly,
-        newFollowers: Math.floor(dayIdx * 0.2), postReactions: 1 + dayIdx, profileViews: 0,
+        authorId: demoWriter.id,
+        date: dateOnly,
+        newFollowers: Math.floor(dayIdx * 0.2),
+        postReactions: 1 + dayIdx,
+        profileViews: 0,
       },
     });
   }
 
   // ── World Map ──
-  const world = await prisma.world.findFirst({ where: { authorId: demoWriter.id, slug: 'el-mundo-del-velo' } });
+  const world = await prisma.world.findFirst({
+    where: { authorId: demoWriter.id, slug: 'el-mundo-del-velo' },
+  });
   if (!world) return;
 
   const worldMap = await prisma.worldMap.upsert({
@@ -2221,33 +2854,112 @@ async function seedAnalyticsAndMaps() {
   });
 
   // Get locations for linking
-  const locations = await prisma.worldLocation.findMany({ where: { worldId: world.id } });
-  const echoCity = locations.find(l => l.name.includes('Ecos'));
-  const umbral = locations.find(l => l.name.includes('Umbral'));
+  const locations = await prisma.worldLocation.findMany({
+    where: { worldId: world.id },
+  });
+  const echoCity = locations.find((l) => l.name.includes('Ecos'));
+  const umbral = locations.find((l) => l.name.includes('Umbral'));
 
   const markers = [
-    { label: 'Ciudad de los Ecos', type: 'CITY' as const, x: 0.45, y: 0.35, icon: '\u{1F3D9}\uFE0F', color: '#c9a84c', locationId: echoCity?.id ?? null },
-    { label: 'El Umbral', type: 'LANDMARK' as const, x: 0.65, y: 0.50, icon: '\u{1F300}', color: '#8b5cf6', locationId: umbral?.id ?? null },
-    { label: 'Los Campos Grises', type: 'RUINS' as const, x: 0.30, y: 0.60, icon: '\u{1F480}', color: '#9088a0', locationId: null },
+    {
+      label: 'Ciudad de los Ecos',
+      type: 'CITY' as const,
+      x: 0.45,
+      y: 0.35,
+      icon: '\u{1F3D9}\uFE0F',
+      color: '#c9a84c',
+      locationId: echoCity?.id ?? null,
+    },
+    {
+      label: 'El Umbral',
+      type: 'LANDMARK' as const,
+      x: 0.65,
+      y: 0.5,
+      icon: '\u{1F300}',
+      color: '#8b5cf6',
+      locationId: umbral?.id ?? null,
+    },
+    {
+      label: 'Los Campos Grises',
+      type: 'RUINS' as const,
+      x: 0.3,
+      y: 0.6,
+      icon: '\u{1F480}',
+      color: '#9088a0',
+      locationId: null,
+    },
   ];
 
   for (const m of markers) {
-    const existing = await prisma.mapMarker.findFirst({ where: { mapId: worldMap.id, label: m.label } });
+    const existing = await prisma.mapMarker.findFirst({
+      where: { mapId: worldMap.id, label: m.label },
+    });
     if (!existing) {
-      await prisma.mapMarker.create({ data: { mapId: worldMap.id, label: m.label, type: m.type, x: m.x, y: m.y, icon: m.icon, color: m.color, locationId: m.locationId } });
+      await prisma.mapMarker.create({
+        data: {
+          mapId: worldMap.id,
+          label: m.label,
+          type: m.type,
+          x: m.x,
+          y: m.y,
+          icon: m.icon,
+          color: m.color,
+          locationId: m.locationId,
+        },
+      });
     }
   }
 
   const regions = [
-    { label: 'Territorio de los Vivos', color: '#3db05a30', borderColor: '#3db05a', points: [{x:0.05,y:0.1},{x:0.55,y:0.1},{x:0.55,y:0.9},{x:0.05,y:0.9}] },
-    { label: 'El Velo', color: '#8b5cf620', borderColor: '#8b5cf6', points: [{x:0.45,y:0.0},{x:0.65,y:0.0},{x:0.65,y:1.0},{x:0.45,y:1.0}] },
-    { label: 'Territorio de los Muertos', color: '#e0555530', borderColor: '#e05555', points: [{x:0.65,y:0.1},{x:0.95,y:0.1},{x:0.95,y:0.9},{x:0.65,y:0.9}] },
+    {
+      label: 'Territorio de los Vivos',
+      color: '#3db05a30',
+      borderColor: '#3db05a',
+      points: [
+        { x: 0.05, y: 0.1 },
+        { x: 0.55, y: 0.1 },
+        { x: 0.55, y: 0.9 },
+        { x: 0.05, y: 0.9 },
+      ],
+    },
+    {
+      label: 'El Velo',
+      color: '#8b5cf620',
+      borderColor: '#8b5cf6',
+      points: [
+        { x: 0.45, y: 0.0 },
+        { x: 0.65, y: 0.0 },
+        { x: 0.65, y: 1.0 },
+        { x: 0.45, y: 1.0 },
+      ],
+    },
+    {
+      label: 'Territorio de los Muertos',
+      color: '#e0555530',
+      borderColor: '#e05555',
+      points: [
+        { x: 0.65, y: 0.1 },
+        { x: 0.95, y: 0.1 },
+        { x: 0.95, y: 0.9 },
+        { x: 0.65, y: 0.9 },
+      ],
+    },
   ];
 
   for (const r of regions) {
-    const existing = await prisma.mapRegion.findFirst({ where: { mapId: worldMap.id, label: r.label } });
+    const existing = await prisma.mapRegion.findFirst({
+      where: { mapId: worldMap.id, label: r.label },
+    });
     if (!existing) {
-      await prisma.mapRegion.create({ data: { mapId: worldMap.id, label: r.label, color: r.color, borderColor: r.borderColor, points: r.points } });
+      await prisma.mapRegion.create({
+        data: {
+          mapId: worldMap.id,
+          label: r.label,
+          color: r.color,
+          borderColor: r.borderColor,
+          points: r.points,
+        },
+      });
     }
   }
 }

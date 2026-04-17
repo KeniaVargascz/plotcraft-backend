@@ -91,12 +91,13 @@ export class CommunityForumsService {
       }
     }
 
-    const memberships = viewerId && forumIds.length
-      ? await this.prisma.forumMember.findMany({
-          where: { userId: viewerId, forumId: { in: forumIds } },
-          select: { forumId: true },
-        })
-      : [];
+    const memberships =
+      viewerId && forumIds.length
+        ? await this.prisma.forumMember.findMany({
+            where: { userId: viewerId, forumId: { in: forumIds } },
+            select: { forumId: true },
+          })
+        : [];
     const memberSet = new Set(memberships.map((m) => m.forumId));
 
     return forums.map((f) => {
@@ -296,7 +297,7 @@ export class CommunityForumsService {
     const base = createSlug(name) || 'foro';
     let candidate = base;
     let suffix = 2;
-    // eslint-disable-next-line no-constant-condition
+
     while (true) {
       const existing = await this.prisma.communityForum.findUnique({
         where: { communityId_slug: { communityId, slug: candidate } },

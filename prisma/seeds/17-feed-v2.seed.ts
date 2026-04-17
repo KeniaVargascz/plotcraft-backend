@@ -43,9 +43,7 @@ export async function seed17FeedV2(prisma: PrismaClient): Promise<void> {
         data: {
           tags: tagSets[i] ?? [],
           imageUrls:
-            i % 3 === 0
-              ? ['https://picsum.photos/seed/plotcraft/800/400']
-              : [],
+            i % 3 === 0 ? ['https://picsum.photos/seed/plotcraft/800/400'] : [],
         },
       });
     }

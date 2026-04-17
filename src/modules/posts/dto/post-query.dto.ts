@@ -1,6 +1,14 @@
 import { PostType } from '@prisma/client';
 import { Transform, Type } from 'class-transformer';
-import { IsArray, IsEnum, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
+import {
+  IsArray,
+  IsEnum,
+  IsInt,
+  IsOptional,
+  IsString,
+  Max,
+  Min,
+} from 'class-validator';
 
 export class PostQueryDto {
   @IsOptional()

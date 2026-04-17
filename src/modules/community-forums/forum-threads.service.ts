@@ -35,7 +35,11 @@ export class ForumThreadsService {
 
     const orderBy: Prisma.ForumThreadOrderByWithRelationInput[] =
       sortBy === 'most_replies'
-        ? [{ isPinned: 'desc' }, { repliesCount: 'desc' }, { createdAt: 'desc' }]
+        ? [
+            { isPinned: 'desc' },
+            { repliesCount: 'desc' },
+            { createdAt: 'desc' },
+          ]
         : sortBy === 'most_reactions'
           ? [
               { isPinned: 'desc' },
@@ -73,8 +77,7 @@ export class ForumThreadsService {
         updatedAt: t.updatedAt,
         author: {
           username: t.author.username,
-          displayName:
-            t.author.profile?.displayName ?? t.author.username,
+          displayName: t.author.profile?.displayName ?? t.author.username,
           avatarUrl: t.author.profile?.avatarUrl ?? null,
         },
         tags: t.tags.map((tag) => tag.tag),
@@ -290,7 +293,10 @@ export class ForumThreadsService {
   }
 
   async listDiscussedThreadsForCommunity(communitySlug: string, limit = 5) {
-    const safeLimit = Math.max(1, Math.min(20, Number.isFinite(limit) ? limit : 5));
+    const safeLimit = Math.max(
+      1,
+      Math.min(20, Number.isFinite(limit) ? limit : 5),
+    );
     const community = await this.prisma.community.findUnique({
       where: { slug: communitySlug },
       select: { id: true },
@@ -319,7 +325,9 @@ export class ForumThreadsService {
       .map((l) => l.thread)
       .sort(
         (a, b) =>
-          b.repliesCount + b.reactionsCount - (a.repliesCount + a.reactionsCount),
+          b.repliesCount +
+          b.reactionsCount -
+          (a.repliesCount + a.reactionsCount),
       )
       .slice(0, safeLimit);
 
@@ -353,7 +361,7 @@ export class ForumThreadsService {
     const base = createSlug(title) || 'hilo';
     let candidate = base;
     let suffix = 2;
-    // eslint-disable-next-line no-constant-condition
+
     while (true) {
       const existing = await this.prisma.forumThread.findUnique({
         where: { slug: candidate },

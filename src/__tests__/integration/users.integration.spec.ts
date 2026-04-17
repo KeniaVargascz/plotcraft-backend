@@ -1,8 +1,16 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
-import { bearer, loginAs, registerUser, unwrapData } from '../helpers/auth.helper';
+import {
+  bearer,
+  loginAs,
+  registerUser,
+  unwrapData,
+} from '../helpers/auth.helper';
 import { createTestApp } from '../helpers/test-app.helper';
-import { cleanupUsersByPrefix, disconnectTestDb } from '../helpers/test-db.helper';
+import {
+  cleanupUsersByPrefix,
+  disconnectTestDb,
+} from '../helpers/test-db.helper';
 
 describe('Users integration', () => {
   let app: INestApplication;
@@ -65,9 +73,9 @@ describe('Users integration', () => {
       .send({ password: 'Demo1234!' });
 
     expect(deleteResponse.status).toBe(200);
-    expect(unwrapData<{ message: string }>(deleteResponse.body).message).toMatch(
-      /Cuenta eliminada/i,
-    );
+    expect(
+      unwrapData<{ message: string }>(deleteResponse.body).message,
+    ).toMatch(/Cuenta eliminada/i);
 
     const reloginResponse = await request(app.getHttpServer())
       .post('/api/auth/login')

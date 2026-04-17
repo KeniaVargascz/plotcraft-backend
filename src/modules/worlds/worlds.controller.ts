@@ -83,7 +83,11 @@ export class WorldsController {
   ) {
     const viewer =
       await this.authService.getOptionalJwtPayloadFromAuthHeader(authorization);
-    return this.worldsService.listLinkedNovels(slug, viewer?.sub ?? null, query);
+    return this.worldsService.listLinkedNovels(
+      slug,
+      viewer?.sub ?? null,
+      query,
+    );
   }
 
   @ApiBearerAuth()

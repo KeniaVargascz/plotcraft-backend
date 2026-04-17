@@ -38,7 +38,10 @@ export class CreateNovelDto {
   synopsis?: string;
 
   @IsOptional()
-  @IsUrl({ require_tld: false }, { message: 'coverUrl debe ser una URL valida' })
+  @IsUrl(
+    { require_tld: false },
+    { message: 'coverUrl debe ser una URL valida' },
+  )
   coverUrl?: string;
 
   @IsOptional()

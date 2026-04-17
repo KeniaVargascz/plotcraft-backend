@@ -1,4 +1,14 @@
-import { IsEnum, IsIn, IsInt, IsOptional, IsString, IsUUID, Max, MaxLength, Min } from 'class-validator';
+import {
+  IsEnum,
+  IsIn,
+  IsInt,
+  IsOptional,
+  IsString,
+  IsUUID,
+  Max,
+  MaxLength,
+  Min,
+} from 'class-validator';
 import { TimelineEventType, TimelineEventRelevance } from '@prisma/client';
 import { Transform } from 'class-transformer';
 

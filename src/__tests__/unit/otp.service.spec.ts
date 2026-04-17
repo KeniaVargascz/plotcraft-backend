@@ -83,7 +83,11 @@ describe('OtpService', () => {
       bcryptCompare.mockResolvedValue(true as never);
       prisma.otpCode.update.mockResolvedValue({});
 
-      const result = await service.verify('user-1', '123456', 'REGISTER_VERIFY');
+      const result = await service.verify(
+        'user-1',
+        '123456',
+        'REGISTER_VERIFY',
+      );
 
       expect(result).toEqual({ valid: true });
     });
@@ -107,7 +111,11 @@ describe('OtpService', () => {
         expiresAt: new Date(Date.now() - 1000),
       });
 
-      const result = await service.verify('user-1', '123456', 'REGISTER_VERIFY');
+      const result = await service.verify(
+        'user-1',
+        '123456',
+        'REGISTER_VERIFY',
+      );
 
       expect(result).toEqual({ valid: false, reason: 'expired' });
     });
@@ -116,7 +124,11 @@ describe('OtpService', () => {
       prisma.otpCode.findFirst.mockResolvedValue(validOtp);
       bcryptCompare.mockResolvedValue(false as never);
 
-      const result = await service.verify('user-1', '000000', 'REGISTER_VERIFY');
+      const result = await service.verify(
+        'user-1',
+        '000000',
+        'REGISTER_VERIFY',
+      );
 
       expect(result).toEqual({ valid: false, reason: 'invalid' });
     });
@@ -124,7 +136,11 @@ describe('OtpService', () => {
     it('should return not_found when no OTP exists', async () => {
       prisma.otpCode.findFirst.mockResolvedValue(null);
 
-      const result = await service.verify('user-1', '123456', 'REGISTER_VERIFY');
+      const result = await service.verify(
+        'user-1',
+        '123456',
+        'REGISTER_VERIFY',
+      );
 
       expect(result).toEqual({ valid: false, reason: 'not_found' });
     });
@@ -138,7 +154,11 @@ describe('OtpService', () => {
         await service.verify('user-1', '000000', 'REGISTER_VERIFY');
       }
 
-      const result = await service.verify('user-1', '000000', 'REGISTER_VERIFY');
+      const result = await service.verify(
+        'user-1',
+        '000000',
+        'REGISTER_VERIFY',
+      );
 
       expect(result).toEqual({ valid: false, reason: 'too_many_attempts' });
       expect(prisma.otpCode.update).toHaveBeenCalledWith({

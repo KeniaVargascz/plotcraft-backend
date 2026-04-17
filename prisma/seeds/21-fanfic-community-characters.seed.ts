@@ -35,13 +35,11 @@ export async function seed21FanficCommunityCharacters(
       },
       {
         name: 'Kuro Tenshi',
-        description:
-          'Antagonista misterioso con motivaciones ambiguas.',
+        description: 'Antagonista misterioso con motivaciones ambiguas.',
       },
       {
         name: 'Sensei Hiroshi',
-        description:
-          'Mentor del grupo. Conoce más secretos de los que revela.',
+        description: 'Mentor del grupo. Conoce más secretos de los que revela.',
       },
     ];
 

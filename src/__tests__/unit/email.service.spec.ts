@@ -1,5 +1,8 @@
 import { EmailService } from '../../modules/email/email.service';
-import { EmailProvider, EmailResult } from '../../modules/email/interfaces/email-provider.interface';
+import {
+  EmailProvider,
+  EmailResult,
+} from '../../modules/email/interfaces/email-provider.interface';
 
 describe('EmailService', () => {
   const mockProvider: EmailProvider = {

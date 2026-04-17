@@ -132,7 +132,10 @@ export class KudosService {
     return { kudosCount: Math.max(0, updated.kudosCount), hasKudo: false };
   }
 
-  async hasCharacterKudo(characterId: string, userId: string): Promise<boolean> {
+  async hasCharacterKudo(
+    characterId: string,
+    userId: string,
+  ): Promise<boolean> {
     const kudo = await this.prisma.characterKudo.findUnique({
       where: { characterId_userId: { characterId, userId } },
     });

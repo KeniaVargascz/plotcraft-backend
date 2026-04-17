@@ -174,9 +174,7 @@ export class CommunitiesService {
     }
 
     const slug = await this.generateUniqueSlug(dto.name);
-    const status = isPrivate
-      ? CommunityStatus.ACTIVE
-      : CommunityStatus.PENDING;
+    const status = isPrivate ? CommunityStatus.ACTIVE : CommunityStatus.PENDING;
 
     const community = await this.prisma.$transaction(async (tx) => {
       const created = await tx.community.create({
@@ -326,17 +324,23 @@ export class CommunitiesService {
   }
 
   async addRelatedNovel(slug: string, novelId: string, viewerId: string) {
-    const community = await this.prisma.community.findUnique({ where: { slug } });
+    const community = await this.prisma.community.findUnique({
+      where: { slug },
+    });
     if (!community) throw new NotFoundException('Comunidad no encontrada');
     if (community.ownerId !== viewerId) {
-      throw new ForbiddenException('Solo el creador puede gestionar obras relacionadas.');
+      throw new ForbiddenException(
+        'Solo el creador puede gestionar obras relacionadas.',
+      );
     }
     if (community.type !== CommunityType.PRIVATE) {
       throw new UnprocessableEntityException(
         'Solo las comunidades privadas pueden tener obras relacionadas.',
       );
     }
-    const novel = await this.prisma.novel.findUnique({ where: { id: novelId } });
+    const novel = await this.prisma.novel.findUnique({
+      where: { id: novelId },
+    });
     if (!novel) throw new NotFoundException('Novela no encontrada');
     if (novel.authorId !== viewerId) {
       throw new ForbiddenException('Solo puedes vincular tus propias novelas.');
@@ -355,10 +359,14 @@ export class CommunitiesService {
   }
 
   async removeRelatedNovel(slug: string, novelId: string, viewerId: string) {
-    const community = await this.prisma.community.findUnique({ where: { slug } });
+    const community = await this.prisma.community.findUnique({
+      where: { slug },
+    });
     if (!community) throw new NotFoundException('Comunidad no encontrada');
     if (community.ownerId !== viewerId) {
-      throw new ForbiddenException('Solo el creador puede gestionar obras relacionadas.');
+      throw new ForbiddenException(
+        'Solo el creador puede gestionar obras relacionadas.',
+      );
     }
     await this.prisma.communityRelatedNovel
       .delete({
@@ -430,8 +438,7 @@ export class CommunitiesService {
           }),
     ]);
     return {
-      isMember:
-        !!member && member.status === CommunityMemberStatus.ACTIVE,
+      isMember: !!member && member.status === CommunityMemberStatus.ACTIVE,
       isFollowing: !!follow,
       isOwner: viewerId === ownerId,
       isFollowingOwner: viewerId === ownerId || !!ownerFollow,
@@ -455,7 +462,9 @@ export class CommunitiesService {
       typeof community.linkedNovel.isPublic === 'boolean';
     const canViewLinkedNovel =
       !!community.linkedNovel &&
-      (!linkedNovelVisibilityKnown || community.linkedNovel.isPublic || ctx.isOwner);
+      (!linkedNovelVisibilityKnown ||
+        community.linkedNovel.isPublic ||
+        ctx.isOwner);
     return {
       id: community.id,
       name: community.name,
@@ -477,14 +486,15 @@ export class CommunitiesService {
               community.owner.profile?.displayName ?? community.owner.username,
             avatarUrl: community.owner.profile?.avatarUrl ?? null,
           },
-      linkedNovel: community.linkedNovel && canViewLinkedNovel
-        ? {
-            title: community.linkedNovel.title,
-            slug: community.linkedNovel.slug,
-            coverUrl: community.linkedNovel.coverUrl,
-            authorUsername: community.linkedNovel.author.username,
-          }
-        : null,
+      linkedNovel:
+        community.linkedNovel && canViewLinkedNovel
+          ? {
+              title: community.linkedNovel.title,
+              slug: community.linkedNovel.slug,
+              coverUrl: community.linkedNovel.coverUrl,
+              authorUsername: community.linkedNovel.author.username,
+            }
+          : null,
       relatedNovels: Array.isArray(community.relatedNovels)
         ? community.relatedNovels
             .filter((r: any) => r.novel && (r.novel.isPublic || ctx.isOwner))

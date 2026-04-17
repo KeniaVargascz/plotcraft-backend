@@ -23,8 +23,9 @@ describe('Search integration', () => {
 
     expect(searchResponse.status).toBe(200);
     expect(
-      unwrapData<{ results: { novels: { items: unknown[] } } }>(searchResponse.body)
-        .results.novels.items.length,
+      unwrapData<{ results: { novels: { items: unknown[] } } }>(
+        searchResponse.body,
+      ).results.novels.items.length,
     ).toBeGreaterThan(0);
 
     const suggestionsResponse = await request(app.getHttpServer()).get(
@@ -33,8 +34,8 @@ describe('Search integration', () => {
 
     expect(suggestionsResponse.status).toBe(200);
     expect(
-      unwrapData<{ suggestions: unknown[] }>(suggestionsResponse.body).suggestions
-        .length,
+      unwrapData<{ suggestions: unknown[] }>(suggestionsResponse.body)
+        .suggestions.length,
     ).toBeGreaterThan(0);
 
     const session = await loginAs(
@@ -53,7 +54,9 @@ describe('Search integration', () => {
 
     expect(historyResponse.status).toBe(200);
     expect(
-      Array.isArray(unwrapData<{ history: unknown[] }>(historyResponse.body).history),
+      Array.isArray(
+        unwrapData<{ history: unknown[] }>(historyResponse.body).history,
+      ),
     ).toBe(true);
   });
 });
