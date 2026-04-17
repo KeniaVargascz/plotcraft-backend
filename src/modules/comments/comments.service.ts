@@ -66,12 +66,13 @@ export class CommentsService {
   async listComments(postId: string, cursor?: string, limit = 20) {
     await this.ensurePost(postId);
     const cursorComment = cursor
-      ? await this.prisma.comment.findUnique({ where: { id: cursor } })
+      ? await this.prisma.comment.findFirst({ where: { id: cursor, postId } })
       : null;
 
     const comments = await this.prisma.comment.findMany({
       where: {
         postId,
+        deletedAt: null,
         ...(cursorComment
           ? {
               createdAt: {
@@ -112,8 +113,8 @@ export class CommentsService {
     userId: string,
     dto: UpdateCommentDto,
   ) {
-    const comment = await this.prisma.comment.findUnique({
-      where: { id: commentId },
+    const comment = await this.prisma.comment.findFirst({
+      where: { id: commentId, postId },
     });
 
     if (!comment) {
@@ -135,8 +136,8 @@ export class CommentsService {
   }
 
   async deleteComment(postId: string, commentId: string, userId: string) {
-    const comment = await this.prisma.comment.findUnique({
-      where: { id: commentId },
+    const comment = await this.prisma.comment.findFirst({
+      where: { id: commentId, postId },
     });
 
     if (!comment) {
