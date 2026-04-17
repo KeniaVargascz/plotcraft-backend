@@ -921,6 +921,8 @@ export class NovelsService {
           bookmarks: true,
           novelWorlds: true,
           novelCharacters: true,
+          // Solo comentarios no borrados.
+          novelComments: { where: { deletedAt: null } },
         },
       },
     } satisfies Prisma.NovelInclude;
@@ -1054,6 +1056,7 @@ export class NovelsService {
         bookmarksCount: novel._count.bookmarks,
         worldsCount: novel._count.novelWorlds,
         charactersCount: novel._count.novelCharacters,
+        commentsCount: novel._count.novelComments,
         kudosCount: novel.kudosCount,
         votesCount: 0,
       },

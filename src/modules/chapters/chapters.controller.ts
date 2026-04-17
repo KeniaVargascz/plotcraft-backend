@@ -17,11 +17,15 @@ import { CreateChapterDto } from './dto/create-chapter.dto';
 import { ReorderChaptersDto } from './dto/reorder-chapters.dto';
 import { UpdateChapterDto } from './dto/update-chapter.dto';
 import { ChaptersService } from './chapters.service';
+import { ChapterCommentsService } from './chapter-comments.service';
 
 @ApiTags('chapters')
 @Controller('novels/:slug/chapters')
 export class ChaptersController {
-  constructor(private readonly chaptersService: ChaptersService) {}
+  constructor(
+    private readonly chaptersService: ChaptersService,
+    private readonly chapterCommentsService: ChapterCommentsService,
+  ) {}
 
   @Public()
   @Get()
@@ -180,6 +184,59 @@ export class ChaptersController {
       chapterSlug,
       user.sub,
       scheduledAt,
+    );
+  }
+
+  // ── Chapter Comments ──
+
+  @Public()
+  @Get(':chapterSlug/comments')
+  @ApiOperation({ summary: 'List chapter comments' })
+  listChapterComments(
+    @Param('slug') novelSlug: string,
+    @Param('chapterSlug') chapterSlug: string,
+    @Query('cursor') cursor?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.chapterCommentsService.list(
+      novelSlug,
+      chapterSlug,
+      cursor,
+      limit ? +limit : 20,
+    );
+  }
+
+  @ApiBearerAuth()
+  @Post(':chapterSlug/comments')
+  @ApiOperation({ summary: 'Comment on a chapter' })
+  createChapterComment(
+    @Param('slug') novelSlug: string,
+    @Param('chapterSlug') chapterSlug: string,
+    @CurrentUser() user: JwtPayload,
+    @Body('content') content: string,
+  ) {
+    return this.chapterCommentsService.create(
+      novelSlug,
+      chapterSlug,
+      user.sub,
+      content,
+    );
+  }
+
+  @ApiBearerAuth()
+  @Delete(':chapterSlug/comments/:commentId')
+  @ApiOperation({ summary: 'Delete a chapter comment' })
+  deleteChapterComment(
+    @Param('slug') novelSlug: string,
+    @Param('chapterSlug') chapterSlug: string,
+    @Param('commentId') commentId: string,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.chapterCommentsService.remove(
+      novelSlug,
+      chapterSlug,
+      commentId,
+      user.sub,
     );
   }
 }

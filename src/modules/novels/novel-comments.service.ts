@@ -98,7 +98,7 @@ export class NovelCommentsService {
     });
     if (!comment) throw new NotFoundException('Comentario no encontrado');
 
-    if (comment.authorId !== userId && novel.authorId !== userId) {
+    if (novel.authorId !== userId) {
       throw new ForbiddenException('No puedes eliminar este comentario');
     }
 

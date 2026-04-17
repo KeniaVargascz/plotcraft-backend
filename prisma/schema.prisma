@@ -26,6 +26,7 @@ model User {
   posts             Post[]
   comments          Comment[]
   novelComments     NovelComment[]
+  chapterComments   ChapterComment[]
   reactions         Reaction[]
   savedPosts        SavedPost[]
   novels            Novel[]
@@ -644,6 +645,7 @@ model Chapter {
   timelineEvents   TimelineEvent[]
   writingTasks     WritingTask[]
   chapterVotes     ChapterVote[]
+  chapterComments  ChapterComment[]
   posts            Post[]
 
   @@unique([novelId, slug])
@@ -698,6 +700,23 @@ model NovelComment {
   @@index([novelId, createdAt])
   @@index([authorId])
   @@map("novel_comments")
+}
+
+model ChapterComment {
+  id        String    @id @default(uuid()) @db.Uuid
+  chapterId String    @map("chapter_id") @db.Uuid
+  authorId  String    @map("author_id") @db.Uuid
+  content   String    @db.Text
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  chapter Chapter @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+  author  User    @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([chapterId, createdAt])
+  @@index([authorId])
+  @@map("chapter_comments")
 }
 
 model NovelKudo {
