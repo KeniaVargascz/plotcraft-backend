@@ -14,6 +14,7 @@ export class ChapterCommentsService {
     chapterSlug: string,
     userId: string,
     content: string,
+    anchor?: { anchorId: string; quotedText: string; startOffset: number; endOffset: number },
   ) {
     const chapter = await this.findChapter(novelSlug, chapterSlug);
 
@@ -38,6 +39,14 @@ export class ChapterCommentsService {
         chapterId: chapter.id,
         authorId: userId,
         content: trimmed,
+        ...(anchor
+          ? {
+              anchorId: anchor.anchorId,
+              quotedText: anchor.quotedText || null,
+              startOffset: anchor.startOffset ?? null,
+              endOffset: anchor.endOffset ?? null,
+            }
+          : {}),
       },
       include: { author: { include: { profile: true } } },
     });
@@ -89,6 +98,47 @@ export class ChapterCommentsService {
     };
   }
 
+  async listByAnchor(
+    novelSlug: string,
+    chapterSlug: string,
+    anchorId: string,
+    cursor?: string,
+    limit = 20,
+  ) {
+    const cursorDate = cursor
+      ? (
+          await this.prisma.chapterComment.findUnique({
+            where: { id: cursor },
+            select: { createdAt: true },
+          })
+        )?.createdAt
+      : null;
+
+    const comments = await this.prisma.chapterComment.findMany({
+      where: {
+        chapter: { slug: chapterSlug, novel: { slug: novelSlug } },
+        anchorId,
+        deletedAt: null,
+        ...(cursorDate ? { createdAt: { gt: cursorDate } } : {}),
+      },
+      include: { author: { include: { profile: true } } },
+      orderBy: { createdAt: 'asc' },
+      take: limit + 1,
+    });
+
+    const hasMore = comments.length > limit;
+    const items = comments.slice(0, limit);
+
+    return {
+      data: items.map((c) => this.toResponse(c)),
+      pagination: {
+        nextCursor: hasMore ? (items.at(-1)?.id ?? null) : null,
+        hasMore,
+        limit,
+      },
+    };
+  }
+
   async remove(
     novelSlug: string,
     chapterSlug: string,
@@ -129,6 +179,10 @@ export class ChapterCommentsService {
   private toResponse(comment: {
     id: string;
     content: string;
+    anchorId?: string | null;
+    quotedText?: string | null;
+    startOffset?: number | null;
+    endOffset?: number | null;
     createdAt: Date;
     deletedAt: Date | null;
     author: {
@@ -140,6 +194,10 @@ export class ChapterCommentsService {
     return {
       id: comment.id,
       content: comment.content,
+      anchorId: comment.anchorId ?? null,
+      quotedText: comment.quotedText ?? null,
+      startOffset: comment.startOffset ?? null,
+      endOffset: comment.endOffset ?? null,
       createdAt: comment.createdAt,
       isDeleted: !!comment.deletedAt,
       author: {

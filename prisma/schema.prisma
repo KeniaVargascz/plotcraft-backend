@@ -703,18 +703,23 @@ model NovelComment {
 }
 
 model ChapterComment {
-  id        String    @id @default(uuid()) @db.Uuid
-  chapterId String    @map("chapter_id") @db.Uuid
-  authorId  String    @map("author_id") @db.Uuid
-  content   String    @db.Text
-  createdAt DateTime  @default(now()) @map("created_at")
-  updatedAt DateTime  @updatedAt @map("updated_at")
-  deletedAt DateTime? @map("deleted_at")
+  id          String    @id @default(uuid()) @db.Uuid
+  chapterId   String    @map("chapter_id") @db.Uuid
+  authorId    String    @map("author_id") @db.Uuid
+  content     String    @db.Text
+  anchorId    String?   @map("anchor_id")
+  quotedText  String?   @map("quoted_text") @db.Text
+  startOffset Int?      @map("start_offset")
+  endOffset   Int?      @map("end_offset")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
 
   chapter Chapter @relation(fields: [chapterId], references: [id], onDelete: Cascade)
   author  User    @relation(fields: [authorId], references: [id], onDelete: Cascade)
 
   @@index([chapterId, createdAt])
+  @@index([chapterId, anchorId])
   @@index([authorId])
   @@map("chapter_comments")
 }

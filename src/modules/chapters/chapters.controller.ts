@@ -16,6 +16,7 @@ import { ChapterQueryDto } from './dto/chapter-query.dto';
 import { CreateChapterDto } from './dto/create-chapter.dto';
 import { ReorderChaptersDto } from './dto/reorder-chapters.dto';
 import { UpdateChapterDto } from './dto/update-chapter.dto';
+import { CreateParagraphCommentDto } from './dto/create-paragraph-comment.dto';
 import { ChaptersService } from './chapters.service';
 import { ChapterCommentsService } from './chapter-comments.service';
 
@@ -220,6 +221,48 @@ export class ChaptersController {
       chapterSlug,
       user.sub,
       content,
+    );
+  }
+
+  @ApiBearerAuth()
+  @Post(':chapterSlug/comments/paragraph')
+  @ApiOperation({ summary: 'Comment on a specific paragraph' })
+  createParagraphComment(
+    @Param('slug') novelSlug: string,
+    @Param('chapterSlug') chapterSlug: string,
+    @CurrentUser() user: JwtPayload,
+    @Body() dto: CreateParagraphCommentDto,
+  ) {
+    return this.chapterCommentsService.create(
+      novelSlug,
+      chapterSlug,
+      user.sub,
+      dto.content,
+      {
+        anchorId: dto.anchor_id,
+        quotedText: dto.quoted_text ?? '',
+        startOffset: dto.start_offset ?? 0,
+        endOffset: dto.end_offset ?? 0,
+      },
+    );
+  }
+
+  @Public()
+  @Get(':chapterSlug/comments/paragraph/:anchorId')
+  @ApiOperation({ summary: 'List comments for a specific paragraph' })
+  listParagraphComments(
+    @Param('slug') novelSlug: string,
+    @Param('chapterSlug') chapterSlug: string,
+    @Param('anchorId') anchorId: string,
+    @Query('cursor') cursor?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.chapterCommentsService.listByAnchor(
+      novelSlug,
+      chapterSlug,
+      anchorId,
+      cursor,
+      limit ? +limit : 20,
     );
   }
 
