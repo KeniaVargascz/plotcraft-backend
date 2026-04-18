@@ -99,6 +99,15 @@ export class NovelsService {
       language: {
         connect: { id: languageId },
       },
+      ...(dto.warning_ids?.length
+        ? {
+            novelWarnings: {
+              create: dto.warning_ids.map((id) => ({
+                warning: { connect: { id } },
+              })),
+            },
+          }
+        : {}),
       ...(dto.romanceGenreIds?.length
         ? {
             romanceGenres: {
@@ -323,6 +332,12 @@ export class NovelsService {
         });
       }
 
+      if (dto.warning_ids !== undefined) {
+        await tx.novelWarning.deleteMany({
+          where: { novelId: novel.id },
+        });
+      }
+
       return tx.novel.update({
         where: { id: novel.id },
         data: {
@@ -355,6 +370,15 @@ export class NovelsService {
             : {}),
           ...(dto.isPublic !== undefined ? { isPublic: dto.isPublic } : {}),
           ...(languageId !== undefined ? { languageId } : {}),
+          ...(dto.warning_ids !== undefined && dto.warning_ids.length
+            ? {
+                novelWarnings: {
+                  create: dto.warning_ids.map((id) => ({
+                    warning: { connect: { id } },
+                  })),
+                },
+              }
+            : {}),
           ...(dto.romanceGenreIds !== undefined && dto.romanceGenreIds.length
             ? {
                 romanceGenres: {
@@ -624,6 +648,13 @@ export class NovelsService {
             },
           }
         : {}),
+      ...(options.query.warningIds?.length
+        ? {
+            novelWarnings: {
+              some: { warningId: { in: options.query.warningIds } },
+            },
+          }
+        : {}),
     };
 
     if (options.query.updatedAfter || options.query.updatedBefore) {
@@ -846,6 +877,17 @@ export class NovelsService {
           },
         },
       },
+      novelWarnings: {
+        include: {
+          warning: {
+            select: {
+              id: true,
+              slug: true,
+              label: true,
+            },
+          },
+        },
+      },
       likes: viewerId
         ? {
             where: { userId: viewerId },
@@ -1055,7 +1097,11 @@ export class NovelsService {
       status: novel.status,
       rating: novel.rating,
       tags: novel.tags,
-      warnings: novel.warnings,
+      warnings: (novel as any).novelWarnings?.map((nw: any) => ({
+        id: nw.warning.id,
+        slug: nw.warning.slug,
+        label: nw.warning.label,
+      })) ?? novel.warnings.map((w: string) => ({ id: w, slug: w, label: w })),
       isPublic: novel.isPublic,
       languageId: novel.languageId,
       language: novel.language

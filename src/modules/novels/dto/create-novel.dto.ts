@@ -67,6 +67,12 @@ export class CreateNovelDto {
 
   @IsOptional()
   @IsArray()
+  @ArrayMaxSize(10)
+  @IsUUID('all', { each: true })
+  warning_ids?: string[];
+
+  @IsOptional()
+  @IsArray()
   @ArrayMaxSize(5)
   @IsUUID('all', { each: true })
   genreIds?: string[];

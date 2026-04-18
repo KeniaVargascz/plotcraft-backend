@@ -406,6 +406,17 @@ model Genre {
   @@map("genres")
 }
 
+model CatalogWarning {
+  id        String         @id @default(uuid()) @db.Uuid
+  slug      String         @unique @db.VarChar(60)
+  label     String         @db.VarChar(120)
+  isActive  Boolean        @default(true) @map("is_active")
+  createdAt DateTime       @default(now()) @map("created_at")
+  novels    NovelWarning[]
+
+  @@map("cat_warnings")
+}
+
 model CatalogRomanceGenre {
   id        String               @id @default(uuid()) @db.Uuid
   slug      String               @unique @db.VarChar(40)
@@ -481,6 +492,7 @@ model Novel {
   relatedInCommunities CommunityRelatedNovel[] @relation("RelatedInCommunities")
   posts                Post[]
   novelComments        NovelComment[]
+  novelWarnings        NovelWarning[]
 
   @@index([authorId])
   @@index([slug])
@@ -617,6 +629,18 @@ model NovelRomanceGenre {
   @@id([novelId, romanceGenreId])
   @@index([romanceGenreId])
   @@map("novel_romance_genres")
+}
+
+model NovelWarning {
+  novelId   String         @map("novel_id") @db.Uuid
+  warningId String         @map("warning_id") @db.Uuid
+
+  novel     Novel          @relation(fields: [novelId], references: [id], onDelete: Cascade)
+  warning   CatalogWarning @relation(fields: [warningId], references: [id], onDelete: Cascade)
+
+  @@id([novelId, warningId])
+  @@index([warningId])
+  @@map("novel_warnings")
 }
 
 model Chapter {

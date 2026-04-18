@@ -125,6 +125,12 @@ export class NovelQueryDto {
   romanceGenreIds?: string[];
 
   @IsOptional()
+  @IsArray()
+  @IsUUID('all', { each: true })
+  @Transform(({ value }) => (typeof value === 'string' ? [value] : value))
+  warningIds?: string[];
+
+  @IsOptional()
   @IsString()
   @MaxLength(100)
   pairingA?: string;
