@@ -579,7 +579,7 @@ export class NovelsService {
             },
           }
         : {}),
-      ...(options.onlyPublic ? { isPublic: true } : {}),
+      ...(options.onlyPublic ? { isPublic: true, status: { not: 'DRAFT' as const } } : {}),
       ...(() => {
         const slugs = new Set<string>();
         if (options.query.genre) slugs.add(options.query.genre);

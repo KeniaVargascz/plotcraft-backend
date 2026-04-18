@@ -111,7 +111,7 @@ export class DiscoveryService {
     return this.fromCache('featured', refresh, async () => {
       const [novels, worlds, authors, posts] = await Promise.all([
         this.prisma.novel.findMany({
-          where: { isPublic: true },
+          where: { isPublic: true, status: { not: 'DRAFT' } },
           include: {
             author: { include: { profile: true } },
             genres: { include: { genre: true } },
@@ -189,6 +189,7 @@ export class DiscoveryService {
     const items = await this.prisma.novel.findMany({
       where: {
         isPublic: true,
+        status: { not: 'DRAFT' },
         genres: {
           some: {
             genreId: genre.id,
@@ -245,7 +246,7 @@ export class DiscoveryService {
                  ), 0) * 5
                )::float AS score
         FROM novels n
-        WHERE n.is_public = true
+        WHERE n.is_public = true AND n.status != 'DRAFT'
         ORDER BY score DESC, n.updated_at DESC
         LIMIT $1
       `,
@@ -336,7 +337,7 @@ export class DiscoveryService {
       include: {
         profile: true,
         novels: {
-          where: { isPublic: true },
+          where: { isPublic: true, status: { not: 'DRAFT' } },
           select: { coverUrl: true },
           take: 3,
           orderBy: { updatedAt: 'desc' },
@@ -419,6 +420,7 @@ export class DiscoveryService {
         },
         novel: {
           isPublic: true,
+          status: { not: 'DRAFT' },
         },
       },
       _count: {
@@ -491,6 +493,7 @@ export class DiscoveryService {
           where: {
             novel: {
               isPublic: true,
+              status: { not: 'DRAFT' },
             },
           },
           orderBy: {
@@ -534,7 +537,7 @@ export class DiscoveryService {
       totalCharacters,
       totalChaptersPublished,
     ] = await Promise.all([
-      this.prisma.novel.count({ where: { isPublic: true } }),
+      this.prisma.novel.count({ where: { isPublic: true, status: { not: 'DRAFT' } } }),
       this.prisma.user.count({ where: { isActive: true } }),
       this.prisma.world.count({ where: { visibility: 'PUBLIC' } }),
       this.prisma.character.count({ where: { isPublic: true } }),
