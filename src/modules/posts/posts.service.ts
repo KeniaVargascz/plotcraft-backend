@@ -196,13 +196,6 @@ export class PostsService {
       },
     });
 
-    await this.prisma.post.update({
-      where: { id: postId },
-      data: {
-        isSaved: true,
-      },
-    });
-
     return { saved: true };
   }
 

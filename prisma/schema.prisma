@@ -21,8 +21,8 @@ model User {
   updatedAt         DateTime           @updatedAt @map("updated_at")
   profile           Profile?
   refreshTokens     RefreshToken[]
-  followers         Follow[]           @relation("UserFollowers")
-  following         Follow[]           @relation("UserFollowing")
+  followers         Follow[]           @relation("UserFollowing")
+  following         Follow[]           @relation("UserFollowers")
   posts             Post[]
   comments          Comment[]
   novelComments     NovelComment[]
