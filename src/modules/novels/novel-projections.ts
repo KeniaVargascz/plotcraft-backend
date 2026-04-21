@@ -1,9 +1,8 @@
 import { ChapterStatus, Prisma } from '@prisma/client';
 
 /**
- * Proyección ligera para listados y tarjetas de novelas.
- * Excluye relaciones pesadas (worlds, characters, pairings) que solo se
- * necesitan en la vista de detalle.
+ * Proyección mínima para listados y tarjetas de novelas.
+ * Solo incluye las relaciones esenciales para renderizar una card.
  */
 export function novelCardInclude(viewerId?: string | null): Prisma.NovelInclude {
   return {
@@ -16,6 +15,32 @@ export function novelCardInclude(viewerId?: string | null): Prisma.NovelInclude 
     genres: {
       include: { genre: true },
     },
+    likes: viewerId
+      ? { where: { userId: viewerId }, select: { id: true } }
+      : false,
+    bookmarks: viewerId
+      ? { where: { userId: viewerId }, select: { id: true } }
+      : false,
+    _count: {
+      select: {
+        chapters: true,
+        likes: true,
+        bookmarks: true,
+        novelWorlds: true,
+        novelCharacters: true,
+        novelComments: { where: { deletedAt: null } },
+      },
+    },
+  };
+}
+
+/**
+ * Proyección completa para create/update responses y páginas que necesitan
+ * todos los datos de la tarjeta (pairings, warnings, series, etc.).
+ */
+export function novelFullCardInclude(viewerId?: string | null): Prisma.NovelInclude {
+  return {
+    ...novelCardInclude(viewerId),
     romanceGenres: {
       include: {
         romanceGenre: { select: { id: true, slug: true, label: true } },
@@ -26,12 +51,6 @@ export function novelCardInclude(viewerId?: string | null): Prisma.NovelInclude 
         warning: { select: { id: true, slug: true, label: true } },
       },
     },
-    likes: viewerId
-      ? { where: { userId: viewerId }, select: { id: true } }
-      : false,
-    bookmarks: viewerId
-      ? { where: { userId: viewerId }, select: { id: true } }
-      : false,
     readingProgress: viewerId
       ? {
           where: { userId: viewerId },
@@ -75,16 +94,6 @@ export function novelCardInclude(viewerId?: string | null): Prisma.NovelInclude 
       include: {
         characterA: { select: { id: true, name: true, slug: true } },
         characterB: { select: { id: true, name: true, slug: true } },
-      },
-    },
-    _count: {
-      select: {
-        chapters: true,
-        likes: true,
-        bookmarks: true,
-        novelWorlds: true,
-        novelCharacters: true,
-        novelComments: { where: { deletedAt: null } },
       },
     },
   };

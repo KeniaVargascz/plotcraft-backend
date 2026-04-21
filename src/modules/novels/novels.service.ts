@@ -20,7 +20,7 @@ import { NovelQueryDto } from './dto/novel-query.dto';
 import { UpdateNovelDto } from './dto/update-novel.dto';
 import { createSlug } from './utils/slugify.util';
 import { generateUniqueSlug } from '../../common/utils/unique-slug.util';
-import { novelCardInclude, novelDetailInclude } from './novel-projections';
+import { novelCardInclude, novelFullCardInclude, novelDetailInclude } from './novel-projections';
 import { NovelValidationService } from './services/novel-validation.service';
 
 type NovelListOptions = {
@@ -144,7 +144,7 @@ export class NovelsService {
 
     const novel = await this.prisma.novel.create({
       data: payload,
-      include: novelCardInclude(userId),
+      include: novelFullCardInclude(userId),
     });
 
     if (dto.pairings?.length) {
@@ -347,7 +347,7 @@ export class NovelsService {
               }
             : {}),
         },
-        include: novelCardInclude(userId),
+        include: novelFullCardInclude(userId),
       });
     });
 
@@ -358,7 +358,7 @@ export class NovelsService {
     // Re-fetch with pairings included
     const refreshed = await this.prisma.novel.findUniqueOrThrow({
       where: { id: novel.id },
-      include: novelCardInclude(userId),
+      include: novelFullCardInclude(userId),
     });
     return this.toNovelResponse(refreshed, userId);
   }
