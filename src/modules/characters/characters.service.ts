@@ -14,6 +14,7 @@ import {
 import { PrismaService } from '../../prisma/prisma.service';
 import { NovelsService } from '../novels/novels.service';
 import { createSlug } from '../novels/utils/slugify.util';
+import { generateUniqueSlug } from '../../common/utils/unique-slug.util';
 import { WorldsService } from '../worlds/worlds.service';
 import { CharacterQueryDto } from './dto/character-query.dto';
 import { CreateCharacterDto } from './dto/create-character.dto';
@@ -1087,31 +1088,11 @@ export class CharactersService {
     name: string,
     ignoreCharacterId?: string,
   ) {
-    const baseSlug = createSlug(name);
-
-    if (!baseSlug) {
-      throw new BadRequestException(
-        'No se pudo generar un slug valido para el personaje',
-      );
-    }
-
-    let candidate = baseSlug;
-    let suffix = 2;
-
-    while (true) {
-      const existing = await this.prisma.character.findFirst({
-        where: {
-          authorId: userId,
-          slug: candidate,
-        },
-      });
-
-      if (!existing || existing.id === ignoreCharacterId) {
-        return candidate;
-      }
-
-      candidate = `${baseSlug}-${suffix}`;
-      suffix += 1;
-    }
+    return generateUniqueSlug(this.prisma, {
+      title: name,
+      model: 'character',
+      scope: { authorId: userId },
+      ignoreId: ignoreCharacterId,
+    });
   }
 }

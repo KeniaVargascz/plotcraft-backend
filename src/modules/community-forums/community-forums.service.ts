@@ -13,6 +13,7 @@ import {
 } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { createSlug } from '../novels/utils/slugify.util';
+import { generateUniqueSlug } from '../../common/utils/unique-slug.util';
 import { CreateForumDto } from './dto/create-forum.dto';
 import { UpdateForumDto } from './dto/update-forum.dto';
 
@@ -294,18 +295,11 @@ export class CommunityForumsService {
   }
 
   private async generateUniqueSlug(communityId: string, name: string) {
-    const base = createSlug(name) || 'foro';
-    let candidate = base;
-    let suffix = 2;
-
-    while (true) {
-      const existing = await this.prisma.communityForum.findUnique({
-        where: { communityId_slug: { communityId, slug: candidate } },
-      });
-      if (!existing) return candidate;
-      candidate = `${base}-${suffix}`;
-      suffix += 1;
-    }
+    return generateUniqueSlug(this.prisma, {
+      title: name || 'foro',
+      model: 'communityForum',
+      scope: { communityId },
+    });
   }
 
   /**

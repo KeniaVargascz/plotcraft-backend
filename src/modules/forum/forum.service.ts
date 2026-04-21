@@ -16,6 +16,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { AuthService } from '../auth/auth.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { createSlug } from '../novels/utils/slugify.util';
+import { generateUniqueSlug } from '../../common/utils/unique-slug.util';
 import { CreateReplyDto } from './dto/create-reply.dto';
 import { CreateThreadDto } from './dto/create-thread.dto';
 import { ForumReactionDto } from './dto/forum-reaction.dto';
@@ -1002,22 +1003,11 @@ export class ForumService {
   }
 
   private async generateUniqueSlug(title: string, ignoreId?: string) {
-    const baseSlug = createSlug(title);
-    let candidate = baseSlug;
-    let suffix = 2;
-
-    while (true) {
-      const existing = await this.prisma.forumThread.findUnique({
-        where: { slug: candidate },
-      });
-
-      if (!existing || existing.id === ignoreId) {
-        return candidate;
-      }
-
-      candidate = `${baseSlug}-${suffix}`;
-      suffix += 1;
-    }
+    return generateUniqueSlug(this.prisma, {
+      title,
+      model: 'forumThread',
+      ignoreId,
+    });
   }
 
   private resolveThreadOrderBy(

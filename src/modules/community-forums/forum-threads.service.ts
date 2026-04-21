@@ -6,6 +6,7 @@ import {
 import { CommunityMemberStatus, Prisma, ThreadStatus } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { createSlug } from '../novels/utils/slugify.util';
+import { generateUniqueSlug } from '../../common/utils/unique-slug.util';
 import { CommunityForumsService } from './community-forums.service';
 import { CreateForumThreadDto } from './dto/create-thread.dto';
 
@@ -358,17 +359,9 @@ export class ForumThreadsService {
   }
 
   private async generateUniqueSlug(title: string) {
-    const base = createSlug(title) || 'hilo';
-    let candidate = base;
-    let suffix = 2;
-
-    while (true) {
-      const existing = await this.prisma.forumThread.findUnique({
-        where: { slug: candidate },
-      });
-      if (!existing) return candidate;
-      candidate = `${base}-${suffix}`;
-      suffix += 1;
-    }
+    return generateUniqueSlug(this.prisma, {
+      title: title || 'hilo',
+      model: 'forumThread',
+    });
   }
 }

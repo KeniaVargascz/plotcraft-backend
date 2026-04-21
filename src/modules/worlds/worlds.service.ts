@@ -9,6 +9,7 @@ import { NovelType, Prisma, WorldVisibility } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { NovelsService } from '../novels/novels.service';
 import { createSlug } from '../novels/utils/slugify.util';
+import { generateUniqueSlug } from '../../common/utils/unique-slug.util';
 import { CreateLocationDto } from './dto/create-location.dto';
 import { CreateWorldDto } from './dto/create-world.dto';
 import { UpdateLocationDto } from './dto/update-location.dto';
@@ -608,28 +609,10 @@ export class WorldsService {
   }
 
   private async generateUniqueSlug(name: string, ignoreWorldId?: string) {
-    const baseSlug = createSlug(name);
-
-    if (!baseSlug) {
-      throw new BadRequestException(
-        'No se pudo generar un slug valido para el mundo',
-      );
-    }
-
-    let candidate = baseSlug;
-    let suffix = 2;
-
-    while (true) {
-      const existing = await this.prisma.world.findUnique({
-        where: { slug: candidate },
-      });
-
-      if (!existing || existing.id === ignoreWorldId) {
-        return candidate;
-      }
-
-      candidate = `${baseSlug}-${suffix}`;
-      suffix += 1;
-    }
+    return generateUniqueSlug(this.prisma, {
+      title: name,
+      model: 'world',
+      ignoreId: ignoreWorldId,
+    });
   }
 }

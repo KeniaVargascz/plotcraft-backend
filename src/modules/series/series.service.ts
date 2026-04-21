@@ -8,6 +8,7 @@ import {
 import { NovelStatus, Prisma, SeriesStatus, SeriesType } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { createSlug } from '../novels/utils/slugify.util';
+import { generateUniqueSlug } from '../../common/utils/unique-slug.util';
 import { AddNovelToSeriesDto } from './dto/add-novel-to-series.dto';
 import { CreateSeriesDto } from './dto/create-series.dto';
 import { ReorderNovelsDto } from './dto/reorder-novels.dto';
@@ -468,17 +469,10 @@ export class SeriesService {
   }
 
   private async generateUniqueSlug(title: string) {
-    const base = createSlug(title);
-    let candidate = base;
-    let suffix = 2;
-    while (true) {
-      const existing = await this.prisma.series.findUnique({
-        where: { slug: candidate },
-      });
-      if (!existing) return candidate;
-      candidate = `${base}-${suffix}`;
-      suffix += 1;
-    }
+    return generateUniqueSlug(this.prisma, {
+      title,
+      model: 'series',
+    });
   }
 
   private seriesInclude() {

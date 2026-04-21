@@ -14,6 +14,7 @@ import {
 } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { createSlug } from '../novels/utils/slugify.util';
+import { generateUniqueSlug } from '../../common/utils/unique-slug.util';
 import { CommunityQueryDto } from './dto/community-query.dto';
 import { CreateCommunityDto } from './dto/create-community.dto';
 import { UpdateCommunityDto } from './dto/update-community.dto';
@@ -310,17 +311,10 @@ export class CommunitiesService {
   // ── helpers ──
 
   private async generateUniqueSlug(name: string) {
-    const base = createSlug(name);
-    let candidate = base;
-    let suffix = 2;
-    while (true) {
-      const existing = await this.prisma.community.findUnique({
-        where: { slug: candidate },
-      });
-      if (!existing) return candidate;
-      candidate = `${base}-${suffix}`;
-      suffix += 1;
-    }
+    return generateUniqueSlug(this.prisma, {
+      title: name,
+      model: 'community',
+    });
   }
 
   async addRelatedNovel(slug: string, novelId: string, viewerId: string) {

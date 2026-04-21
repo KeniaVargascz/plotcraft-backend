@@ -20,6 +20,8 @@ import { CreateNovelDto } from './dto/create-novel.dto';
 import { NovelQueryDto } from './dto/novel-query.dto';
 import { UpdateNovelDto } from './dto/update-novel.dto';
 import { createSlug } from './utils/slugify.util';
+import { generateUniqueSlug } from '../../common/utils/unique-slug.util';
+import { novelCardInclude, novelDetailInclude } from './novel-projections';
 
 type NovelListOptions = {
   query: NovelQueryDto;
@@ -142,7 +144,7 @@ export class NovelsService {
 
     const novel = await this.prisma.novel.create({
       data: payload,
-      include: this.novelInclude(userId, false),
+      include: novelCardInclude(userId),
     });
 
     if (dto.pairings?.length) {
@@ -269,7 +271,7 @@ export class NovelsService {
 
     const novel = await this.prisma.novel.findUniqueOrThrow({
       where: { id: baseNovel.id },
-      include: this.novelInclude(viewerId, true, isAuthor),
+      include: novelDetailInclude(viewerId, isAuthor),
     });
 
     const response = this.toNovelResponse(novel, viewerId, true);
@@ -403,7 +405,7 @@ export class NovelsService {
               }
             : {}),
         },
-        include: this.novelInclude(userId, false),
+        include: novelCardInclude(userId),
       });
     });
 
@@ -414,7 +416,7 @@ export class NovelsService {
     // Re-fetch with pairings included
     const refreshed = await this.prisma.novel.findUniqueOrThrow({
       where: { id: novel.id },
-      include: this.novelInclude(userId, false),
+      include: novelCardInclude(userId),
     });
     return this.toNovelResponse(refreshed, userId);
   }
@@ -765,7 +767,7 @@ export class NovelsService {
           orderBy: this.resolveOrderBy(
             options.query.sortBy ?? options.query.sort,
           ),
-          include: this.novelInclude(options.viewerId, false),
+          include: novelCardInclude(options.viewerId),
         }),
         this.prisma.novel.count({ where }),
       ]);
@@ -798,7 +800,7 @@ export class NovelsService {
           }
         : {}),
       orderBy: this.resolveOrderBy(options.query.sortBy ?? options.query.sort),
-      include: this.novelInclude(options.viewerId, false),
+      include: novelCardInclude(options.viewerId),
     });
 
     const hasMore = novels.length > limit;
@@ -842,193 +844,9 @@ export class NovelsService {
     }
   }
 
-  private novelInclude(
-    viewerId?: string | null,
-    includeChapters = false,
-    includeDrafts = false,
-  ) {
-    return {
-      author: {
-        include: {
-          profile: true,
-        },
-      },
-      language: {
-        select: {
-          id: true,
-          code: true,
-          name: true,
-          description: true,
-        },
-      },
-      genres: {
-        include: {
-          genre: true,
-        },
-      },
-      romanceGenres: {
-        include: {
-          romanceGenre: {
-            select: {
-              id: true,
-              slug: true,
-              label: true,
-            },
-          },
-        },
-      },
-      novelWarnings: {
-        include: {
-          warning: {
-            select: {
-              id: true,
-              slug: true,
-              label: true,
-            },
-          },
-        },
-      },
-      likes: viewerId
-        ? {
-            where: { userId: viewerId },
-            select: { id: true },
-          }
-        : false,
-      bookmarks: viewerId
-        ? {
-            where: { userId: viewerId },
-            select: { id: true },
-          }
-        : false,
-      readingProgress: viewerId
-        ? {
-            where: {
-              userId: viewerId,
-            },
-            include: {
-              chapter: {
-                select: {
-                  id: true,
-                  slug: true,
-                  title: true,
-                  order: true,
-                },
-              },
-            },
-          }
-        : false,
-      chapters: includeChapters
-        ? {
-            where: includeDrafts
-              ? undefined
-              : {
-                  status: ChapterStatus.PUBLISHED,
-                },
-            orderBy: { order: 'asc' as const },
-            select: {
-              id: true,
-              title: true,
-              slug: true,
-              order: true,
-              status: true,
-              wordCount: true,
-              publishedAt: true,
-              updatedAt: true,
-            },
-          }
-        : {
-            where: {
-              status: ChapterStatus.PUBLISHED,
-            },
-            select: { id: true },
-          },
-      novelWorlds: {
-        include: {
-          world: {
-            include: {
-              author: {
-                include: {
-                  profile: true,
-                },
-              },
-            },
-          },
-        },
-      },
-      novelCharacters: {
-        include: {
-          character: {
-            include: {
-              author: {
-                include: {
-                  profile: true,
-                },
-              },
-              world: {
-                select: {
-                  id: true,
-                  name: true,
-                  slug: true,
-                  visibility: true,
-                },
-              },
-            },
-          },
-          communityCharacter: true,
-        },
-      },
-      linkedCommunity: {
-        select: {
-          id: true,
-          name: true,
-          slug: true,
-          type: true,
-          coverUrl: true,
-          description: true,
-        },
-      },
-      seriesNovels: {
-        include: {
-          series: {
-            select: {
-              id: true,
-              title: true,
-              slug: true,
-              type: true,
-              status: true,
-              _count: { select: { novels: true } },
-            },
-          },
-        },
-      },
-      pairings: {
-        orderBy: { sortOrder: 'asc' as const },
-        include: {
-          characterA: { select: { id: true, name: true, slug: true } },
-          characterB: { select: { id: true, name: true, slug: true } },
-        },
-      },
-      _count: {
-        select: {
-          chapters: true,
-          likes: true,
-          bookmarks: true,
-          novelWorlds: true,
-          novelCharacters: true,
-          // Solo comentarios no borrados.
-          novelComments: { where: { deletedAt: null } },
-        },
-      },
-    } satisfies Prisma.NovelInclude;
-  }
 
-  private toNovelResponse(
-    novel: Prisma.NovelGetPayload<{
-      include: ReturnType<NovelsService['novelInclude']>;
-    }>,
-    viewerId?: string | null,
-    includeChapters = false,
-  ) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private toNovelResponse(novel: any, viewerId?: string | null, includeChapters = false) {
     const chapters = Array.isArray(novel.chapters) ? novel.chapters : [];
     const likes = Array.isArray(novel.likes) ? novel.likes : [];
     const bookmarks = Array.isArray(novel.bookmarks) ? novel.bookmarks : [];
@@ -1060,14 +878,14 @@ export class NovelsService {
       : [];
     const linkedWorlds = includeChapters
       ? novel.novelWorlds.filter(
-          (item) =>
+          (item: any) =>
             item.world.visibility === 'PUBLIC' ||
             item.world.authorId === viewerId,
         )
       : [];
     const linkedCharacters = includeChapters
       ? novel.novelCharacters.filter(
-          (item) =>
+          (item: any) =>
             item.communityCharacter ||
             (item.character &&
               (item.character.isPublic ||
@@ -1113,7 +931,7 @@ export class NovelsService {
           }
         : null,
       romanceGenres:
-        novel.romanceGenres?.map((rg) => ({
+        novel.romanceGenres?.map((rg: any) => ({
           id: rg.romanceGenre.id,
           slug: rg.romanceGenre.slug,
           label: rg.romanceGenre.label,
@@ -1130,7 +948,7 @@ export class NovelsService {
       createdAt: novel.createdAt,
       updatedAt: novel.updatedAt,
       series,
-      pairings: (novel.pairings ?? []).map((p) => ({
+      pairings: (novel.pairings ?? []).map((p: any) => ({
         id: p.id,
         isMain: p.isMain,
         sortOrder: p.sortOrder,
@@ -1143,7 +961,7 @@ export class NovelsService {
         displayName: novel.author.profile?.displayName ?? novel.author.username,
         avatarUrl: novel.author.profile?.avatarUrl ?? null,
       },
-      genres: novel.genres.map((item) => ({
+      genres: novel.genres.map((item: any) => ({
         id: item.genre.id,
         slug: item.genre.slug,
         label: item.genre.label,
@@ -1190,7 +1008,7 @@ export class NovelsService {
               publishedAt: chapter.publishedAt,
               updatedAt: chapter.updatedAt,
             })),
-            worlds: linkedWorlds.map((item) => ({
+            worlds: linkedWorlds.map((item: any) => ({
               id: item.world.id,
               name: item.world.name,
               slug: item.world.slug,
@@ -1207,8 +1025,8 @@ export class NovelsService {
               },
             })),
             communityCharacters: linkedCharacters
-              .filter((item) => item.communityCharacter)
-              .map((item) => ({
+              .filter((item: any) => item.communityCharacter)
+              .map((item: any) => ({
                 id: item.communityCharacter!.id,
                 name: item.communityCharacter!.name,
                 avatarUrl: item.communityCharacter!.avatarUrl,
@@ -1216,8 +1034,8 @@ export class NovelsService {
                 status: item.communityCharacter!.status,
               })),
             characters: linkedCharacters
-              .filter((item) => !item.communityCharacter && item.character)
-              .map((item) => {
+              .filter((item: any) => !item.communityCharacter && item.character)
+              .map((item: any) => {
                 const ch = item.character!;
                 return {
                   id: ch.id,
@@ -1472,22 +1290,11 @@ export class NovelsService {
   }
 
   private async generateUniqueNovelSlug(title: string, ignoreNovelId?: string) {
-    const baseSlug = createSlug(title);
-    let candidate = baseSlug;
-    let suffix = 2;
-
-    while (true) {
-      const existing = await this.prisma.novel.findUnique({
-        where: { slug: candidate },
-      });
-
-      if (!existing || existing.id === ignoreNovelId) {
-        return candidate;
-      }
-
-      candidate = `${baseSlug}-${suffix}`;
-      suffix += 1;
-    }
+    return generateUniqueSlug(this.prisma, {
+      title,
+      model: 'novel',
+      ignoreId: ignoreNovelId,
+    });
   }
 
   private async assertGenresExist(genreIds: string[]) {
