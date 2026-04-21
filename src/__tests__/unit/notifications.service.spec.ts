@@ -24,7 +24,8 @@ describe('NotificationsService', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    service = new NotificationsService(prisma);
+    const mockCache = { get: async () => null, set: async () => {}, del: async () => {}, invalidatePattern: async () => {} };
+    service = new NotificationsService(prisma, mockCache as any);
   });
 
   it('createNotification does not persist notification if preference is disabled', async () => {

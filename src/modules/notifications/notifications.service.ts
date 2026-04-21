@@ -1,15 +1,22 @@
 import {
   ForbiddenException,
+  Inject,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { NotificationType } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
+import { CACHE_SERVICE, CacheService } from '../../common/services/cache.service';
 import { NotificationQueryDto } from './dto/notification-query.dto';
+
+const UNREAD_CACHE_TTL = 30_000; // 30 seconds
 
 @Injectable()
 export class NotificationsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Inject(CACHE_SERVICE) private readonly cache: CacheService,
+  ) {}
 
   // ── Internal (called by other services, NOT an endpoint) ──
 
@@ -57,6 +64,8 @@ export class NotificationsService {
         actorId: dto.actorId ?? null,
       },
     });
+
+    await this.invalidateUnreadCount(dto.userId);
   }
 
   // ── CRUD ──
@@ -95,11 +104,20 @@ export class NotificationsService {
   }
 
   async getUnreadCount(userId: string) {
+    const cacheKey = `unread:${userId}`;
+    const cached = await this.cache.get<number>(cacheKey);
+    if (cached !== null) return { count: cached };
+
     const count = await this.prisma.notification.count({
       where: { userId, isRead: false },
     });
 
+    await this.cache.set(cacheKey, count, UNREAD_CACHE_TTL);
     return { count };
+  }
+
+  private async invalidateUnreadCount(userId: string) {
+    await this.cache.del(`unread:${userId}`);
   }
 
   async markAsRead(notificationId: string, userId: string) {
@@ -120,6 +138,7 @@ export class NotificationsService {
       data: { isRead: true },
     });
 
+    await this.invalidateUnreadCount(userId);
     return { message: 'Notification marked as read' };
   }
 
@@ -129,6 +148,7 @@ export class NotificationsService {
       data: { isRead: true },
     });
 
+    await this.invalidateUnreadCount(userId);
     return { updated: result.count };
   }
 
@@ -149,6 +169,7 @@ export class NotificationsService {
       where: { id: notificationId },
     });
 
+    await this.invalidateUnreadCount(userId);
     return { message: 'Notification deleted' };
   }
 
@@ -157,6 +178,7 @@ export class NotificationsService {
       where: { userId },
     });
 
+    await this.invalidateUnreadCount(userId);
     return { deleted: result.count };
   }
 }

@@ -1,12 +1,21 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { CACHE_SERVICE, CacheService } from '../../common/services/cache.service';
+
+const CATALOG_TTL = 24 * 60 * 60 * 1000;
 
 @Injectable()
 export class LanguagesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Inject(CACHE_SERVICE) private readonly cache: CacheService,
+  ) {}
 
-  listLanguages() {
-    return this.prisma.catalogLanguage.findMany({
+  async listLanguages() {
+    const cached = await this.cache.get<unknown[]>('catalog:languages');
+    if (cached) return cached;
+
+    const languages = await this.prisma.catalogLanguage.findMany({
       where: { isActive: true },
       orderBy: [{ name: 'asc' }],
       select: {
@@ -17,5 +26,8 @@ export class LanguagesService {
         isActive: true,
       },
     });
+
+    await this.cache.set('catalog:languages', languages, CATALOG_TTL);
+    return languages;
   }
 }
