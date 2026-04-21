@@ -40,11 +40,13 @@ export class DiscoveryService implements OnModuleInit, OnModuleDestroy {
 
   async refreshMaterializedViews(): Promise<void> {
     this.logger.log('Refreshing materialized views...');
+    // Note: CONCURRENTLY requires a non-transaction connection (incompatible
+    // with PgBouncer transaction mode). Using regular REFRESH instead.
     await this.prisma.$executeRawUnsafe(
-      `REFRESH MATERIALIZED VIEW CONCURRENTLY mv_trending_novels`,
+      `REFRESH MATERIALIZED VIEW mv_trending_novels`,
     );
     await this.prisma.$executeRawUnsafe(
-      `REFRESH MATERIALIZED VIEW CONCURRENTLY mv_trending_authors`,
+      `REFRESH MATERIALIZED VIEW mv_trending_authors`,
     );
     await this.prisma.$executeRawUnsafe(
       `REFRESH MATERIALIZED VIEW mv_platform_stats`,
