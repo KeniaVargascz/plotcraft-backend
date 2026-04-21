@@ -2,6 +2,8 @@ import { BadRequestException } from '@nestjs/common';
 import { NovelStatus } from '@prisma/client';
 import { NotificationsService } from '../../modules/notifications/notifications.service';
 import { NovelsService } from '../../modules/novels/novels.service';
+import { NovelInteractionsService } from '../../modules/novels/services/novel-interactions.service';
+import { NovelValidationService } from '../../modules/novels/services/novel-validation.service';
 import { createNovelFixture } from '../helpers/fixtures.helper';
 
 describe('NovelsService', () => {
@@ -43,10 +45,13 @@ describe('NovelsService', () => {
   } as unknown as NotificationsService;
 
   let service: NovelsService;
+  let interactionsService: NovelInteractionsService;
+  const validationService = new NovelValidationService(prisma);
 
   beforeEach(() => {
     jest.clearAllMocks();
-    service = new NovelsService(prisma, notificationsService);
+    service = new NovelsService(prisma, validationService);
+    interactionsService = new NovelInteractionsService(prisma, notificationsService);
   });
 
   it('createNovel generates slug and assigns authorId from authenticated user', async () => {
@@ -107,7 +112,7 @@ describe('NovelsService', () => {
     );
     prisma.novelLike.findUnique.mockResolvedValue({ id: 'like-id' });
 
-    const result = await service.toggleLike('fixture-novel', 'viewer-id');
+    const result = await interactionsService.toggleLike('fixture-novel', 'viewer-id');
 
     expect(prisma.novelLike.delete).toHaveBeenCalledWith({
       where: { id: 'like-id' },
@@ -127,7 +132,7 @@ describe('NovelsService', () => {
     prisma.novelLike.findUnique.mockResolvedValue(null);
     prisma.novelLike.count.mockResolvedValue(100);
 
-    await service.toggleLike('fixture-novel', 'viewer-id');
+    await interactionsService.toggleLike('fixture-novel', 'viewer-id');
 
     expect(prisma.novelLike.create).toHaveBeenCalled();
     expect(notificationsService.createNotification).toHaveBeenCalled();

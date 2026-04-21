@@ -24,6 +24,8 @@ import { NovelsService } from './novels.service';
 import { SubscriptionsService } from './subscriptions.service';
 import { TimelineService } from '../timeline/timeline.service';
 import { PlannerService } from '../planner/planner.service';
+import { NovelInteractionsService } from './services/novel-interactions.service';
+import { NovelCharacterLinkService } from './services/novel-character-link.service';
 
 @ApiTags('novels')
 @Controller('novels')
@@ -36,6 +38,8 @@ export class NovelsController {
     private readonly timelineService: TimelineService,
     private readonly plannerService: PlannerService,
     private readonly subscriptionsService: SubscriptionsService,
+    private readonly novelInteractionsService: NovelInteractionsService,
+    private readonly novelCharacterLinkService: NovelCharacterLinkService,
   ) {}
 
   @Public()
@@ -116,7 +120,7 @@ export class NovelsController {
     const viewer =
       await this.authService.getOptionalJwtPayloadFromAuthHeader(authorization);
 
-    return this.novelsService.listNovelCharacters(
+    return this.novelCharacterLinkService.listNovelCharacters(
       slug,
       viewer?.sub ?? null,
       query,
@@ -133,7 +137,7 @@ export class NovelsController {
     @CurrentUser() user: JwtPayload,
     @Body() dto: LinkNovelCharacterDto,
   ) {
-    return this.novelsService.linkNovelCharacter(slug, user.sub, dto);
+    return this.novelCharacterLinkService.linkNovelCharacter(slug, user.sub, dto);
   }
 
   @ApiBearerAuth()
@@ -144,7 +148,7 @@ export class NovelsController {
     @Param('novelCharacterId') novelCharacterId: string,
     @CurrentUser() user: JwtPayload,
   ) {
-    return this.novelsService.unlinkNovelCharacter(
+    return this.novelCharacterLinkService.unlinkNovelCharacter(
       slug,
       user.sub,
       novelCharacterId,
@@ -200,14 +204,14 @@ export class NovelsController {
   @Post(':slug/like')
   @ApiOperation({ summary: 'Toggle like sobre una novela' })
   toggleLike(@Param('slug') slug: string, @CurrentUser() user: JwtPayload) {
-    return this.novelsService.toggleLike(slug, user.sub);
+    return this.novelInteractionsService.toggleLike(slug, user.sub);
   }
 
   @ApiBearerAuth()
   @Post(':slug/bookmark')
   @ApiOperation({ summary: 'Toggle bookmark sobre una novela' })
   toggleBookmark(@Param('slug') slug: string, @CurrentUser() user: JwtPayload) {
-    return this.novelsService.toggleBookmark(slug, user.sub);
+    return this.novelInteractionsService.toggleBookmark(slug, user.sub);
   }
 
   @ApiBearerAuth()

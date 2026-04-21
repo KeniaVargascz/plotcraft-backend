@@ -19,12 +19,16 @@ import { CreateCharacterDto } from './dto/create-character.dto';
 import { CreateRelationshipDto } from './dto/create-relationship.dto';
 import { UpdateCharacterDto } from './dto/update-character.dto';
 import { CharactersService } from './characters.service';
+import { CharacterRelationshipService } from './services/character-relationship.service';
+import { CharacterNovelLinkService } from './services/character-novel-link.service';
 
 @ApiTags('characters')
 @Controller('characters')
 export class CharactersController {
   constructor(
     private readonly charactersService: CharactersService,
+    private readonly characterRelationshipService: CharacterRelationshipService,
+    private readonly characterNovelLinkService: CharacterNovelLinkService,
     private readonly authService: AuthService,
   ) {}
 
@@ -109,7 +113,7 @@ export class CharactersController {
   ) {
     const viewer =
       await this.authService.getOptionalJwtPayloadFromAuthHeader(authorization);
-    return this.charactersService.listRelationships(
+    return this.characterRelationshipService.listRelationships(
       authorUsername,
       slug,
       viewer?.sub ?? null,
@@ -128,7 +132,7 @@ export class CharactersController {
   ) {
     const viewer =
       await this.authService.getOptionalJwtPayloadFromAuthHeader(authorization);
-    return this.charactersService.listNovels(
+    return this.characterNovelLinkService.listNovels(
       authorUsername,
       slug,
       viewer?.sub ?? null,
@@ -175,7 +179,7 @@ export class CharactersController {
     @Param('slug') slug: string,
     @Body() dto: CreateRelationshipDto,
   ) {
-    return this.charactersService.createRelationship(
+    return this.characterRelationshipService.createRelationship(
       user.sub,
       authorUsername,
       slug,
@@ -192,7 +196,7 @@ export class CharactersController {
     @Param('slug') slug: string,
     @Param('relationshipId') relationshipId: string,
   ) {
-    return this.charactersService.removeRelationship(
+    return this.characterRelationshipService.removeRelationship(
       user.sub,
       authorUsername,
       slug,
@@ -209,7 +213,7 @@ export class CharactersController {
     @Param('slug') slug: string,
     @Param('novelSlug') novelSlug: string,
   ) {
-    return this.charactersService.linkNovel(
+    return this.characterNovelLinkService.linkNovel(
       user.sub,
       authorUsername,
       slug,
@@ -226,7 +230,7 @@ export class CharactersController {
     @Param('slug') slug: string,
     @Param('novelSlug') novelSlug: string,
   ) {
-    return this.charactersService.unlinkNovel(
+    return this.characterNovelLinkService.unlinkNovel(
       user.sub,
       authorUsername,
       slug,

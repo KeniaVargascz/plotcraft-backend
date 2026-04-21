@@ -22,6 +22,9 @@ import { UpdateReplyDto } from './dto/update-reply.dto';
 import { UpdateThreadDto } from './dto/update-thread.dto';
 import { VotePollDto } from './dto/vote-poll.dto';
 import { ForumService } from './forum.service';
+import { ForumReplyService } from './services/forum-reply.service';
+import { ForumReactionService } from './services/forum-reaction.service';
+import { ForumPollService } from './services/forum-poll.service';
 
 @ApiTags('forum')
 @Controller('forum')
@@ -29,6 +32,9 @@ export class ForumController {
   constructor(
     private readonly forumService: ForumService,
     private readonly authService: AuthService,
+    private readonly forumReplyService: ForumReplyService,
+    private readonly forumReactionService: ForumReactionService,
+    private readonly forumPollService: ForumPollService,
   ) {}
 
   // ── Public Endpoints (with optional auth) ──
@@ -137,7 +143,7 @@ export class ForumController {
     @CurrentUser() user: JwtPayload,
     @Body() dto: CreateReplyDto,
   ) {
-    return this.forumService.createReply(slug, user.sub, dto);
+    return this.forumReplyService.createReply(slug, user.sub, dto);
   }
 
   // ── Reply Reaction (must be before PATCH/DELETE :slug/replies/:id) ──
@@ -151,7 +157,7 @@ export class ForumController {
     @CurrentUser() user: JwtPayload,
     @Body() dto: ForumReactionDto,
   ) {
-    return this.forumService.toggleReplyReaction(slug, replyId, user.sub, dto);
+    return this.forumReactionService.toggleReplyReaction(slug, replyId, user.sub, dto);
   }
 
   // ── Solution (must be before PATCH :slug/replies/:id) ──
@@ -164,7 +170,7 @@ export class ForumController {
     @Param('id') replyId: string,
     @CurrentUser() user: JwtPayload,
   ) {
-    return this.forumService.markSolution(slug, replyId, user.sub);
+    return this.forumReplyService.markSolution(slug, replyId, user.sub);
   }
 
   @ApiBearerAuth()
@@ -175,7 +181,7 @@ export class ForumController {
     @Param('id') replyId: string,
     @CurrentUser() user: JwtPayload,
   ) {
-    return this.forumService.unmarkSolution(slug, replyId, user.sub);
+    return this.forumReplyService.unmarkSolution(slug, replyId, user.sub);
   }
 
   @ApiBearerAuth()
@@ -187,7 +193,7 @@ export class ForumController {
     @CurrentUser() user: JwtPayload,
     @Body() dto: UpdateReplyDto,
   ) {
-    return this.forumService.updateReply(slug, replyId, user.sub, dto);
+    return this.forumReplyService.updateReply(slug, replyId, user.sub, dto);
   }
 
   @ApiBearerAuth()
@@ -198,7 +204,7 @@ export class ForumController {
     @Param('id') replyId: string,
     @CurrentUser() user: JwtPayload,
   ) {
-    return this.forumService.deleteReply(slug, replyId, user.sub);
+    return this.forumReplyService.deleteReply(slug, replyId, user.sub);
   }
 
   // ── Thread Reaction ──
@@ -211,7 +217,7 @@ export class ForumController {
     @CurrentUser() user: JwtPayload,
     @Body() dto: ForumReactionDto,
   ) {
-    return this.forumService.toggleThreadReaction(slug, user.sub, dto);
+    return this.forumReactionService.toggleThreadReaction(slug, user.sub, dto);
   }
 
   // ── Poll Endpoints ──
@@ -224,14 +230,14 @@ export class ForumController {
     @CurrentUser() user: JwtPayload,
     @Body() dto: VotePollDto,
   ) {
-    return this.forumService.votePoll(slug, user.sub, dto);
+    return this.forumPollService.votePoll(slug, user.sub, dto);
   }
 
   @ApiBearerAuth()
   @Delete(':slug/vote')
   @ApiOperation({ summary: 'Remove poll vote' })
   removeVote(@Param('slug') slug: string, @CurrentUser() user: JwtPayload) {
-    return this.forumService.removeVote(slug, user.sub);
+    return this.forumPollService.removeVote(slug, user.sub);
   }
 
   // ── Moderation Endpoints ──

@@ -9,6 +9,9 @@ import { NovelsController } from './novels.controller';
 import { NovelsService } from './novels.service';
 import { SubscriptionsService } from './subscriptions.service';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { NovelInteractionsService } from './services/novel-interactions.service';
+import { NovelCharacterLinkService } from './services/novel-character-link.service';
+import { NovelValidationService } from './services/novel-validation.service';
 
 @Module({
   imports: [
@@ -24,12 +27,18 @@ import { NotificationsModule } from '../notifications/notifications.module';
     KudosService,
     NovelCommentsService,
     SubscriptionsService,
+    NovelInteractionsService,
+    NovelCharacterLinkService,
+    NovelValidationService,
   ],
   exports: [
     NovelsService,
     KudosService,
     NovelCommentsService,
     SubscriptionsService,
+    NovelInteractionsService,
+    NovelCharacterLinkService,
+    NovelValidationService,
   ],
 })
 export class NovelsModule {}

@@ -1,6 +1,5 @@
 import {
   BadRequestException,
-  ConflictException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -17,13 +16,11 @@ import { AuthService } from '../auth/auth.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { createSlug } from '../novels/utils/slugify.util';
 import { generateUniqueSlug } from '../../common/utils/unique-slug.util';
-import { CreateReplyDto } from './dto/create-reply.dto';
 import { CreateThreadDto } from './dto/create-thread.dto';
-import { ForumReactionDto } from './dto/forum-reaction.dto';
 import { ThreadQueryDto } from './dto/thread-query.dto';
-import { UpdateReplyDto } from './dto/update-reply.dto';
 import { UpdateThreadDto } from './dto/update-thread.dto';
-import { VotePollDto } from './dto/vote-poll.dto';
+import { ForumPollService } from './services/forum-poll.service';
+import { ForumReplyService } from './services/forum-reply.service';
 
 type ForumAuthorView = {
   username: string;
@@ -97,6 +94,8 @@ export class ForumService {
     private readonly prisma: PrismaService,
     private readonly authService: AuthService,
     private readonly notificationsService: NotificationsService,
+    private readonly forumReplyService: ForumReplyService,
+    private readonly forumPollService: ForumPollService,
   ) {}
 
   // ── Thread Methods ──
@@ -490,396 +489,6 @@ export class ForumService {
     return { message: 'Thread deleted' };
   }
 
-  // ── Reply Methods ──
-
-  async createReply(slug: string, userId: string, dto: CreateReplyDto) {
-    const thread = await this.prisma.forumThread.findUnique({
-      where: { slug },
-      include: { author: true },
-    });
-
-    if (!thread || thread.deletedAt) {
-      throw new NotFoundException('Thread not found');
-    }
-
-    if (
-      thread.status !== ThreadStatus.OPEN &&
-      thread.status !== ThreadStatus.PINNED
-    ) {
-      throw new BadRequestException(
-        'Cannot reply to a closed or archived thread',
-      );
-    }
-
-    if (thread.authorId !== userId) {
-      const [follow, communityMembership] = await Promise.all([
-        this.prisma.follow.findUnique({
-          where: {
-            followerId_followingId: {
-              followerId: userId,
-              followingId: thread.authorId,
-            },
-          },
-          select: { followerId: true },
-        }),
-        this.prisma.communityMember.findFirst({
-          where: {
-            userId,
-            status: 'ACTIVE',
-            community: {
-              linkedThreads: { some: { threadId: thread.id } },
-            },
-          },
-          select: { id: true },
-        }),
-      ]);
-      if (!follow && !communityMembership) {
-        throw new ForbiddenException(
-          'Solo puedes comentar en hilos de autores que sigues o de comunidades a las que perteneces.',
-        );
-      }
-    }
-
-    if (dto.parentReplyId) {
-      const parent = await this.prisma.forumReply.findUnique({
-        where: { id: dto.parentReplyId },
-        select: { id: true, threadId: true, deletedAt: true },
-      });
-      if (!parent || parent.deletedAt || parent.threadId !== thread.id) {
-        throw new NotFoundException('Parent reply not found in this thread');
-      }
-    }
-
-    const reply = await this.prisma.$transaction(async (tx) => {
-      const created = await tx.forumReply.create({
-        data: {
-          threadId: thread.id,
-          authorId: userId,
-          content: dto.content.trim(),
-          parentReplyId: dto.parentReplyId ?? null,
-        },
-        include: {
-          author: { include: { profile: true } },
-          reactions: true,
-        },
-      });
-      await tx.forumThread.update({
-        where: { id: thread.id },
-        data: { repliesCount: { increment: 1 } },
-      });
-      return created;
-    });
-
-    // Send notification to thread author (if not self-reply)
-    if (thread.authorId !== userId) {
-      const replyAuthor = reply.author;
-      this.notificationsService
-        .createNotification({
-          userId: thread.authorId,
-          type: 'NEW_REPLY',
-          title: 'New reply in your thread',
-          body: `${replyAuthor.profile?.displayName ?? replyAuthor.username} replied to "${thread.title}"`,
-          url: `/forum/${thread.slug}`,
-          actorId: userId,
-        })
-        .catch(() => {
-          // fire-and-forget; don't fail the reply
-        });
-    }
-
-    return this.toReplyResponse(reply, userId);
-  }
-
-  async updateReply(
-    slug: string,
-    replyId: string,
-    userId: string,
-    dto: UpdateReplyDto,
-  ) {
-    const reply = await this.findOwnedReply(slug, replyId, userId);
-
-    const updated = await this.prisma.forumReply.update({
-      where: { id: reply.id },
-      data: {
-        ...(dto.content !== undefined ? { content: dto.content.trim() } : {}),
-      },
-      include: {
-        author: { include: { profile: true } },
-        reactions: true,
-      },
-    });
-
-    return this.toReplyResponse(updated, userId);
-  }
-
-  async deleteReply(slug: string, replyId: string, userId: string) {
-    const reply = await this.findOwnedReply(slug, replyId, userId);
-
-    await this.prisma.$transaction(async (tx) => {
-      await tx.forumReply.update({
-        where: { id: reply.id },
-        data: { deletedAt: new Date() },
-      });
-      await tx.forumThread.update({
-        where: { id: reply.threadId },
-        data: { repliesCount: { decrement: 1 } },
-      });
-    });
-
-    return { message: 'Reply deleted' };
-  }
-
-  // ── Solution Methods ──
-
-  async markSolution(slug: string, replyId: string, userId: string) {
-    const thread = await this.findOwnedThread(slug, userId);
-
-    const reply = await this.prisma.forumReply.findFirst({
-      where: { id: replyId, threadId: thread.id, deletedAt: null },
-    });
-
-    if (!reply) {
-      throw new NotFoundException('Reply not found');
-    }
-
-    // Unmark any existing solutions and mark the new one
-    await this.prisma.$transaction([
-      this.prisma.forumReply.updateMany({
-        where: { threadId: thread.id, isSolution: true },
-        data: { isSolution: false },
-      }),
-      this.prisma.forumReply.update({
-        where: { id: replyId },
-        data: { isSolution: true },
-      }),
-    ]);
-
-    return { message: 'Reply marked as solution' };
-  }
-
-  async unmarkSolution(slug: string, replyId: string, userId: string) {
-    const thread = await this.findOwnedThread(slug, userId);
-
-    const reply = await this.prisma.forumReply.findFirst({
-      where: { id: replyId, threadId: thread.id },
-    });
-
-    if (!reply) {
-      throw new NotFoundException('Reply not found');
-    }
-
-    await this.prisma.forumReply.update({
-      where: { id: replyId },
-      data: { isSolution: false },
-    });
-
-    return { message: 'Solution unmarked' };
-  }
-
-  // ── Reaction Methods ──
-
-  async toggleThreadReaction(
-    slug: string,
-    userId: string,
-    dto: ForumReactionDto,
-  ) {
-    const thread = await this.prisma.forumThread.findUnique({
-      where: { slug },
-    });
-
-    if (!thread || thread.deletedAt) {
-      throw new NotFoundException('Thread not found');
-    }
-
-    const reactionType = dto.reactionType ?? ForumReactionType.LIKE;
-
-    // Find any existing reaction from this user on this thread
-    const existing = await this.prisma.forumReaction.findFirst({
-      where: { userId, threadId: thread.id },
-    });
-
-    if (existing) {
-      if (existing.reactionType === reactionType) {
-        // Same type → remove
-        await this.prisma.$transaction([
-          this.prisma.forumReaction.delete({ where: { id: existing.id } }),
-          this.prisma.forumThread.update({
-            where: { id: thread.id },
-            data: { reactionsCount: { decrement: 1 } },
-          }),
-        ]);
-      } else {
-        // Different type → update
-        await this.prisma.forumReaction.update({
-          where: { id: existing.id },
-          data: { reactionType },
-        });
-      }
-    } else {
-      // No existing → create
-      await this.prisma.$transaction([
-        this.prisma.forumReaction.create({
-          data: {
-            userId,
-            threadId: thread.id,
-            reactionType,
-          },
-        }),
-        this.prisma.forumThread.update({
-          where: { id: thread.id },
-          data: { reactionsCount: { increment: 1 } },
-        }),
-      ]);
-    }
-
-    return this.getThreadReactionCounts(thread.id, userId);
-  }
-
-  async toggleReplyReaction(
-    slug: string,
-    replyId: string,
-    userId: string,
-    dto: ForumReactionDto,
-  ) {
-    const thread = await this.prisma.forumThread.findUnique({
-      where: { slug },
-    });
-
-    if (!thread || thread.deletedAt) {
-      throw new NotFoundException('Thread not found');
-    }
-
-    const reply = await this.prisma.forumReply.findFirst({
-      where: { id: replyId, threadId: thread.id, deletedAt: null },
-    });
-
-    if (!reply) {
-      throw new NotFoundException('Reply not found');
-    }
-
-    const reactionType = dto.reactionType ?? ForumReactionType.LIKE;
-
-    const existing = await this.prisma.forumReaction.findFirst({
-      where: { userId, replyId: reply.id },
-    });
-
-    if (existing) {
-      if (existing.reactionType === reactionType) {
-        await this.prisma.forumReaction.delete({
-          where: { id: existing.id },
-        });
-      } else {
-        await this.prisma.forumReaction.update({
-          where: { id: existing.id },
-          data: { reactionType },
-        });
-      }
-    } else {
-      await this.prisma.forumReaction.create({
-        data: {
-          userId,
-          replyId: reply.id,
-          reactionType,
-        },
-      });
-    }
-
-    return this.getReplyReactionCounts(reply.id, userId);
-  }
-
-  // ── Poll Methods ──
-
-  async votePoll(slug: string, userId: string, dto: VotePollDto) {
-    const thread = await this.prisma.forumThread.findUnique({
-      where: { slug },
-      include: {
-        poll: {
-          include: {
-            options: true,
-          },
-        },
-      },
-    });
-
-    if (!thread || thread.deletedAt) {
-      throw new NotFoundException('Thread not found');
-    }
-
-    if (!thread.poll) {
-      throw new NotFoundException('This thread has no poll');
-    }
-
-    if (thread.poll.status !== PollStatus.OPEN) {
-      throw new BadRequestException('This poll is closed');
-    }
-
-    if (thread.poll.closesAt && new Date(thread.poll.closesAt) < new Date()) {
-      throw new BadRequestException('This poll has expired');
-    }
-
-    const optionExists = thread.poll.options.some(
-      (opt) => opt.id === dto.optionId,
-    );
-
-    if (!optionExists) {
-      throw new BadRequestException('Invalid poll option');
-    }
-
-    try {
-      await this.prisma.pollVote.create({
-        data: {
-          pollId: thread.poll.id,
-          optionId: dto.optionId,
-          userId,
-        },
-      });
-    } catch (error) {
-      if (
-        error instanceof Prisma.PrismaClientKnownRequestError &&
-        error.code === 'P2002'
-      ) {
-        throw new ConflictException('You have already voted in this poll');
-      }
-      throw error;
-    }
-
-    return this.getPollResponse(thread.poll.id, userId);
-  }
-
-  async removeVote(slug: string, userId: string) {
-    const thread = await this.prisma.forumThread.findUnique({
-      where: { slug },
-      include: { poll: true },
-    });
-
-    if (!thread || thread.deletedAt) {
-      throw new NotFoundException('Thread not found');
-    }
-
-    if (!thread.poll) {
-      throw new NotFoundException('This thread has no poll');
-    }
-
-    const vote = await this.prisma.pollVote.findUnique({
-      where: {
-        pollId_userId: {
-          pollId: thread.poll.id,
-          userId,
-        },
-      },
-    });
-
-    if (!vote) {
-      throw new NotFoundException('You have not voted in this poll');
-    }
-
-    await this.prisma.pollVote.delete({
-      where: { id: vote.id },
-    });
-
-    return this.getPollResponse(thread.poll.id, userId);
-  }
-
   // ── Moderation Methods ──
 
   async closeThread(slug: string, userId: string) {
@@ -978,30 +587,6 @@ export class ForumService {
     return thread;
   }
 
-  private async findOwnedReply(slug: string, replyId: string, userId: string) {
-    const thread = await this.prisma.forumThread.findUnique({
-      where: { slug },
-    });
-
-    if (!thread || thread.deletedAt) {
-      throw new NotFoundException('Thread not found');
-    }
-
-    const reply = await this.prisma.forumReply.findFirst({
-      where: { id: replyId, threadId: thread.id, deletedAt: null },
-    });
-
-    if (!reply) {
-      throw new NotFoundException('Reply not found');
-    }
-
-    if (reply.authorId !== userId) {
-      throw new ForbiddenException('You are not the author of this reply');
-    }
-
-    return reply;
-  }
-
   private async generateUniqueSlug(title: string, ignoreId?: string) {
     return generateUniqueSlug(this.prisma, {
       title,
@@ -1036,76 +621,6 @@ export class ForumService {
       default:
         return [{ isPinned: 'desc' }, { createdAt: 'desc' }];
     }
-  }
-
-  private async getThreadReactionCounts(threadId: string, userId: string) {
-    const reactions = await this.prisma.forumReaction.findMany({
-      where: { threadId },
-    });
-
-    const byType = this.countReactionsByType(reactions);
-    const userReaction = reactions.find((r) => r.userId === userId);
-
-    return {
-      total: reactions.length,
-      byType,
-      viewerContext: {
-        hasReacted: !!userReaction,
-        reactionType: userReaction?.reactionType ?? null,
-      },
-    };
-  }
-
-  private async getReplyReactionCounts(replyId: string, userId: string) {
-    const reactions = await this.prisma.forumReaction.findMany({
-      where: { replyId },
-    });
-
-    const byType = this.countReactionsByType(reactions);
-    const userReaction = reactions.find((r) => r.userId === userId);
-
-    return {
-      total: reactions.length,
-      byType,
-      viewerContext: {
-        hasReacted: !!userReaction,
-        reactionType: userReaction?.reactionType ?? null,
-      },
-    };
-  }
-
-  private countReactionsByType(
-    reactions: { reactionType: ForumReactionType }[],
-  ) {
-    const byType: Record<string, number> = {};
-    for (const r of reactions) {
-      byType[r.reactionType] = (byType[r.reactionType] ?? 0) + 1;
-    }
-    return byType;
-  }
-
-  private async getPollResponse(pollId: string, viewerId?: string | null) {
-    const poll = await this.prisma.forumPoll.findUniqueOrThrow({
-      where: { id: pollId },
-      include: {
-        options: {
-          orderBy: { order: 'asc' },
-          include: { _count: { select: { votes: true } } },
-        },
-        _count: { select: { votes: true } },
-        ...(viewerId
-          ? {
-              votes: {
-                where: { userId: viewerId },
-                select: { optionId: true },
-                take: 1,
-              },
-            }
-          : {}),
-      },
-    });
-
-    return this.toPollResponse(poll, viewerId);
   }
 
   // ── Response Mappers ──
@@ -1156,7 +671,7 @@ export class ForumService {
     const repliesFormatted = Array.isArray(thread.replies)
       ? thread.replies
           .filter((reply): reply is ReplyDetailView => 'content' in reply)
-          .map((reply) => this.toReplyResponse(reply, viewerId))
+          .map((reply) => this.forumReplyService.toReplyResponse(reply, viewerId))
       : [];
 
     const reactionsAll = Array.isArray(thread.reactions)
@@ -1181,85 +696,17 @@ export class ForumService {
             }
           : null,
       },
-      poll: thread.poll ? this.toPollResponse(thread.poll, viewerId) : null,
+      poll: thread.poll ? this.forumPollService.toPollResponse(thread.poll, viewerId) : null,
     };
   }
 
-  private toReplyResponse(reply: ReplyDetailView, viewerId?: string | null) {
-    const reactions = Array.isArray(reply.reactions) ? reply.reactions : [];
-    const byType = this.countReactionsByType(reactions);
-    const userReaction = viewerId
-      ? reactions.find((r) => r.userId === viewerId)
-      : null;
-
-    return {
-      id: reply.id,
-      content: reply.content,
-      parentReplyId:
-        (reply as { parentReplyId?: string | null }).parentReplyId ?? null,
-      isSolution: reply.isSolution,
-      isDeleted: !!reply.deletedAt,
-      createdAt: reply.createdAt,
-      updatedAt: reply.updatedAt,
-      author: {
-        username: reply.author.username,
-        displayName: reply.author.profile?.displayName ?? reply.author.username,
-        avatarUrl: reply.author.profile?.avatarUrl ?? null,
-      },
-      reactions: {
-        total: reactions.length,
-        byType,
-      },
-      viewerContext: viewerId
-        ? {
-            hasReacted: !!userReaction,
-            reactionType: userReaction?.reactionType ?? null,
-          }
-        : null,
-    };
-  }
-
-  private toPollResponse(poll: PollDetailView, viewerId?: string | null) {
-    const isExpired = poll.closesAt && new Date(poll.closesAt) < new Date();
-    const effectiveStatus = isExpired ? PollStatus.CLOSED : poll.status;
-
-    const totalVotes =
-      poll._count?.votes ?? (Array.isArray(poll.votes) ? poll.votes.length : 0);
-
-    const viewerVote =
-      viewerId && Array.isArray(poll.votes)
-        ? poll.votes.find((v) => v.userId === viewerId)
-        : null;
-
-    const options = Array.isArray(poll.options)
-      ? poll.options.map((opt) => {
-          const votesCount =
-            opt._count?.votes ??
-            (Array.isArray(opt.votes) ? opt.votes.length : 0);
-
-          return {
-            id: opt.id,
-            text: opt.text,
-            order: opt.order,
-            votesCount,
-            pct:
-              totalVotes > 0 ? Math.round((votesCount / totalVotes) * 100) : 0,
-          };
-        })
-      : [];
-
-    return {
-      id: poll.id,
-      question: poll.question,
-      status: effectiveStatus,
-      closesAt: poll.closesAt,
-      totalVotes,
-      options,
-      viewerContext: viewerId
-        ? {
-            votedOptionId: viewerVote?.optionId ?? null,
-          }
-        : null,
-    };
+  private countReactionsByType(
+    reactions: { reactionType: ForumReactionType }[],
+  ) {
+    const byType: Record<string, number> = {};
+    for (const r of reactions) {
+      byType[r.reactionType] = (byType[r.reactionType] ?? 0) + 1;
+    }
+    return byType;
   }
 }
