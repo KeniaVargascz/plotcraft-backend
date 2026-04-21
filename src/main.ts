@@ -2,6 +2,7 @@ import { ConfigService } from '@nestjs/config';
 import { NestFactory, Reflector } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { NestExpressApplication } from '@nestjs/platform-express';
+import helmet from 'helmet';
 import { join } from 'path';
 import { AppModule } from './app.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
@@ -10,6 +11,8 @@ async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
   const configService = app.get(ConfigService);
   const reflector = app.get(Reflector);
+
+  app.use(helmet());
 
   const corsOrigin = configService.get<string>(
     'CORS_ORIGIN',
