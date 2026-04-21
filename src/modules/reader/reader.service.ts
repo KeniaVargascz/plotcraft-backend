@@ -2,6 +2,7 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { ReaderFontFamily, ReaderMode } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { NovelsService } from '../novels/novels.service';
+import { ReadingProgressBuffer } from './reading-progress-buffer.service';
 import { ReaderPreferencesDto } from './dto/reader-preferences.dto';
 import { UpdateProgressDto } from './dto/update-progress.dto';
 
@@ -12,6 +13,7 @@ export class ReaderService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly novelsService: NovelsService,
+    private readonly progressBuffer: ReadingProgressBuffer,
   ) {}
 
   async getPreferences(userId: string) {
@@ -98,6 +100,9 @@ export class ReaderService {
       select: {
         id: true,
         novelId: true,
+        slug: true,
+        title: true,
+        order: true,
       },
     });
 
@@ -109,36 +114,27 @@ export class ReaderService {
 
     await this.novelsService.findAccessibleNovelById(dto.novel_id, userId);
 
-    const progress = await this.prisma.readingProgress.upsert({
-      where: {
-        userId_novelId: {
-          userId,
-          novelId: dto.novel_id,
-        },
-      },
-      update: {
-        chapterId: dto.chapter_id,
-        scrollPct: dto.scroll_pct,
-      },
-      create: {
-        userId,
-        novelId: dto.novel_id,
-        chapterId: dto.chapter_id,
-        scrollPct: dto.scroll_pct,
-      },
-      include: {
-        chapter: {
-          select: {
-            id: true,
-            slug: true,
-            title: true,
-            order: true,
-          },
-        },
-      },
+    // Buffer in Redis — flushed to DB every 15 seconds
+    await this.progressBuffer.buffer({
+      userId,
+      novelId: dto.novel_id,
+      chapterId: dto.chapter_id,
+      scrollPct: dto.scroll_pct,
     });
+    await this.progressBuffer.addPendingKey(userId, dto.novel_id);
 
-    return this.toProgressResponse(progress);
+    // Return immediately with the buffered values (no DB wait)
+    return {
+      novel_id: dto.novel_id,
+      chapter_id: dto.chapter_id,
+      scroll_pct: dto.scroll_pct,
+      chapter: {
+        slug: chapter.slug,
+        title: chapter.title,
+        order: chapter.order,
+      },
+      updated_at: new Date(),
+    };
   }
 
   async createHistoryEntry(userId: string, novelId: string, chapterId: string) {

@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ForbiddenException,
+  Inject,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -8,6 +9,11 @@ import { ChapterStatus, Prisma } from '@prisma/client';
 import { NovelsService } from '../novels/novels.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { PrismaService } from '../../prisma/prisma.service';
+import { QUEUE_SERVICE, QueueService } from '../../common/queue/queue.interface';
+import {
+  NOTIFICATION_QUEUE,
+  BulkNotificationJob,
+} from '../notifications/notification-queue.processor';
 import { ChapterQueryDto } from './dto/chapter-query.dto';
 import { CreateChapterDto } from './dto/create-chapter.dto';
 import { ReorderChaptersDto } from './dto/reorder-chapters.dto';
@@ -22,6 +28,7 @@ export class ChaptersService {
     private readonly prisma: PrismaService,
     private readonly novelsService: NovelsService,
     private readonly notificationsService: NotificationsService,
+    @Inject(QUEUE_SERVICE) private readonly queue: QueueService,
   ) {}
 
   async createChapter(
@@ -215,55 +222,38 @@ export class ChaptersService {
 
     await this.novelsService.recalculateNovelWordCount(chapter.novelId);
 
-    // Notify followers of the author about the new chapter via bulk insert
-    // TODO: In production, enqueue this with Bull/BullMQ for large follower counts
+    // Enqueue follower notifications (processed in background by NotificationQueueProcessor)
     const followers = await this.prisma.follow.findMany({
       where: { followingId: userId },
       select: { followerId: true },
     });
 
     if (followers.length) {
-      await this.prisma.notification.createMany({
-        data: followers.map((f) => ({
-          userId: f.followerId,
-          type: 'NEW_CHAPTER' as any,
-          title: `Nuevo capitulo publicado`,
-          body: `${updated.title} en ${updated.novel.title}`,
-          url: `/novelas/${updated.novel.slug}/${updated.slug}`,
-          actorId: userId,
-        })),
-        skipDuplicates: true,
+      await this.queue.enqueue<BulkNotificationJob>(NOTIFICATION_QUEUE, {
+        recipients: followers.map((f) => f.followerId),
+        type: 'NEW_CHAPTER',
+        title: 'Nuevo capitulo publicado',
+        body: `${updated.title} en ${updated.novel.title}`,
+        url: `/novelas/${updated.novel.slug}/${updated.slug}`,
+        actorId: userId,
       });
     }
 
-    // Notify subscribers of the novel about the new chapter
+    // Enqueue subscriber notifications
     const subscriptions = await this.prisma.novelSubscription.findMany({
       where: { novelId: chapter.novelId },
       select: { userId: true },
     });
 
     if (subscriptions.length) {
-      const notifications = subscriptions.map((sub) => ({
-        userId: sub.userId,
-        type: 'CHAPTER_PUBLISHED' as any,
+      await this.queue.enqueue<BulkNotificationJob>(NOTIFICATION_QUEUE, {
+        recipients: subscriptions.map((sub) => sub.userId),
+        type: 'CHAPTER_PUBLISHED',
         title: 'Nuevo capitulo disponible',
         body: `${updated.title} en ${updated.novel.title}`,
         url: `/novelas/${updated.novel.slug}/${updated.slug}`,
         actorId: userId,
-      }));
-
-      if (subscriptions.length > 100) {
-        setImmediate(() => {
-          this.prisma.notification
-            .createMany({ data: notifications, skipDuplicates: true })
-            .catch(() => {});
-        });
-      } else {
-        await this.prisma.notification.createMany({
-          data: notifications,
-          skipDuplicates: true,
-        });
-      }
+      });
     }
 
     // totalWordsCount / chaptersCount are kept in sync via recalculateNovelWordCount above

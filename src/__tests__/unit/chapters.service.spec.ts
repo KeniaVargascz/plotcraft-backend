@@ -38,7 +38,8 @@ describe('ChaptersService', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    service = new ChaptersService(prisma, novelsService, notificationsService);
+    const mockQueue = { enqueue: async () => {}, dequeue: async () => [], length: async () => 0 };
+    service = new ChaptersService(prisma, novelsService, notificationsService, mockQueue as any);
   });
 
   it('createChapter auto-assigns order = max + 1 and calculates word count', async () => {

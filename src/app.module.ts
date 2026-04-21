@@ -46,6 +46,7 @@ import { TransformInterceptor } from './common/interceptors/transform.intercepto
 import { ValidationPipe } from './common/pipes/validation.pipe';
 import { PrismaModule } from './prisma/prisma.module';
 import { CacheModule } from './common/cache.module';
+import { QueueModule } from './common/queue/queue.module';
 
 @Module({
   imports: [
@@ -55,6 +56,7 @@ import { CacheModule } from './common/cache.module';
     }),
     PrismaModule,
     CacheModule,
+    QueueModule,
     AuthModule,
     UsersModule,
     ProfilesModule,
