@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { APP_CONFIG } from '../../config/constants';
@@ -7,12 +7,50 @@ import {
   CACHE_SERVICE,
 } from '../../common/services/cache.service';
 
+const MV_REFRESH_INTERVAL_MS = 30 * 60 * 1000; // 30 minutes
+
 @Injectable()
-export class DiscoveryService {
+export class DiscoveryService implements OnModuleInit, OnModuleDestroy {
+  private readonly logger = new Logger(DiscoveryService.name);
+  private refreshTimer: ReturnType<typeof setInterval> | null = null;
+
   constructor(
     private readonly prisma: PrismaService,
     @Inject(CACHE_SERVICE) private readonly cache: CacheService,
   ) {}
+
+  onModuleInit() {
+    // Fire an initial refresh (non-blocking) then schedule periodic refreshes
+    this.refreshMaterializedViews().catch((err) =>
+      this.logger.warn(`Initial materialized view refresh failed: ${err.message}`),
+    );
+    this.refreshTimer = setInterval(() => {
+      this.refreshMaterializedViews().catch((err) =>
+        this.logger.warn(`Scheduled materialized view refresh failed: ${err.message}`),
+      );
+    }, MV_REFRESH_INTERVAL_MS);
+  }
+
+  onModuleDestroy() {
+    if (this.refreshTimer) {
+      clearInterval(this.refreshTimer);
+      this.refreshTimer = null;
+    }
+  }
+
+  async refreshMaterializedViews(): Promise<void> {
+    this.logger.log('Refreshing materialized views...');
+    await this.prisma.$executeRawUnsafe(
+      `REFRESH MATERIALIZED VIEW CONCURRENTLY mv_trending_novels`,
+    );
+    await this.prisma.$executeRawUnsafe(
+      `REFRESH MATERIALIZED VIEW CONCURRENTLY mv_trending_authors`,
+    );
+    await this.prisma.$executeRawUnsafe(
+      `REFRESH MATERIALIZED VIEW mv_platform_stats`,
+    );
+    this.logger.log('Materialized views refreshed successfully');
+  }
 
   async getSnapshot(refresh = false) {
     return this.fromCache('snapshot', refresh, async () => {
@@ -216,40 +254,9 @@ export class DiscoveryService {
 
   private async computeTrendingNovels(limit: number) {
     const rows = await this.prisma.$queryRawUnsafe<
-      Array<{ id: string; score: number }>
+      Array<{ id: string; trending_score: number }>
     >(
-      `
-        SELECT n.id,
-               (
-                 COALESCE((
-                   SELECT COUNT(*)
-                   FROM novel_likes nl
-                   WHERE nl.novel_id = n.id
-                     AND nl.created_at > NOW() - INTERVAL '72 hours'
-                 ), 0) * 3
-                 +
-                 COALESCE((
-                   SELECT COUNT(*)
-                   FROM novel_bookmarks nb
-                   WHERE nb.novel_id = n.id
-                     AND nb.created_at > NOW() - INTERVAL '72 hours'
-                 ), 0) * 2
-                 +
-                 COALESCE(n.views_count, 0)
-                 +
-                 COALESCE((
-                   SELECT COUNT(*)
-                   FROM chapters c
-                   WHERE c.novel_id = n.id
-                     AND c.status = 'PUBLISHED'
-                     AND c.published_at > NOW() - INTERVAL '72 hours'
-                 ), 0) * 5
-               )::float AS score
-        FROM novels n
-        WHERE n.is_public = true AND n.status != 'DRAFT'
-        ORDER BY score DESC, n.updated_at DESC
-        LIMIT $1
-      `,
+      `SELECT id, trending_score FROM mv_trending_novels LIMIT $1`,
       limit,
     );
 
@@ -296,39 +303,9 @@ export class DiscoveryService {
 
   private async computeTrendingAuthors(limit: number) {
     const rows = await this.prisma.$queryRawUnsafe<
-      Array<{ id: string; score: number }>
+      Array<{ id: string; trending_score: number }>
     >(
-      `
-        SELECT u.id,
-               (
-                 COALESCE((
-                   SELECT COUNT(*)
-                   FROM follows f
-                   WHERE f.following_id = u.id
-                     AND f.created_at > NOW() - INTERVAL '7 days'
-                 ), 0) * 2
-                 +
-                 COALESCE((
-                   SELECT COUNT(*)
-                   FROM chapters c
-                   WHERE c.author_id = u.id
-                     AND c.status = 'PUBLISHED'
-                     AND c.published_at > NOW() - INTERVAL '7 days'
-                 ), 0) * 3
-                 +
-                 COALESCE((
-                   SELECT COUNT(*)
-                   FROM posts p
-                   WHERE p.author_id = u.id
-                     AND p.deleted_at IS NULL
-                     AND p.created_at > NOW() - INTERVAL '7 days'
-                 ), 0)
-               )::float AS score
-        FROM users u
-        WHERE u.is_active = true
-        ORDER BY score DESC, u.created_at DESC
-        LIMIT $1
-      `,
+      `SELECT id, trending_score FROM mv_trending_authors LIMIT $1`,
       limit,
     );
 
@@ -530,26 +507,24 @@ export class DiscoveryService {
   }
 
   private async computePlatformStats() {
-    const [
-      totalNovels,
-      totalAuthors,
-      totalWorlds,
-      totalCharacters,
-      totalChaptersPublished,
-    ] = await Promise.all([
-      this.prisma.novel.count({ where: { isPublic: true, status: { not: 'DRAFT' } } }),
-      this.prisma.user.count({ where: { isActive: true } }),
-      this.prisma.world.count({ where: { visibility: 'PUBLIC' } }),
-      this.prisma.character.count({ where: { isPublic: true } }),
-      this.prisma.chapter.count({ where: { status: 'PUBLISHED' } }),
-    ]);
+    const rows = await this.prisma.$queryRawUnsafe<
+      Array<{
+        novels_count: bigint;
+        authors_count: bigint;
+        worlds_count: bigint;
+        characters_count: bigint;
+        chapters_count: bigint;
+      }>
+    >(`SELECT * FROM mv_platform_stats`);
+
+    const row = rows[0];
 
     return {
-      total_novels: totalNovels,
-      total_authors: totalAuthors,
-      total_worlds: totalWorlds,
-      total_characters: totalCharacters,
-      total_chapters_published: totalChaptersPublished,
+      total_novels: Number(row?.novels_count ?? 0),
+      total_authors: Number(row?.authors_count ?? 0),
+      total_worlds: Number(row?.worlds_count ?? 0),
+      total_characters: Number(row?.characters_count ?? 0),
+      total_chapters_published: Number(row?.chapters_count ?? 0),
     };
   }
 

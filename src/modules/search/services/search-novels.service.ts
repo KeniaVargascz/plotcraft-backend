@@ -49,10 +49,10 @@ export class SearchNovelsService {
           },
           orderBy:
             query.sort === 'popular'
-              ? [{ likes: { _count: 'desc' } }, { createdAt: 'desc' }]
+              ? [{ likes: { _count: 'desc' } }, { createdAt: 'desc' }, { id: 'desc' }]
               : query.sort === 'views'
-                ? [{ viewsCount: 'desc' }, { createdAt: 'desc' }]
-                : [{ createdAt: 'desc' }],
+                ? [{ viewsCount: 'desc' }, { createdAt: 'desc' }, { id: 'desc' }]
+                : [{ createdAt: 'desc' }, { id: 'desc' }],
           skip: offset,
           take: limit,
         }),

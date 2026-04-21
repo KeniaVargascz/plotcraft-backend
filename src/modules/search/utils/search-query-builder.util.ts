@@ -17,13 +17,12 @@ export function buildSearchQuery(input: string): SearchQueryParts {
     .split(' ')
     .map((term) => term.trim())
     .filter(Boolean);
-  // Full-text search disabled: the search_vector tsvector columns were removed
-  // in migration 20260406013347. All search uses ILIKE fallback path.
-  const useFullText = false;
+  const useFullText =
+    normalized.length >= 3 && terms.every((term) => term.length >= 3);
 
   return {
     normalized,
-    tsquery: null,
+    tsquery: useFullText ? terms.join(' & ') : null,
     ilike: `%${normalized}%`,
     terms,
     useFullText,

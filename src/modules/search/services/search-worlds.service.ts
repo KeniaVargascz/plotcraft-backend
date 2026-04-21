@@ -38,8 +38,8 @@ export class SearchWorldsService {
           },
           orderBy:
             query.sort === 'popular'
-              ? [{ novelWorlds: { _count: 'desc' } }, { createdAt: 'desc' }]
-              : [{ createdAt: 'desc' }],
+              ? [{ novelWorlds: { _count: 'desc' } }, { createdAt: 'desc' }, { id: 'desc' }]
+              : [{ createdAt: 'desc' }, { id: 'desc' }],
           skip: offset,
           take: limit,
         }),

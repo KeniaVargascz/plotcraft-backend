@@ -51,7 +51,7 @@ export class SearchContentService {
             select: { relationshipsAsSource: true, novelCharacters: true },
           },
         },
-        orderBy: [{ updatedAt: 'desc' }],
+        orderBy: [{ updatedAt: 'desc' }, { id: 'desc' }],
         skip: offset,
         take: limit,
       }),
@@ -160,8 +160,8 @@ export class SearchContentService {
           },
           orderBy:
             query.sort === 'reactions'
-              ? [{ reactions: { _count: 'desc' } }, { createdAt: 'desc' }]
-              : [{ createdAt: 'desc' }],
+              ? [{ reactions: { _count: 'desc' } }, { createdAt: 'desc' }, { id: 'desc' }]
+              : [{ createdAt: 'desc' }, { id: 'desc' }],
           skip: offset,
           take: limit,
         }),
@@ -192,8 +192,7 @@ export class SearchContentService {
                WHEN p.search_vector @@ to_tsquery('spanish', $1)
                  THEN ts_rank(p.search_vector, to_tsquery('spanish', $1))
                ELSE 0.05
-             END AS score,
-             (SELECT COUNT(*) FROM reactions r WHERE r.post_id = p.id) AS reactions_count
+             END AS score
       FROM posts p
       WHERE ${conditions.join(' AND ')}
       ORDER BY score DESC, p.created_at DESC
