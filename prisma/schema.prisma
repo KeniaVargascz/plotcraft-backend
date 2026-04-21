@@ -15,10 +15,12 @@ model User {
   nickname      String?          @db.VarChar(50)
   birthdate     DateTime?
   status        UserStatus       @default(ACTIVE)
-  isActive          Boolean            @default(true) @map("is_active")
-  isAdmin           Boolean            @default(false) @map("is_admin")
-  createdAt         DateTime           @default(now()) @map("created_at")
-  updatedAt         DateTime           @updatedAt @map("updated_at")
+  isActive              Boolean            @default(true) @map("is_active")
+  isAdmin               Boolean            @default(false) @map("is_admin")
+  failedLoginAttempts   Int                @default(0) @map("failed_login_attempts")
+  lockedUntil           DateTime?          @map("locked_until")
+  createdAt             DateTime           @default(now()) @map("created_at")
+  updatedAt             DateTime           @updatedAt @map("updated_at")
   profile           Profile?
   refreshTokens     RefreshToken[]
   followers         Follow[]           @relation("UserFollowing")
@@ -95,15 +97,18 @@ model Profile {
 }
 
 model RefreshToken {
-  id        String   @id @default(uuid()) @db.Uuid
-  tokenHash String   @unique @map("token_hash")
-  userId    String   @map("user_id") @db.Uuid
-  expiresAt DateTime @map("expires_at")
-  revoked   Boolean  @default(false)
-  createdAt DateTime @default(now()) @map("created_at")
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id        String    @id @default(uuid()) @db.Uuid
+  tokenHash String    @unique @map("token_hash")
+  userId    String    @map("user_id") @db.Uuid
+  family    String    @default(uuid()) @db.Uuid
+  expiresAt DateTime  @map("expires_at")
+  revoked   Boolean   @default(false)
+  revokedAt DateTime? @map("revoked_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([userId])
+  @@index([userId, revoked])
+  @@index([family])
   @@map("refresh_tokens")
 }
 

@@ -56,6 +56,8 @@ export class AuthService {
         });
 
     if (!user) {
+      // Constant-time: compare against dummy hash to prevent timing attacks
+      await bcrypt.compare(dto.password, '$2b$12$invalidhashpaddingtomakeconstanttimeresponse..');
       throw new UnauthorizedException({
         code: 'INVALID_CREDENTIALS',
         message: 'Credenciales incorrectas',
@@ -69,14 +71,45 @@ export class AuthService {
       });
     }
 
+    // Check account lockout
+    if (
+      user.failedLoginAttempts >= APP_CONFIG.auth.maxFailedAttempts &&
+      user.lockedUntil &&
+      user.lockedUntil > new Date()
+    ) {
+      throw new UnauthorizedException({
+        code: 'ACCOUNT_LOCKED',
+        message: 'Credenciales incorrectas',
+      });
+    }
+
     const passwordMatches = await bcrypt.compare(
       dto.password,
       user.passwordHash,
     );
     if (!passwordMatches) {
+      const attempts = user.failedLoginAttempts + 1;
+      const lockData: { failedLoginAttempts: number; lockedUntil?: Date } = {
+        failedLoginAttempts: attempts,
+      };
+      if (attempts >= APP_CONFIG.auth.maxFailedAttempts) {
+        lockData.lockedUntil = new Date(Date.now() + 15 * 60 * 1000);
+      }
+      await this.prisma.user.update({
+        where: { id: user.id },
+        data: lockData,
+      });
       throw new UnauthorizedException({
         code: 'INVALID_CREDENTIALS',
         message: 'Credenciales incorrectas',
+      });
+    }
+
+    // Reset lockout on successful login
+    if (user.failedLoginAttempts > 0) {
+      await this.prisma.user.update({
+        where: { id: user.id },
+        data: { failedLoginAttempts: 0, lockedUntil: null },
       });
     }
 
@@ -90,33 +123,61 @@ export class AuthService {
     const payload = await this.verifyRefreshToken(dto.refreshToken);
     const user = await this.usersService.findByIdOrFail(payload.sub);
 
+    // Fetch only non-expired tokens for this user (limit to reduce bcrypt calls)
     const activeTokens = await this.prisma.refreshToken.findMany({
-      where: { userId: user.id, revoked: false },
+      where: {
+        userId: user.id,
+        expiresAt: { gt: new Date() },
+      },
       orderBy: { createdAt: 'desc' },
+      take: 10,
     });
 
     const matchedToken = await this.findMatchingRefreshToken(
       dto.refreshToken,
       activeTokens,
     );
+
     if (!matchedToken) {
+      // Check if this token matches a revoked one (token reuse = possible theft)
+      const revokedTokens = await this.prisma.refreshToken.findMany({
+        where: { userId: user.id, revoked: true },
+        orderBy: { revokedAt: 'desc' },
+        take: 5,
+      });
+      const reusedToken = await this.findMatchingRefreshToken(
+        dto.refreshToken,
+        revokedTokens.map((t) => ({ ...t, revoked: false })),
+      );
+      if (reusedToken) {
+        // Token reuse detected — revoke entire family
+        await this.prisma.refreshToken.updateMany({
+          where: { family: reusedToken.family },
+          data: { revoked: true, revokedAt: new Date() },
+        });
+        this.logger.warn(
+          `Token reuse detected for user ${user.id}, family ${reusedToken.family} revoked`,
+        );
+      }
       throw new UnauthorizedException('Refresh token invalido');
     }
 
+    // Rotate: revoke current token, issue new one in the same family
     await this.prisma.refreshToken.update({
       where: { id: matchedToken.id },
-      data: { revoked: true },
+      data: { revoked: true, revokedAt: new Date() },
     });
 
     return {
       user: this.usersService.toUserEntity(user),
-      ...(await this.createSession(user)),
+      ...(await this.createSession(user, matchedToken.family)),
     };
   }
 
   async logout(userId: string, dto: RefreshTokenDto) {
     const activeTokens = await this.prisma.refreshToken.findMany({
-      where: { userId, revoked: false },
+      where: { userId, revoked: false, expiresAt: { gt: new Date() } },
+      take: 10,
     });
 
     const matchedToken = await this.findMatchingRefreshToken(
@@ -127,9 +188,10 @@ export class AuthService {
       throw new UnauthorizedException('Refresh token invalido');
     }
 
-    await this.prisma.refreshToken.update({
-      where: { id: matchedToken.id },
-      data: { revoked: true },
+    // Revoke entire family on logout for maximum security
+    await this.prisma.refreshToken.updateMany({
+      where: { family: matchedToken.family },
+      data: { revoked: true, revokedAt: new Date() },
     });
 
     return { message: 'Sesion cerrada correctamente' };
@@ -394,7 +456,7 @@ export class AuthService {
     }
   }
 
-  private async createSession(user: SessionUser) {
+  private async createSession(user: SessionUser, family?: string) {
     const payload: JwtPayload = {
       sub: user.id,
       username: user.username,
@@ -410,6 +472,7 @@ export class AuthService {
       ) as never,
     });
 
+    const tokenFamily = family ?? crypto.randomUUID();
     const refreshToken = await this.jwtService.signAsync(payload, {
       secret: this.configService.getOrThrow<string>('JWT_REFRESH_SECRET'),
       expiresIn: this.configService.get<string>(
@@ -418,10 +481,12 @@ export class AuthService {
       ) as never,
     });
 
+    const tokenHash = await bcrypt.hash(refreshToken, 10);
     await this.prisma.refreshToken.create({
       data: {
-        tokenHash: await bcrypt.hash(refreshToken, this.saltRounds),
+        tokenHash,
         userId: user.id,
+        family: tokenFamily,
         expiresAt: this.calculateExpiryDate(
           this.configService.get<string>('JWT_REFRESH_EXPIRES_IN', '7d'),
         ),
@@ -446,6 +511,7 @@ export class AuthService {
     tokens: Array<{
       id: string;
       tokenHash: string;
+      family: string;
       expiresAt: Date;
       revoked: boolean;
     }>,
