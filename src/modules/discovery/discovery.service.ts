@@ -256,7 +256,7 @@ export class DiscoveryService implements OnModuleInit, OnModuleDestroy {
     const rows = await this.prisma.$queryRawUnsafe<
       Array<{ id: string; trending_score: number }>
     >(
-      `SELECT id, trending_score FROM mv_trending_novels LIMIT $1`,
+      `SELECT id, trending_score::int FROM mv_trending_novels LIMIT $1`,
       limit,
     );
 
@@ -305,7 +305,7 @@ export class DiscoveryService implements OnModuleInit, OnModuleDestroy {
     const rows = await this.prisma.$queryRawUnsafe<
       Array<{ id: string; trending_score: number }>
     >(
-      `SELECT id, trending_score FROM mv_trending_authors LIMIT $1`,
+      `SELECT id, trending_score::int FROM mv_trending_authors LIMIT $1`,
       limit,
     );
 
