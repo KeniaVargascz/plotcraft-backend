@@ -45,6 +45,7 @@ import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
 import { ValidationPipe } from './common/pipes/validation.pipe';
 import { PrismaModule } from './prisma/prisma.module';
+import { CacheModule } from './common/cache.module';
 
 @Module({
   imports: [
@@ -53,6 +54,7 @@ import { PrismaModule } from './prisma/prisma.module';
       envFilePath: '.env',
     }),
     PrismaModule,
+    CacheModule,
     AuthModule,
     UsersModule,
     ProfilesModule,
