@@ -1,11 +1,15 @@
 import {
   BadRequestException,
   ConflictException,
+  Inject,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import { NotificationsService } from '../notifications/notifications.service';
+import {
+  NOTIFICATIONS_SERVICE,
+  INotificationsService,
+} from '../notifications/notifications.interface';
 
 type FollowListOptions = {
   username: string;
@@ -19,7 +23,8 @@ type FollowListOptions = {
 export class FollowsService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly notificationsService: NotificationsService,
+    @Inject(NOTIFICATIONS_SERVICE)
+    private readonly notificationsService: INotificationsService,
   ) {}
 
   async followUser(followerId: string, username: string) {

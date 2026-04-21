@@ -1,13 +1,14 @@
 import {
   BadRequestException,
   ForbiddenException,
+  Inject,
   Injectable,
   NotFoundException,
   UnprocessableEntityException,
 } from '@nestjs/common';
 import { NovelType, Prisma, WorldVisibility } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
-import { NovelsService } from '../novels/novels.service';
+import { NOVELS_SERVICE, INovelsService } from '../novels/novels.interface';
 import { createSlug } from '../novels/utils/slugify.util';
 import { generateUniqueSlug } from '../../common/utils/unique-slug.util';
 import { CreateLocationDto } from './dto/create-location.dto';
@@ -28,7 +29,8 @@ type WorldListOptions = {
 export class WorldsService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly novelsService: NovelsService,
+    @Inject(NOVELS_SERVICE)
+    private readonly novelsService: INovelsService,
   ) {}
 
   async create(userId: string, dto: CreateWorldDto) {

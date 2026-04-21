@@ -6,6 +6,7 @@ import { PlannerModule } from '../planner/planner.module';
 import { KudosService } from './kudos.service';
 import { NovelCommentsService } from './novel-comments.service';
 import { NovelsController } from './novels.controller';
+import { NOVELS_SERVICE } from './novels.interface';
 import { NovelsService } from './novels.service';
 import { SubscriptionsService } from './subscriptions.service';
 import { NotificationsModule } from '../notifications/notifications.module';
@@ -30,9 +31,11 @@ import { NovelValidationService } from './services/novel-validation.service';
     NovelInteractionsService,
     NovelCharacterLinkService,
     NovelValidationService,
+    { provide: NOVELS_SERVICE, useExisting: NovelsService },
   ],
   exports: [
     NovelsService,
+    NOVELS_SERVICE,
     KudosService,
     NovelCommentsService,
     SubscriptionsService,

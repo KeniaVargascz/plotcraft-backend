@@ -7,6 +7,7 @@ import { ProfilesModule } from '../profiles/profiles.module';
 import { UsersModule } from '../users/users.module';
 import { EmailModule } from '../email/email.module';
 import { OtpModule } from '../otp/otp.module';
+import { AUTH_SERVICE } from './auth.interface';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { JwtRefreshStrategy } from './strategies/jwt-refresh.strategy';
@@ -27,7 +28,12 @@ import { JwtStrategy } from './strategies/jwt.strategy';
     ]),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy, JwtRefreshStrategy],
-  exports: [AuthService],
+  providers: [
+    AuthService,
+    JwtStrategy,
+    JwtRefreshStrategy,
+    { provide: AUTH_SERVICE, useExisting: AuthService },
+  ],
+  exports: [AuthService, AUTH_SERVICE],
 })
 export class AuthModule {}

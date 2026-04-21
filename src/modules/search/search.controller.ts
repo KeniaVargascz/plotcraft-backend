@@ -1,4 +1,12 @@
-import { Controller, Delete, Get, Headers, Param, Query } from '@nestjs/common';
+import {
+  Controller,
+  Delete,
+  Get,
+  Headers,
+  Inject,
+  Param,
+  Query,
+} from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiOkResponse,
@@ -7,7 +15,7 @@ import {
 } from '@nestjs/swagger';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Public } from '../../common/decorators/public.decorator';
-import { AuthService } from '../auth/auth.service';
+import { AUTH_SERVICE, IAuthService } from '../auth/auth.interface';
 import type { JwtPayload } from '../auth/strategies/jwt.strategy';
 import {
   SearchCharactersQueryDto,
@@ -28,7 +36,8 @@ import { SearchService } from './search.service';
 export class SearchController {
   constructor(
     private readonly searchService: SearchService,
-    private readonly authService: AuthService,
+    @Inject(AUTH_SERVICE)
+    private readonly authService: IAuthService,
   ) {}
 
   @Public()

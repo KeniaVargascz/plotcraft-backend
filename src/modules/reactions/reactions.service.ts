@@ -1,14 +1,18 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { ReactionType } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
-import { NotificationsService } from '../notifications/notifications.service';
+import {
+  NOTIFICATIONS_SERVICE,
+  INotificationsService,
+} from '../notifications/notifications.interface';
 import { ToggleReactionDto } from './dto/toggle-reaction.dto';
 
 @Injectable()
 export class ReactionsService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly notificationsService: NotificationsService,
+    @Inject(NOTIFICATIONS_SERVICE)
+    private readonly notificationsService: INotificationsService,
   ) {}
 
   async toggleReaction(postId: string, userId: string, dto: ToggleReactionDto) {

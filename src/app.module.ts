@@ -47,6 +47,7 @@ import { ValidationPipe } from './common/pipes/validation.pipe';
 import { PrismaModule } from './prisma/prisma.module';
 import { CacheModule } from './common/cache.module';
 import { QueueModule } from './common/queue/queue.module';
+import { RepositoryModule } from './common/repository/repository.module';
 
 @Module({
   imports: [
@@ -57,6 +58,7 @@ import { QueueModule } from './common/queue/queue.module';
     PrismaModule,
     CacheModule,
     QueueModule,
+    RepositoryModule,
     AuthModule,
     UsersModule,
     ProfilesModule,

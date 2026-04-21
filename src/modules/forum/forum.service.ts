@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ForbiddenException,
+  Inject,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -12,8 +13,11 @@ import {
   ThreadStatus,
 } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
-import { AuthService } from '../auth/auth.service';
-import { NotificationsService } from '../notifications/notifications.service';
+import { AUTH_SERVICE, IAuthService } from '../auth/auth.interface';
+import {
+  NOTIFICATIONS_SERVICE,
+  INotificationsService,
+} from '../notifications/notifications.interface';
 import { createSlug } from '../novels/utils/slugify.util';
 import { generateUniqueSlug } from '../../common/utils/unique-slug.util';
 import { CreateThreadDto } from './dto/create-thread.dto';
@@ -92,8 +96,10 @@ type ThreadDetailView = ThreadSummaryView & {
 export class ForumService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly authService: AuthService,
-    private readonly notificationsService: NotificationsService,
+    @Inject(AUTH_SERVICE)
+    private readonly authService: IAuthService,
+    @Inject(NOTIFICATIONS_SERVICE)
+    private readonly notificationsService: INotificationsService,
     private readonly forumReplyService: ForumReplyService,
     private readonly forumPollService: ForumPollService,
   ) {}

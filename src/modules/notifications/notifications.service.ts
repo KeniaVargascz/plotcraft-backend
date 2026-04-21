@@ -116,7 +116,7 @@ export class NotificationsService {
     return { count };
   }
 
-  private async invalidateUnreadCount(userId: string) {
+  async invalidateUnreadCount(userId: string) {
     await this.cache.del(`unread:${userId}`);
   }
 

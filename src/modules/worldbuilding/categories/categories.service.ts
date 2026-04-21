@@ -1,11 +1,12 @@
 import {
   BadRequestException,
+  Inject,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
-import { WorldsService } from '../../worlds/worlds.service';
+import { WORLDS_SERVICE, IWorldsService } from '../../worlds/worlds.interface';
 import { createSlug } from '../../novels/utils/slugify.util';
 import {
   CATEGORY_TEMPLATES,
@@ -19,7 +20,8 @@ import { UpdateCategoryDto } from './dto/update-category.dto';
 export class CategoriesService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly worldsService: WorldsService,
+    @Inject(WORLDS_SERVICE)
+    private readonly worldsService: IWorldsService,
   ) {}
 
   async listCategories(worldSlug: string) {

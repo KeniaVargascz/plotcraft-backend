@@ -6,8 +6,11 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { ChapterStatus, Prisma } from '@prisma/client';
-import { NovelsService } from '../novels/novels.service';
-import { NotificationsService } from '../notifications/notifications.service';
+import {
+  NOTIFICATIONS_SERVICE,
+  INotificationsService,
+} from '../notifications/notifications.interface';
+import { NOVELS_SERVICE, INovelsService } from '../novels/novels.interface';
 import { PrismaService } from '../../prisma/prisma.service';
 import { QUEUE_SERVICE, QueueService } from '../../common/queue/queue.interface';
 import {
@@ -26,8 +29,10 @@ import { APP_CONFIG } from '../../config/constants';
 export class ChaptersService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly novelsService: NovelsService,
-    private readonly notificationsService: NotificationsService,
+    @Inject(NOVELS_SERVICE)
+    private readonly novelsService: INovelsService,
+    @Inject(NOTIFICATIONS_SERVICE)
+    private readonly notificationsService: INotificationsService,
     @Inject(QUEUE_SERVICE) private readonly queue: QueueService,
   ) {}
 

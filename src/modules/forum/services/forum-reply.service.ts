@@ -1,12 +1,16 @@
 import {
   BadRequestException,
   ForbiddenException,
+  Inject,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { ForumReactionType, ThreadStatus } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
-import { NotificationsService } from '../../notifications/notifications.service';
+import {
+  NOTIFICATIONS_SERVICE,
+  INotificationsService,
+} from '../../notifications/notifications.interface';
 import { CreateReplyDto } from '../dto/create-reply.dto';
 import { UpdateReplyDto } from '../dto/update-reply.dto';
 
@@ -35,7 +39,8 @@ type ReplyDetailView = {
 export class ForumReplyService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly notificationsService: NotificationsService,
+    @Inject(NOTIFICATIONS_SERVICE)
+    private readonly notificationsService: INotificationsService,
   ) {}
 
   async createReply(slug: string, userId: string, dto: CreateReplyDto) {

@@ -1,17 +1,19 @@
 import {
   ConflictException,
   ForbiddenException,
+  Inject,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import { NovelsService } from './novels.service';
+import { NOVELS_SERVICE, INovelsService } from './novels.interface';
 
 @Injectable()
 export class KudosService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly novelsService: NovelsService,
+    @Inject(NOVELS_SERVICE)
+    private readonly novelsService: INovelsService,
   ) {}
 
   async addKudo(slug: string, userId: string) {

@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ForbiddenException,
+  Inject,
   Injectable,
   NotFoundException,
   UnprocessableEntityException,
@@ -16,7 +17,10 @@ import {
   Prisma,
 } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
-import { NotificationsService } from '../notifications/notifications.service';
+import {
+  NOTIFICATIONS_SERVICE,
+  INotificationsService,
+} from '../notifications/notifications.interface';
 import { CreateCommunityCharacterDto } from './dto/create-community-character.dto';
 import { ReviewSuggestionDto } from './dto/review-suggestion.dto';
 import { UpdateCommunityCharacterDto } from './dto/update-community-character.dto';
@@ -27,7 +31,8 @@ type Viewer = { id: string } | null;
 export class CommunityCharactersService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly notificationsService: NotificationsService,
+    @Inject(NOTIFICATIONS_SERVICE)
+    private readonly notificationsService: INotificationsService,
   ) {}
 
   private async getFandomCommunity(slug: string): Promise<Community> {

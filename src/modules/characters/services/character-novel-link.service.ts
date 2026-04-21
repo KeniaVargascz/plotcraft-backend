@@ -1,13 +1,14 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
-import { NovelsService } from '../../novels/novels.service';
+import { NOVELS_SERVICE, INovelsService } from '../../novels/novels.interface';
 
 @Injectable()
 export class CharacterNovelLinkService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly novelsService: NovelsService,
+    @Inject(NOVELS_SERVICE)
+    private readonly novelsService: INovelsService,
   ) {}
 
   async linkNovel(

@@ -3,6 +3,7 @@ import {
   ConflictException,
   HttpException,
   HttpStatus,
+  Inject,
   Injectable,
   Logger,
   UnauthorizedException,
@@ -12,7 +13,7 @@ import { JwtService } from '@nestjs/jwt';
 import { Prisma } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../../prisma/prisma.service';
-import { UsersService } from '../users/users.service';
+import { USERS_SERVICE, IUsersService } from '../users/users.interface';
 import { OtpService } from '../otp/otp.service';
 import { EmailService } from '../email/email.service';
 import { OTP_EXPIRY_MINUTES, OTP_RESEND_COOLDOWN } from '../otp/otp.constants';
@@ -34,7 +35,8 @@ export class AuthService {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly usersService: UsersService,
+    @Inject(USERS_SERVICE)
+    private readonly usersService: IUsersService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
     private readonly otpService: OtpService,

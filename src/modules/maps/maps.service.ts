@@ -1,11 +1,12 @@
 import {
   BadRequestException,
+  Inject,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
-import { WorldsService } from '../worlds/worlds.service';
+import { WORLDS_SERVICE, IWorldsService } from '../worlds/worlds.interface';
 import { CreateMarkerDto } from './dto/create-marker.dto';
 import { CreateRegionDto } from './dto/create-region.dto';
 import { UpdateMarkerDto } from './dto/update-marker.dto';
@@ -16,7 +17,8 @@ import { UpdateViewportDto } from './dto/update-viewport.dto';
 export class MapsService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly worldsService: WorldsService,
+    @Inject(WORLDS_SERVICE)
+    private readonly worldsService: IWorldsService,
   ) {}
 
   async getMap(worldSlug: string) {

@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  Inject,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -10,7 +11,7 @@ import {
 } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { generateUniqueSlug } from '../../common/utils/unique-slug.util';
-import { WorldsService } from '../worlds/worlds.service';
+import { WORLDS_SERVICE, IWorldsService } from '../worlds/worlds.interface';
 import { CharacterQueryDto } from './dto/character-query.dto';
 import { CreateCharacterDto } from './dto/create-character.dto';
 import { UpdateCharacterDto } from './dto/update-character.dto';
@@ -28,7 +29,8 @@ type CharacterListOptions = {
 export class CharactersService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly worldsService: WorldsService,
+    @Inject(WORLDS_SERVICE)
+    private readonly worldsService: IWorldsService,
   ) {}
 
   async create(userId: string, dto: CreateCharacterDto) {

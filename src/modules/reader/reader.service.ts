@@ -1,7 +1,7 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import { ReaderFontFamily, ReaderMode } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
-import { NovelsService } from '../novels/novels.service';
+import { NOVELS_SERVICE, INovelsService } from '../novels/novels.interface';
 import { ReadingProgressBuffer } from './reading-progress-buffer.service';
 import { ReaderPreferencesDto } from './dto/reader-preferences.dto';
 import { UpdateProgressDto } from './dto/update-progress.dto';
@@ -12,7 +12,8 @@ type CursorQuery = { cursor?: string; limit?: number };
 export class ReaderService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly novelsService: NovelsService,
+    @Inject(NOVELS_SERVICE)
+    private readonly novelsService: INovelsService,
     private readonly progressBuffer: ReadingProgressBuffer,
   ) {}
 

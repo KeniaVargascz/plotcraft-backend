@@ -1,11 +1,12 @@
 import {
   BadRequestException,
+  Inject,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
-import { WorldsService } from '../../worlds/worlds.service';
+import { WORLDS_SERVICE, IWorldsService } from '../../worlds/worlds.interface';
 import { createSlug } from '../../novels/utils/slugify.util';
 import type { FieldDefinition } from '../constants/category-templates.const';
 import { validateFields } from '../utils/field-validator.util';
@@ -18,7 +19,8 @@ import { UpdateEntryDto } from './dto/update-entry.dto';
 export class EntriesService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly worldsService: WorldsService,
+    @Inject(WORLDS_SERVICE)
+    private readonly worldsService: IWorldsService,
   ) {}
 
   async listEntries(worldSlug: string, query: EntryQueryDto) {
