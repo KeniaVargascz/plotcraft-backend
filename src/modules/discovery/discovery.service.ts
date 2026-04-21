@@ -253,12 +253,9 @@ export class DiscoveryService implements OnModuleInit, OnModuleDestroy {
   }
 
   private async computeTrendingNovels(limit: number) {
-    const rows = await this.prisma.$queryRawUnsafe<
+    const rows = await this.prisma.$queryRaw<
       Array<{ id: string; trending_score: number }>
-    >(
-      `SELECT id, trending_score::int FROM mv_trending_novels LIMIT $1`,
-      limit,
-    );
+    >`SELECT id, trending_score::int FROM mv_trending_novels LIMIT ${limit}`;
 
     const novels = await this.prisma.novel.findMany({
       where: { id: { in: rows.map((row) => row.id) } },
@@ -302,12 +299,9 @@ export class DiscoveryService implements OnModuleInit, OnModuleDestroy {
   }
 
   private async computeTrendingAuthors(limit: number) {
-    const rows = await this.prisma.$queryRawUnsafe<
+    const rows = await this.prisma.$queryRaw<
       Array<{ id: string; trending_score: number }>
-    >(
-      `SELECT id, trending_score::int FROM mv_trending_authors LIMIT $1`,
-      limit,
-    );
+    >`SELECT id, trending_score::int FROM mv_trending_authors LIMIT ${limit}`;
 
     const authors = await this.prisma.user.findMany({
       where: { id: { in: rows.map((row) => row.id) } },
