@@ -17,12 +17,15 @@ export function buildSearchQuery(input: string): SearchQueryParts {
     .split(' ')
     .map((term) => term.trim())
     .filter(Boolean);
-  const useFullText =
-    normalized.length >= 3 && terms.every((term) => term.length >= 3);
+  // Full-text search disabled: $queryRawUnsafe with positional params ($1, $2)
+  // is incompatible with PgBouncer transaction mode (Neon pooler).
+  // The tsvector columns and GIN indexes exist but the raw SQL queries fail
+  // at runtime. Re-enable when using a direct DB connection for search.
+  const useFullText = false;
 
   return {
     normalized,
-    tsquery: useFullText ? terms.join(' & ') : null,
+    tsquery: null,
     ilike: `%${normalized}%`,
     terms,
     useFullText,
