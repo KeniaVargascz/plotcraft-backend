@@ -470,7 +470,7 @@ export class AuthService {
       secret: this.configService.getOrThrow<string>('JWT_SECRET'),
       expiresIn: this.configService.get<string>(
         'JWT_EXPIRES_IN',
-        '15m',
+        APP_CONFIG.auth.accessTokenTtl,
       ) as never,
     });
 

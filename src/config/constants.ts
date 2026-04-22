@@ -6,7 +6,7 @@
 export const APP_CONFIG = {
   auth: {
     saltRounds: 12,
-    accessTokenTtl: '15m',
+    accessTokenTtl: '60m',
     refreshTokenTtl: '7d',
     maxFailedAttempts: 5,
   },
