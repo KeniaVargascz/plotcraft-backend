@@ -39,7 +39,7 @@ describe('Feed integration', () => {
     );
 
     const createPostResponse = await request(app.getHttpServer())
-      .post('/api/posts')
+      .post('/api/v1/posts')
       .set('Authorization', bearer(session.accessToken))
       .send({
         content: `Post de integracion ${prefix}`,
@@ -48,7 +48,7 @@ describe('Feed integration', () => {
     expect(createPostResponse.status).toBe(201);
 
     const exploreResponse = await request(app.getHttpServer()).get(
-      '/api/feed/explore',
+      '/api/v1/feed/explore',
     );
 
     expect(exploreResponse.status).toBe(200);
@@ -64,13 +64,13 @@ describe('Feed integration', () => {
     ).toBe(true);
 
     const personalizedWithoutAuth = await request(app.getHttpServer()).get(
-      '/api/feed',
+      '/api/v1/feed',
     );
 
     expect(personalizedWithoutAuth.status).toBe(401);
 
     const personalizedWithAuth = await request(app.getHttpServer())
-      .get('/api/feed')
+      .get('/api/v1/feed')
       .set('Authorization', bearer(session.accessToken));
 
     expect(personalizedWithAuth.status).toBe(200);

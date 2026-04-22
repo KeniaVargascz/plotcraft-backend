@@ -19,7 +19,7 @@ describe('Worldbuilding integration', () => {
   it('lists templates and lets an owner create and fetch a worldbuilding entry', async () => {
     const httpServer = app.getHttpServer() as Parameters<typeof request>[0];
     const templatesResponse = await request(httpServer).get(
-      '/api/worlds/wb/templates',
+      '/api/v1/worlds/wb/templates',
     );
     const templatesBody = templatesResponse.body as {
       data?: Array<{ key: string }>;
@@ -39,7 +39,7 @@ describe('Worldbuilding integration', () => {
     const fieldKey = 'detalle_prueba';
 
     const categoryResponse = await request(httpServer)
-      .post('/api/worlds/el-mundo-del-velo/wb/categories')
+      .post('/api/v1/worlds/el-mundo-del-velo/wb/categories')
       .set('Authorization', bearer(session.accessToken))
       .send({
         name: `Cronica ${suffix}`,
@@ -66,7 +66,7 @@ describe('Worldbuilding integration', () => {
     const category = unwrapData<{ id: string; slug: string }>(categoryBody);
 
     const entryResponse = await request(httpServer)
-      .post('/api/worlds/el-mundo-del-velo/wb/entries')
+      .post('/api/v1/worlds/el-mundo-del-velo/wb/entries')
       .set('Authorization', bearer(session.accessToken))
       .send({
         name: `Entrada ${suffix}`,
@@ -85,7 +85,7 @@ describe('Worldbuilding integration', () => {
     const entry = unwrapData<{ slug: string }>(entryBody);
 
     const detailResponse = await request(httpServer).get(
-      `/api/worlds/el-mundo-del-velo/wb/entries/${entry.slug}`,
+      `/api/v1/worlds/el-mundo-del-velo/wb/entries/${entry.slug}`,
     );
     const detailBody = detailResponse.body as {
       data?: { slug: string; category: { slug: string } };

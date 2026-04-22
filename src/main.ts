@@ -3,6 +3,7 @@ import { NestFactory, Reflector } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import helmet from 'helmet';
+import { Request, Response, NextFunction } from 'express';
 import { join } from 'path';
 import { AppModule } from './app.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
@@ -25,7 +26,15 @@ async function bootstrap() {
     credentials: true,
   });
 
-  app.setGlobalPrefix('api');
+  // Backward compatibility: redirect /api/* to /api/v1/*
+  app.use((req: Request, res: Response, next: NextFunction) => {
+    if (req.url.startsWith('/api/') && !req.url.startsWith('/api/v1/')) {
+      req.url = req.url.replace('/api/', '/api/v1/');
+    }
+    next();
+  });
+
+  app.setGlobalPrefix('api/v1');
   app.useGlobalGuards(new JwtAuthGuard(reflector));
   app.useStaticAssets(join(process.cwd(), 'uploads'), {
     prefix: '/uploads/',
@@ -39,7 +48,7 @@ async function bootstrap() {
     .build();
 
   SwaggerModule.setup(
-    'api/docs',
+    'api/v1/docs',
     app,
     SwaggerModule.createDocument(app, swaggerConfig),
   );

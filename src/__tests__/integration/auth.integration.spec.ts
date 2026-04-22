@@ -48,7 +48,7 @@ describe('Auth integration', () => {
     );
 
     const meResponse = await request(app.getHttpServer())
-      .get('/api/auth/me')
+      .get('/api/v1/auth/me')
       .set('Authorization', bearer(loginSession.accessToken));
 
     expect(meResponse.status).toBe(200);
@@ -60,7 +60,7 @@ describe('Auth integration', () => {
     expect(me.passwordHash).toBeUndefined();
 
     const refreshResponse = await request(app.getHttpServer())
-      .post('/api/auth/refresh')
+      .post('/api/v1/auth/refresh')
       .send({ refreshToken: loginSession.refreshToken });
 
     expect(refreshResponse.status).toBe(200);
@@ -73,7 +73,7 @@ describe('Auth integration', () => {
     expect(refreshSession.accessToken).toEqual(expect.any(String));
 
     const logoutResponse = await request(app.getHttpServer())
-      .post('/api/auth/logout')
+      .post('/api/v1/auth/logout')
       .set('Authorization', bearer(refreshSession.accessToken))
       .send({ refreshToken: refreshSession.refreshToken });
 

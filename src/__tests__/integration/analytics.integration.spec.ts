@@ -25,7 +25,7 @@ describe('Analytics integration', () => {
     );
 
     const authorResponse = await request(httpServer)
-      .get('/api/analytics/me?period=30d')
+      .get('/api/v1/analytics/me?period=30d')
       .set('Authorization', bearer(session.accessToken));
     const authorBody = authorResponse.body as {
       data?: { totals: { totalNovels: number } };
@@ -38,7 +38,7 @@ describe('Analytics integration', () => {
     ).toBeGreaterThan(0);
 
     const novelResponse = await request(httpServer)
-      .get('/api/analytics/novels/las-cronicas-del-velo?period=30d')
+      .get('/api/v1/analytics/novels/las-cronicas-del-velo?period=30d')
       .set('Authorization', bearer(session.accessToken));
     const novelBody = novelResponse.body as {
       data?: { novel: { slug: string } };

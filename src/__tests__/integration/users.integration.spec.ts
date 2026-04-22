@@ -39,7 +39,7 @@ describe('Users integration', () => {
     );
 
     const response = await request(app.getHttpServer())
-      .patch('/api/users/me')
+      .patch('/api/v1/users/me')
       .set('Authorization', bearer(session.accessToken))
       .send({
         email: `${prefix}-updated@plotcraft.test`,
@@ -68,7 +68,7 @@ describe('Users integration', () => {
     );
 
     const deleteResponse = await request(app.getHttpServer())
-      .delete('/api/users/me')
+      .delete('/api/v1/users/me')
       .set('Authorization', bearer(session.accessToken))
       .send({ password: 'Demo1234!' });
 
@@ -78,7 +78,7 @@ describe('Users integration', () => {
     ).toMatch(/Cuenta eliminada/i);
 
     const reloginResponse = await request(app.getHttpServer())
-      .post('/api/auth/login')
+      .post('/api/v1/auth/login')
       .send({
         email: `${prefix}-delete@plotcraft.test`,
         password: 'Demo1234!',

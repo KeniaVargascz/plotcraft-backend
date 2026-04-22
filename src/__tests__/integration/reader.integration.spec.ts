@@ -35,7 +35,7 @@ describe('Reader integration', () => {
     });
 
     const preferencesResponse = await request(app.getHttpServer())
-      .patch('/api/reader/preferences')
+      .patch('/api/v1/reader/preferences')
       .set('Authorization', bearer(session.accessToken))
       .send({
         font_family: 'outfit',
@@ -49,7 +49,7 @@ describe('Reader integration', () => {
     ).toBe('outfit');
 
     const progressResponse = await request(app.getHttpServer())
-      .post('/api/reader/progress')
+      .post('/api/v1/reader/progress')
       .set('Authorization', bearer(session.accessToken))
       .send({
         novel_id: novel.id,
@@ -63,7 +63,7 @@ describe('Reader integration', () => {
     ).toBe(0.42);
 
     const historyResponse = await request(app.getHttpServer())
-      .post('/api/reader/history')
+      .post('/api/v1/reader/history')
       .set('Authorization', bearer(session.accessToken))
       .send({
         novel_id: novel.id,

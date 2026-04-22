@@ -18,7 +18,7 @@ describe('Search integration', () => {
 
   it('returns grouped search results, suggestions and authenticated history', async () => {
     const searchResponse = await request(app.getHttpServer()).get(
-      '/api/search?q=velo',
+      '/api/v1/search?q=velo',
     );
 
     expect(searchResponse.status).toBe(200);
@@ -29,7 +29,7 @@ describe('Search integration', () => {
     ).toBeGreaterThan(0);
 
     const suggestionsResponse = await request(app.getHttpServer()).get(
-      '/api/search/suggestions?q=vel',
+      '/api/v1/search/suggestions?q=vel',
     );
 
     expect(suggestionsResponse.status).toBe(200);
@@ -45,11 +45,11 @@ describe('Search integration', () => {
     );
 
     await request(app.getHttpServer())
-      .get('/api/search?q=silencio')
+      .get('/api/v1/search?q=silencio')
       .set('Authorization', bearer(session.accessToken));
 
     const historyResponse = await request(app.getHttpServer())
-      .get('/api/search/history')
+      .get('/api/v1/search/history')
       .set('Authorization', bearer(session.accessToken));
 
     expect(historyResponse.status).toBe(200);

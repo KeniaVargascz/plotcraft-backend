@@ -19,7 +19,7 @@ export async function loginAs(
   email: string,
   password: string,
 ): Promise<AuthSession> {
-  const response = await request(httpServer).post('/api/auth/login').send({
+  const response = await request(httpServer).post('/api/v1/auth/login').send({
     email,
     password,
   });
@@ -35,7 +35,7 @@ export async function registerUser(
     password: string;
   },
 ): Promise<Response> {
-  return request(httpServer).post('/api/auth/register').send(payload);
+  return request(httpServer).post('/api/v1/auth/register').send(payload);
 }
 
 export function bearer(accessToken: string) {

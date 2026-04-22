@@ -39,7 +39,7 @@ describe('Characters relationships integration', () => {
     );
 
     const parentResponse = await request(app.getHttpServer())
-      .post('/api/characters')
+      .post('/api/v1/characters')
       .set('Authorization', bearer(session.accessToken))
       .send({
         name: 'Elena',
@@ -47,7 +47,7 @@ describe('Characters relationships integration', () => {
       });
 
     const childResponse = await request(app.getHttpServer())
-      .post('/api/characters')
+      .post('/api/v1/characters')
       .set('Authorization', bearer(session.accessToken))
       .send({
         name: 'Tomas',
@@ -63,7 +63,7 @@ describe('Characters relationships integration', () => {
     const child = unwrapData<{ id: string; slug: string }>(childResponse.body);
 
     const createRelationshipResponse = await request(app.getHttpServer())
-      .post(`/api/characters/${prefix}/${parent.slug}/relationships`)
+      .post(`/api/v1/characters/${prefix}/${parent.slug}/relationships`)
       .set('Authorization', bearer(session.accessToken))
       .send({
         targetId: child.id,
@@ -85,10 +85,10 @@ describe('Characters relationships integration', () => {
     expect(relationship.target.id).toBe(child.id);
 
     const parentListResponse = await request(app.getHttpServer()).get(
-      `/api/characters/${prefix}/${parent.slug}/relationships`,
+      `/api/v1/characters/${prefix}/${parent.slug}/relationships`,
     );
     const childListResponse = await request(app.getHttpServer()).get(
-      `/api/characters/${prefix}/${child.slug}/relationships`,
+      `/api/v1/characters/${prefix}/${child.slug}/relationships`,
     );
 
     expect(parentListResponse.status).toBe(200);
@@ -122,17 +122,17 @@ describe('Characters relationships integration', () => {
 
     const deleteResponse = await request(app.getHttpServer())
       .delete(
-        `/api/characters/${prefix}/${parent.slug}/relationships/${relationship.id}`,
+        `/api/v1/characters/${prefix}/${parent.slug}/relationships/${relationship.id}`,
       )
       .set('Authorization', bearer(session.accessToken));
 
     expect(deleteResponse.status).toBe(200);
 
     const parentAfterDeleteResponse = await request(app.getHttpServer()).get(
-      `/api/characters/${prefix}/${parent.slug}/relationships`,
+      `/api/v1/characters/${prefix}/${parent.slug}/relationships`,
     );
     const childAfterDeleteResponse = await request(app.getHttpServer()).get(
-      `/api/characters/${prefix}/${child.slug}/relationships`,
+      `/api/v1/characters/${prefix}/${child.slug}/relationships`,
     );
 
     expect(unwrapData<unknown[]>(parentAfterDeleteResponse.body)).toHaveLength(
@@ -157,7 +157,7 @@ describe('Characters relationships integration', () => {
     );
 
     const characterResponse = await request(app.getHttpServer())
-      .post('/api/characters')
+      .post('/api/v1/characters')
       .set('Authorization', bearer(session.accessToken))
       .send({
         name: 'Solo',
@@ -170,7 +170,7 @@ describe('Characters relationships integration', () => {
     );
 
     const createRelationshipResponse = await request(app.getHttpServer())
-      .post(`/api/characters/${username}/${character.slug}/relationships`)
+      .post(`/api/v1/characters/${username}/${character.slug}/relationships`)
       .set('Authorization', bearer(session.accessToken))
       .send({
         targetId: character.id,

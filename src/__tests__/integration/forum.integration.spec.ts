@@ -52,7 +52,7 @@ describe('Forum integration', () => {
     );
 
     const createThreadResponse = await request(app.getHttpServer())
-      .post('/api/forum')
+      .post('/api/v1/forum')
       .set('Authorization', bearer(authorSession.accessToken))
       .send({
         title: 'Thread de integracion',
@@ -70,7 +70,7 @@ describe('Forum integration', () => {
     const slug = createdThread.slug;
 
     const threadDetailResponse = await request(app.getHttpServer()).get(
-      `/api/forum/${slug}`,
+      `/api/v1/forum/${slug}`,
     );
     const threadDetail = unwrapData<{
       poll: { options: Array<{ id: string }> };
@@ -78,20 +78,20 @@ describe('Forum integration', () => {
     const optionId = threadDetail.poll.options[0]?.id;
 
     const voteResponse = await request(app.getHttpServer())
-      .post(`/api/forum/${slug}/vote`)
+      .post(`/api/v1/forum/${slug}/vote`)
       .set('Authorization', bearer(readerSession.accessToken))
       .send({ optionId });
 
     expect(voteResponse.status).toBe(201);
 
     const closeResponse = await request(app.getHttpServer())
-      .post(`/api/forum/${slug}/close`)
+      .post(`/api/v1/forum/${slug}/close`)
       .set('Authorization', bearer(authorSession.accessToken));
 
     expect(closeResponse.status).toBe(201);
 
     const reopenResponse = await request(app.getHttpServer())
-      .post(`/api/forum/${slug}/open`)
+      .post(`/api/v1/forum/${slug}/open`)
       .set('Authorization', bearer(authorSession.accessToken));
 
     expect(reopenResponse.status).toBe(201);

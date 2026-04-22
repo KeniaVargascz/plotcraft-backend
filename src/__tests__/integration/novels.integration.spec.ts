@@ -39,7 +39,7 @@ describe('Novels integration', () => {
     );
 
     const createNovelResponse = await request(app.getHttpServer())
-      .post('/api/novels')
+      .post('/api/v1/novels')
       .set('Authorization', bearer(session.accessToken))
       .send({
         title: 'Novela Integracion',
@@ -53,14 +53,14 @@ describe('Novels integration', () => {
     );
 
     const invalidPublishResponse = await request(app.getHttpServer())
-      .patch('/api/novels/novela-integracion')
+      .patch('/api/v1/novels/novela-integracion')
       .set('Authorization', bearer(session.accessToken))
       .send({ isPublic: true });
 
     expect(invalidPublishResponse.status).toBe(400);
 
     const createChapterResponse = await request(app.getHttpServer())
-      .post('/api/novels/novela-integracion/chapters')
+      .post('/api/v1/novels/novela-integracion/chapters')
       .set('Authorization', bearer(session.accessToken))
       .send({
         title: 'Capitulo Integracion',
@@ -72,14 +72,14 @@ describe('Novels integration', () => {
 
     const publishChapterResponse = await request(app.getHttpServer())
       .post(
-        '/api/novels/novela-integracion/chapters/capitulo-integracion/publish',
+        '/api/v1/novels/novela-integracion/chapters/capitulo-integracion/publish',
       )
       .set('Authorization', bearer(session.accessToken));
 
     expect(publishChapterResponse.status).toBe(201);
 
     const publishNovelResponse = await request(app.getHttpServer())
-      .patch('/api/novels/novela-integracion')
+      .patch('/api/v1/novels/novela-integracion')
       .set('Authorization', bearer(session.accessToken))
       .send({ isPublic: true });
 
@@ -89,7 +89,7 @@ describe('Novels integration', () => {
     ).toBe(true);
 
     const publicDetailResponse = await request(app.getHttpServer()).get(
-      '/api/novels/novela-integracion',
+      '/api/v1/novels/novela-integracion',
     );
 
     expect(publicDetailResponse.status).toBe(200);

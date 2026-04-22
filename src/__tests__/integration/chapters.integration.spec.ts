@@ -39,7 +39,7 @@ describe('Chapters integration', () => {
     );
 
     await request(app.getHttpServer())
-      .post('/api/novels')
+      .post('/api/v1/novels')
       .set('Authorization', bearer(session.accessToken))
       .send({
         title: 'Novela Capitulos',
@@ -47,7 +47,7 @@ describe('Chapters integration', () => {
       });
 
     const chapterOne = await request(app.getHttpServer())
-      .post('/api/novels/novela-capitulos/chapters')
+      .post('/api/v1/novels/novela-capitulos/chapters')
       .set('Authorization', bearer(session.accessToken))
       .send({
         title: 'Primero',
@@ -55,7 +55,7 @@ describe('Chapters integration', () => {
       });
 
     const chapterTwo = await request(app.getHttpServer())
-      .post('/api/novels/novela-capitulos/chapters')
+      .post('/api/v1/novels/novela-capitulos/chapters')
       .set('Authorization', bearer(session.accessToken))
       .send({
         title: 'Segundo',
@@ -66,7 +66,7 @@ describe('Chapters integration', () => {
     expect(chapterTwo.status).toBe(201);
 
     const autosaveResponse = await request(app.getHttpServer())
-      .patch('/api/novels/novela-capitulos/chapters/primero/autosave')
+      .patch('/api/v1/novels/novela-capitulos/chapters/primero/autosave')
       .set('Authorization', bearer(session.accessToken))
       .send({
         content:
@@ -79,7 +79,7 @@ describe('Chapters integration', () => {
     ).toBeGreaterThan(0);
 
     const reorderResponse = await request(app.getHttpServer())
-      .patch('/api/novels/novela-capitulos/chapters/reorder')
+      .patch('/api/v1/novels/novela-capitulos/chapters/reorder')
       .set('Authorization', bearer(session.accessToken))
       .send({
         chapters: [
@@ -97,7 +97,7 @@ describe('Chapters integration', () => {
     expect(reorderResponse.status).toBe(200);
 
     const publishResponse = await request(app.getHttpServer())
-      .post('/api/novels/novela-capitulos/chapters/primero/publish')
+      .post('/api/v1/novels/novela-capitulos/chapters/primero/publish')
       .set('Authorization', bearer(session.accessToken));
 
     expect(publishResponse.status).toBe(201);
@@ -106,7 +106,7 @@ describe('Chapters integration', () => {
     );
 
     const draftsResponse = await request(app.getHttpServer())
-      .get('/api/novels/novela-capitulos/chapters/drafts')
+      .get('/api/v1/novels/novela-capitulos/chapters/drafts')
       .set('Authorization', bearer(session.accessToken));
 
     expect(draftsResponse.status).toBe(200);
