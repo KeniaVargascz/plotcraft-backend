@@ -287,13 +287,13 @@ export class SearchContentService {
     return {
       id: user.id,
       username: user.username,
-      display_name: user.profile?.displayName ?? user.username,
-      avatar_url: user.profile?.avatarUrl ?? null,
+      displayName: user.profile?.displayName ?? user.username,
+      avatarUrl: user.profile?.avatarUrl ?? null,
       bio: user.profile?.bio ?? null,
       stats: {
-        followers_count: user._count.followers,
-        novels_count: user._count.novels,
-        worlds_count: user._count.worlds,
+        followersCount: user._count.followers,
+        novelsCount: user._count.novels,
+        worldsCount: user._count.worlds,
       },
     };
   }
@@ -308,17 +308,17 @@ export class SearchContentService {
   ) {
     return {
       id: post.id,
-      content_excerpt: post.content.slice(0, 200),
+      contentExcerpt: post.content.slice(0, 200),
       type: post.type,
-      created_at: post.createdAt,
+      createdAt: post.createdAt,
       author: {
         username: post.author.username,
-        display_name: post.author.profile?.displayName ?? post.author.username,
-        avatar_url: post.author.profile?.avatarUrl ?? null,
+        displayName: post.author.profile?.displayName ?? post.author.username,
+        avatarUrl: post.author.profile?.avatarUrl ?? null,
       },
       stats: {
-        reactions_count: post._count.reactions,
-        comments_count: post._count.comments,
+        reactionsCount: post._count.reactions,
+        commentsCount: post._count.comments,
       },
     };
   }

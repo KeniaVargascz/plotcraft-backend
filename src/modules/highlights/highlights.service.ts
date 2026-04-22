@@ -172,12 +172,12 @@ export class HighlightsService {
   }) {
     return {
       id: highlight.id,
-      anchor_id: highlight.anchorId,
-      start_offset: highlight.startOffset,
-      end_offset: highlight.endOffset,
+      anchorId: highlight.anchorId,
+      startOffset: highlight.startOffset,
+      endOffset: highlight.endOffset,
       color: highlight.color,
       note: highlight.note,
-      created_at: highlight.createdAt,
+      createdAt: highlight.createdAt,
       chapter: {
         id: highlight.chapter.id,
         slug: highlight.chapter.slug,

@@ -329,7 +329,7 @@ export class SearchService {
         characters,
         users,
         posts,
-        wb_entries: wbEntries,
+        wbEntries,
       },
     };
   }
@@ -637,7 +637,7 @@ export class SearchService {
           label: novel.title,
           sublabel: `por ${novel.author.profile?.displayName ?? novel.author.username}`,
           url: `/novelas/${novel.slug}`,
-          avatar_url: novel.author.profile?.avatarUrl ?? null,
+          avatarUrl: novel.author.profile?.avatarUrl ?? null,
         })),
       ).slice(0, 2),
       ...rankByPrefix(
@@ -646,7 +646,7 @@ export class SearchService {
           label: user.username,
           sublabel: user.profile?.displayName ?? `@${user.username}`,
           url: `/perfil/${user.username}`,
-          avatar_url: user.profile?.avatarUrl ?? null,
+          avatarUrl: user.profile?.avatarUrl ?? null,
         })),
       ).slice(0, 2),
       ...rankByPrefix(
@@ -657,7 +657,7 @@ export class SearchService {
             world.tagline ??
             `por ${world.author.profile?.displayName ?? world.author.username}`,
           url: `/mundos/${world.slug}`,
-          avatar_url: world.author.profile?.avatarUrl ?? null,
+          avatarUrl: world.author.profile?.avatarUrl ?? null,
         })),
       ).slice(0, 2),
       ...rankByPrefix(
@@ -666,7 +666,7 @@ export class SearchService {
           label: character.name,
           sublabel: character.world?.name ?? `@${character.author.username}`,
           url: `/personajes/${character.author.username}/${character.slug}`,
-          avatar_url:
+          avatarUrl:
             character.avatarUrl ?? character.author.profile?.avatarUrl ?? null,
         })),
       ).slice(0, 2),
@@ -676,7 +676,7 @@ export class SearchService {
           label: genre.label,
           sublabel: `Genero · ${genre.slug}`,
           url: `/novelas/genero/${genre.slug}`,
-          avatar_url: null,
+          avatarUrl: null,
         })),
       ).slice(0, 2),
       ...rankByPrefix(
@@ -685,7 +685,7 @@ export class SearchService {
           label: community.name,
           sublabel: `Comunidad · ${community.membersCount} miembros`,
           url: `/comunidades/${community.slug}`,
-          avatar_url: community.coverUrl ?? null,
+          avatarUrl: community.coverUrl ?? null,
         })),
       ).slice(0, 2),
     ].slice(0, 12);

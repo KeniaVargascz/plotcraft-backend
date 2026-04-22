@@ -83,9 +83,9 @@ export class DiscoveryService implements OnModuleInit, OnModuleDestroy {
           characters: trendingCharacters,
           authors: trendingAuthors,
         },
-        new_releases: newReleases,
-        genres_spotlight: genresSpotlight,
-        community_posts: communityPosts,
+        newReleases,
+        genresSpotlight,
+        communityPosts,
         stats,
       };
     });
@@ -101,7 +101,7 @@ export class DiscoveryService implements OnModuleInit, OnModuleDestroy {
     return {
       items,
       period: '72h' as const,
-      generated_at: new Date().toISOString(),
+      generatedAt: new Date().toISOString(),
     };
   }
 
@@ -115,7 +115,7 @@ export class DiscoveryService implements OnModuleInit, OnModuleDestroy {
     return {
       items,
       period: '72h' as const,
-      generated_at: new Date().toISOString(),
+      generatedAt: new Date().toISOString(),
     };
   }
 
@@ -129,7 +129,7 @@ export class DiscoveryService implements OnModuleInit, OnModuleDestroy {
     return {
       items,
       period: '72h' as const,
-      generated_at: new Date().toISOString(),
+      generatedAt: new Date().toISOString(),
     };
   }
 
@@ -143,7 +143,7 @@ export class DiscoveryService implements OnModuleInit, OnModuleDestroy {
     return {
       items,
       period: '7d' as const,
-      generated_at: new Date().toISOString(),
+      generatedAt: new Date().toISOString(),
     };
   }
 
@@ -450,8 +450,8 @@ export class DiscoveryService implements OnModuleInit, OnModuleDestroy {
 
     return rows.map((row) => ({
       novel: this.toNovelSummary(byId.get(row.novelId)!),
-      new_chapters_count: row._count._all,
-      latest_chapter: latestChapterByNovelId.get(row.novelId) ?? null,
+      newChaptersCount: row._count._all,
+      latestChapter: latestChapterByNovelId.get(row.novelId) ?? null,
     }));
   }
 
@@ -498,7 +498,7 @@ export class DiscoveryService implements OnModuleInit, OnModuleDestroy {
         slug: genre.slug,
         label: genre.label,
       },
-      top_novels: genre.novels.map((item) => this.toNovelSummary(item.novel)),
+      topNovels: genre.novels.map((item) => this.toNovelSummary(item.novel)),
     }));
   }
 
@@ -516,11 +516,11 @@ export class DiscoveryService implements OnModuleInit, OnModuleDestroy {
     const row = rows[0];
 
     return {
-      total_novels: Number(row?.novels_count ?? 0),
-      total_authors: Number(row?.authors_count ?? 0),
-      total_worlds: Number(row?.worlds_count ?? 0),
-      total_characters: Number(row?.characters_count ?? 0),
-      total_chapters_published: Number(row?.chapters_count ?? 0),
+      totalNovels: Number(row?.novels_count ?? 0),
+      totalAuthors: Number(row?.authors_count ?? 0),
+      totalWorlds: Number(row?.worlds_count ?? 0),
+      totalCharacters: Number(row?.characters_count ?? 0),
+      totalChaptersPublished: Number(row?.chapters_count ?? 0),
     };
   }
 
@@ -692,14 +692,14 @@ export class DiscoveryService implements OnModuleInit, OnModuleDestroy {
     return {
       id: user.id,
       username: user.username,
-      display_name: user.profile?.displayName ?? user.username,
-      avatar_url: user.profile?.avatarUrl ?? null,
+      displayName: user.profile?.displayName ?? user.username,
+      avatarUrl: user.profile?.avatarUrl ?? null,
       bio: user.profile?.bio ?? null,
-      latest_covers: user.novels.map((novel) => novel.coverUrl).filter(Boolean),
+      latestCovers: user.novels.map((novel) => novel.coverUrl).filter(Boolean),
       stats: {
-        followers_count: user._count.followers,
-        novels_count: user._count.novels,
-        worlds_count: user._count.worlds,
+        followersCount: user._count.followers,
+        novelsCount: user._count.novels,
+        worldsCount: user._count.worlds,
       },
     };
   }
@@ -714,17 +714,17 @@ export class DiscoveryService implements OnModuleInit, OnModuleDestroy {
   ) {
     return {
       id: post.id,
-      content_excerpt: post.content.slice(0, 200),
+      contentExcerpt: post.content.slice(0, 200),
       type: post.type,
-      created_at: post.createdAt,
+      createdAt: post.createdAt,
       author: {
         username: post.author.username,
-        display_name: post.author.profile?.displayName ?? post.author.username,
-        avatar_url: post.author.profile?.avatarUrl ?? null,
+        displayName: post.author.profile?.displayName ?? post.author.username,
+        avatarUrl: post.author.profile?.avatarUrl ?? null,
       },
       stats: {
-        reactions_count: post._count.reactions,
-        comments_count: post._count.comments,
+        reactionsCount: post._count.reactions,
+        commentsCount: post._count.comments,
       },
     };
   }

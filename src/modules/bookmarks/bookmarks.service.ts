@@ -129,9 +129,9 @@ export class BookmarksService {
   }) {
     return {
       id: bookmark.id,
-      anchor_id: bookmark.anchorId,
+      anchorId: bookmark.anchorId,
       label: bookmark.label,
-      created_at: bookmark.createdAt,
+      createdAt: bookmark.createdAt,
       chapter: {
         id: bookmark.chapter.id,
         slug: bookmark.chapter.slug,

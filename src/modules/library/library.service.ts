@@ -26,11 +26,11 @@ export class LibraryService {
     );
 
     return {
-      in_progress: inProgress.data,
+      inProgress: inProgress.data,
       completed: completed.data,
       bookmarked: bookmarked.data,
-      reading_lists: lists,
-      active_goal:
+      readingLists: lists,
+      activeGoal:
         goals.find((goal) => this.isCurrentGoal(goal.year, goal.month)) ?? null,
     };
   }
@@ -218,19 +218,19 @@ export class LibraryService {
     ]);
 
     return {
-      total_chapters_read: uniqueChapterIds.size,
-      total_novels_started: uniqueNovelIds.size,
-      total_novels_completed: completedNovelIds.size,
-      total_words_read: totalWordsRead,
-      total_bookmarks: totalBookmarks,
-      total_highlights: totalHighlights,
-      reading_streak_days: this.calculateReadingStreak(
+      totalChaptersRead: uniqueChapterIds.size,
+      totalNovelsStarted: uniqueNovelIds.size,
+      totalNovelsCompleted: completedNovelIds.size,
+      totalWordsRead: totalWordsRead,
+      totalBookmarks: totalBookmarks,
+      totalHighlights: totalHighlights,
+      readingStreakDays: this.calculateReadingStreak(
         history.map((item) => item.openedAt),
       ),
-      favorite_genre: favoriteGenre
+      favoriteGenre: favoriteGenre
         ? { slug: favoriteGenre.slug, label: favoriteGenre.label }
         : null,
-      monthly_breakdown: [...wordsByMonth.values()]
+      monthlyBreakdown: [...wordsByMonth.values()]
         .sort((a, b) =>
           a.year === b.year ? a.month - b.month : a.year - b.year,
         )
@@ -238,8 +238,8 @@ export class LibraryService {
         .map((item) => ({
           year: item.year,
           month: item.month,
-          words_read: item.words,
-          chapters_read: item.chapterIds.size,
+          wordsRead: item.words,
+          chaptersRead: item.chapterIds.size,
         })),
     };
   }
@@ -345,16 +345,16 @@ export class LibraryService {
       id: goal.id,
       year,
       month,
-      target_words: goal.targetWords,
-      created_at: goal.createdAt,
-      updated_at: goal.updatedAt,
+      targetWords: goal.targetWords,
+      createdAt: goal.createdAt,
+      updatedAt: goal.updatedAt,
       progress: {
-        words_read: wordsRead,
-        pct_complete: goal.targetWords
+        wordsRead: wordsRead,
+        pctComplete: goal.targetWords
           ? Math.min(wordsRead / goal.targetWords, 1)
           : 0,
-        novels_read: uniqueNovelIds.size,
-        chapters_read: uniqueChapters.size,
+        novelsRead: uniqueNovelIds.size,
+        chaptersRead: uniqueChapters.size,
       },
     };
   }
@@ -423,32 +423,32 @@ export class LibraryService {
       id: novel.id,
       slug: novel.slug,
       title: novel.title,
-      cover_url: novel.coverUrl,
+      coverUrl: novel.coverUrl,
       status: novel.status,
-      word_count: novel.wordCount,
-      views_count: novel.viewsCount,
+      wordCount: novel.wordCount,
+      viewsCount: novel.viewsCount,
       author: {
         username: novel.author.username,
-        display_name:
+        displayName:
           novel.author.profile?.displayName ?? novel.author.username,
-        avatar_url: novel.author.profile?.avatarUrl ?? null,
+        avatarUrl: novel.author.profile?.avatarUrl ?? null,
       },
       stats: {
-        chapters_count: novel.chapters.length,
-        likes_count: novel.likes.length,
-        bookmarks_count: novel.bookmarks.length,
+        chaptersCount: novel.chapters.length,
+        likesCount: novel.likes.length,
+        bookmarksCount: novel.bookmarks.length,
       },
-      reading_progress: progress
+      readingProgress: progress
         ? {
-            chapter_id: progress.chapter.id,
-            chapter_slug: progress.chapter.slug,
-            chapter_title: progress.chapter.title,
-            chapter_order: progress.chapter.order,
-            scroll_pct: progress.scrollPct,
-            updated_at: progress.updatedAt,
+            chapterId: progress.chapter.id,
+            chapterSlug: progress.chapter.slug,
+            chapterTitle: progress.chapter.title,
+            chapterOrder: progress.chapter.order,
+            scrollPct: progress.scrollPct,
+            updatedAt: progress.updatedAt,
           }
         : null,
-      last_chapter: novel.chapters.at(-1) ?? null,
+      lastChapter: novel.chapters.at(-1) ?? null,
     };
   }
 }

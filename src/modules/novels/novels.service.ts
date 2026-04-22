@@ -851,13 +851,13 @@ export class NovelsService {
             hasKudo: false,
             isSubscribed: false,
             isAuthor: novel.authorId === viewerId,
-            reading_progress: readingProgressItem
+            readingProgress: readingProgressItem
               ? {
-                  chapter_id: readingProgressItem.chapterId,
-                  chapter_slug: readingProgressItem.chapter.slug,
-                  chapter_title: readingProgressItem.chapter.title,
-                  chapter_order: readingProgressItem.chapter.order,
-                  scroll_pct: readingProgressItem.scrollPct,
+                  chapterId: readingProgressItem.chapterId,
+                  chapterSlug: readingProgressItem.chapter.slug,
+                  chapterTitle: readingProgressItem.chapter.title,
+                  chapterOrder: readingProgressItem.chapter.order,
+                  scrollPct: readingProgressItem.scrollPct,
                 }
               : null,
           }

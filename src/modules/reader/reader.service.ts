@@ -126,15 +126,15 @@ export class ReaderService {
 
     // Return immediately with the buffered values (no DB wait)
     return {
-      novel_id: dto.novel_id,
-      chapter_id: dto.chapter_id,
-      scroll_pct: dto.scroll_pct,
+      novelId: dto.novel_id,
+      chapterId: dto.chapter_id,
+      scrollPct: dto.scroll_pct,
       chapter: {
         slug: chapter.slug,
         title: chapter.title,
         order: chapter.order,
       },
-      updated_at: new Date(),
+      updatedAt: new Date(),
     };
   }
 
@@ -281,12 +281,12 @@ export class ReaderService {
     }
 
     return {
-      chapter_id: progress.chapterId,
-      chapter_slug: progress.chapter.slug,
-      chapter_title: progress.chapter.title,
-      chapter_order: progress.chapter.order,
-      scroll_pct: progress.scrollPct,
-      updated_at: progress.updatedAt,
+      chapterId: progress.chapterId,
+      chapterSlug: progress.chapter.slug,
+      chapterTitle: progress.chapter.title,
+      chapterOrder: progress.chapter.order,
+      scrollPct: progress.scrollPct,
+      updatedAt: progress.updatedAt,
     };
   }
 
@@ -303,14 +303,14 @@ export class ReaderService {
   }) {
     return {
       id: preferences.id,
-      font_family: preferences.fontFamily,
-      font_size: preferences.fontSize,
-      line_height: preferences.lineHeight,
-      max_width: preferences.maxWidth,
-      reading_mode: preferences.readingMode,
-      show_progress: preferences.showProgress,
-      created_at: preferences.createdAt,
-      updated_at: preferences.updatedAt,
+      fontFamily: preferences.fontFamily,
+      fontSize: preferences.fontSize,
+      lineHeight: preferences.lineHeight,
+      maxWidth: preferences.maxWidth,
+      readingMode: preferences.readingMode,
+      showProgress: preferences.showProgress,
+      createdAt: preferences.createdAt,
+      updatedAt: preferences.updatedAt,
     };
   }
 
@@ -326,15 +326,15 @@ export class ReaderService {
     };
   }) {
     return {
-      novel_id: progress.novelId,
-      chapter_id: progress.chapterId,
-      scroll_pct: progress.scrollPct,
+      novelId: progress.novelId,
+      chapterId: progress.chapterId,
+      scrollPct: progress.scrollPct,
       chapter: {
         slug: progress.chapter.slug,
         title: progress.chapter.title,
         order: progress.chapter.order,
       },
-      updated_at: progress.updatedAt,
+      updatedAt: progress.updatedAt,
     };
   }
 
@@ -364,10 +364,10 @@ export class ReaderService {
         id: history.novel.id,
         slug: history.novel.slug,
         title: history.novel.title,
-        cover_url: history.novel.coverUrl,
+        coverUrl: history.novel.coverUrl,
         author: {
           username: history.novel.author.username,
-          display_name:
+          displayName:
             history.novel.author.profile?.displayName ??
             history.novel.author.username,
         },
@@ -378,7 +378,7 @@ export class ReaderService {
         title: history.chapter.title,
         order: history.chapter.order,
       },
-      opened_at: history.openedAt,
+      openedAt: history.openedAt,
     };
   }
 }
