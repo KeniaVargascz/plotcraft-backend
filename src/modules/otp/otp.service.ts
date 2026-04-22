@@ -1,18 +1,26 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { OtpType } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
+import {
+  CacheService,
+  CACHE_SERVICE,
+} from '../../common/services/cache.service';
 import {
   OTP_EXPIRY_MINUTES,
   OTP_LENGTH,
   OTP_MAX_ATTEMPTS,
 } from './otp.constants';
 
+const OTP_ATTEMPTS_PREFIX = 'otp:attempts:';
+const OTP_ATTEMPTS_TTL_MS = OTP_EXPIRY_MINUTES * 60 * 1000;
+
 @Injectable()
 export class OtpService {
-  private readonly failedAttempts = new Map<string, number>();
-
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Inject(CACHE_SERVICE) private readonly cache: CacheService,
+  ) {}
 
   private generateCode(): string {
     return Array.from({ length: OTP_LENGTH }, () =>
@@ -62,16 +70,18 @@ export class OtpService {
     }
 
     const isMatch = await bcrypt.compare(plainCode, otpRecord.code);
+    const cacheKey = `${OTP_ATTEMPTS_PREFIX}${otpRecord.id}`;
+
     if (!isMatch) {
-      const attempts = (this.failedAttempts.get(otpRecord.id) ?? 0) + 1;
-      this.failedAttempts.set(otpRecord.id, attempts);
+      const attempts = ((await this.cache.get<number>(cacheKey)) ?? 0) + 1;
+      await this.cache.set(cacheKey, attempts, OTP_ATTEMPTS_TTL_MS);
 
       if (attempts >= OTP_MAX_ATTEMPTS) {
         await this.prisma.otpCode.update({
           where: { id: otpRecord.id },
           data: { usedAt: new Date() },
         });
-        this.failedAttempts.delete(otpRecord.id);
+        await this.cache.del(cacheKey);
         return { valid: false, reason: 'too_many_attempts' };
       }
 
@@ -83,7 +93,7 @@ export class OtpService {
       data: { usedAt: new Date() },
     });
 
-    this.failedAttempts.delete(otpRecord.id);
+    await this.cache.del(cacheKey);
     return { valid: true };
   }
 }

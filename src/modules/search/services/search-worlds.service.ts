@@ -52,49 +52,37 @@ export class SearchWorldsService {
       };
     }
 
-    const sql = `
-      SELECT w.id,
-             CASE
-               WHEN w.search_vector @@ to_tsquery('spanish', $1)
-                 THEN ts_rank(w.search_vector, to_tsquery('spanish', $1))
-               ELSE 0.05
-             END AS score
-      FROM worlds w
-      WHERE w.visibility = 'PUBLIC'
-        AND (
-          w.search_vector @@ to_tsquery('spanish', $1)
-          OR w.name ILIKE $2
-          OR COALESCE(w.tagline, '') ILIKE $2
-          OR COALESCE(w.description, '') ILIKE $2
-        )
-      ORDER BY score DESC, w.created_at DESC
-      OFFSET $3
-      LIMIT $4
-    `;
-    const countSql = `
-      SELECT LEAST(COUNT(*), 999)::int AS total
-      FROM worlds w
-      WHERE w.visibility = 'PUBLIC'
-        AND (
-          w.search_vector @@ to_tsquery('spanish', $1)
-          OR w.name ILIKE $2
-          OR COALESCE(w.tagline, '') ILIKE $2
-          OR COALESCE(w.description, '') ILIKE $2
-        )
-    `;
     const [rows, totalRows] = await Promise.all([
-      this.prisma.$queryRawUnsafe<Array<{ id: string }>>(
-        sql,
-        search.tsquery,
-        search.ilike,
-        offset,
-        limit,
-      ),
-      this.prisma.$queryRawUnsafe<Array<{ total: number }>>(
-        countSql,
-        search.tsquery,
-        search.ilike,
-      ),
+      this.prisma.$queryRaw<Array<{ id: string }>>`
+        SELECT w.id,
+               CASE
+                 WHEN w.search_vector @@ to_tsquery('spanish', ${search.tsquery})
+                   THEN ts_rank(w.search_vector, to_tsquery('spanish', ${search.tsquery}))
+                 ELSE 0.05
+               END AS score
+        FROM worlds w
+        WHERE w.visibility = 'PUBLIC'
+          AND (
+            w.search_vector @@ to_tsquery('spanish', ${search.tsquery})
+            OR w.name ILIKE ${search.ilike}
+            OR COALESCE(w.tagline, '') ILIKE ${search.ilike}
+            OR COALESCE(w.description, '') ILIKE ${search.ilike}
+          )
+        ORDER BY score DESC, w.created_at DESC
+        OFFSET ${offset}
+        LIMIT ${limit}
+      `,
+      this.prisma.$queryRaw<Array<{ total: number }>>`
+        SELECT LEAST(COUNT(*), 999)::int AS total
+        FROM worlds w
+        WHERE w.visibility = 'PUBLIC'
+          AND (
+            w.search_vector @@ to_tsquery('spanish', ${search.tsquery})
+            OR w.name ILIKE ${search.ilike}
+            OR COALESCE(w.tagline, '') ILIKE ${search.ilike}
+            OR COALESCE(w.description, '') ILIKE ${search.ilike}
+          )
+      `,
     ]);
     const worlds = await this.prisma.world.findMany({
       where: { id: { in: rows.map((row) => row.id) } },
@@ -161,50 +149,38 @@ export class SearchWorldsService {
       };
     }
 
-    const sql = `
-      SELECT e.id,
-             CASE
-               WHEN e.search_vector @@ to_tsquery('spanish', $1)
-                 THEN ts_rank(e.search_vector, to_tsquery('spanish', $1))
-               ELSE 0.05
-             END AS score
-      FROM wb_entries e
-      JOIN worlds w ON w.id = e.world_id
-      WHERE e.is_public = true
-        AND w.visibility = 'PUBLIC'
-        AND (
-          e.search_vector @@ to_tsquery('spanish', $1)
-          OR e.name ILIKE $2
-          OR COALESCE(e.summary, '') ILIKE $2
-        )
-      ORDER BY score DESC, e.created_at DESC
-      LIMIT $3
-    `;
-    const countSql = `
-      SELECT LEAST(COUNT(*), 999)::int AS total
-      FROM wb_entries e
-      JOIN worlds w ON w.id = e.world_id
-      WHERE e.is_public = true
-        AND w.visibility = 'PUBLIC'
-        AND (
-          e.search_vector @@ to_tsquery('spanish', $1)
-          OR e.name ILIKE $2
-          OR COALESCE(e.summary, '') ILIKE $2
-        )
-    `;
-
     const [rows, totalRows] = await Promise.all([
-      this.prisma.$queryRawUnsafe<Array<{ id: string }>>(
-        sql,
-        search.tsquery,
-        search.ilike,
-        limit,
-      ),
-      this.prisma.$queryRawUnsafe<Array<{ total: number }>>(
-        countSql,
-        search.tsquery,
-        search.ilike,
-      ),
+      this.prisma.$queryRaw<Array<{ id: string }>>`
+        SELECT e.id,
+               CASE
+                 WHEN e.search_vector @@ to_tsquery('spanish', ${search.tsquery})
+                   THEN ts_rank(e.search_vector, to_tsquery('spanish', ${search.tsquery}))
+                 ELSE 0.05
+               END AS score
+        FROM wb_entries e
+        JOIN worlds w ON w.id = e.world_id
+        WHERE e.is_public = true
+          AND w.visibility = 'PUBLIC'
+          AND (
+            e.search_vector @@ to_tsquery('spanish', ${search.tsquery})
+            OR e.name ILIKE ${search.ilike}
+            OR COALESCE(e.summary, '') ILIKE ${search.ilike}
+          )
+        ORDER BY score DESC, e.created_at DESC
+        LIMIT ${limit}
+      `,
+      this.prisma.$queryRaw<Array<{ total: number }>>`
+        SELECT LEAST(COUNT(*), 999)::int AS total
+        FROM wb_entries e
+        JOIN worlds w ON w.id = e.world_id
+        WHERE e.is_public = true
+          AND w.visibility = 'PUBLIC'
+          AND (
+            e.search_vector @@ to_tsquery('spanish', ${search.tsquery})
+            OR e.name ILIKE ${search.ilike}
+            OR COALESCE(e.summary, '') ILIKE ${search.ilike}
+          )
+      `,
     ]);
 
     if (rows.length === 0) {

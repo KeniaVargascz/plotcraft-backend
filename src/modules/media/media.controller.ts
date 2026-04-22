@@ -19,6 +19,32 @@ import { join } from 'path';
 import { MediaService } from './media.service';
 import { CloudinaryService } from './cloudinary.service';
 
+const ALLOWED_MIME_TYPES = new Set([
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'image/gif',
+  'image/svg+xml',
+]);
+
+const MAGIC_BYTES: Array<{ mime: string; bytes: number[] }> = [
+  { mime: 'image/jpeg', bytes: [0xff, 0xd8, 0xff] },
+  { mime: 'image/png', bytes: [0x89, 0x50, 0x4e, 0x47] },
+  { mime: 'image/webp', bytes: [0x52, 0x49, 0x46, 0x46] }, // RIFF
+  { mime: 'image/gif', bytes: [0x47, 0x49, 0x46, 0x38] }, // GIF8
+];
+
+function validateMagicBytes(buffer: Buffer, declaredMime: string): boolean {
+  // SVG is text-based, skip magic byte check
+  if (declaredMime === 'image/svg+xml') {
+    const head = buffer.subarray(0, 256).toString('utf8').trim();
+    return head.startsWith('<') && head.includes('svg');
+  }
+  const entry = MAGIC_BYTES.find((m) => m.mime === declaredMime);
+  if (!entry) return false;
+  return entry.bytes.every((byte, i) => buffer[i] === byte);
+}
+
 @ApiTags('media')
 @ApiBearerAuth()
 @Controller('media')
@@ -43,6 +69,18 @@ export class MediaController {
   ) {
     if (!file?.buffer) {
       throw new BadRequestException('No se recibio ningun archivo.');
+    }
+
+    if (!ALLOWED_MIME_TYPES.has(file.mimetype)) {
+      throw new BadRequestException(
+        `Tipo de archivo no permitido: ${file.mimetype}. Solo se aceptan imagenes (JPEG, PNG, WebP, GIF, SVG).`,
+      );
+    }
+
+    if (!validateMagicBytes(file.buffer, file.mimetype)) {
+      throw new BadRequestException(
+        'El contenido del archivo no coincide con el tipo declarado.',
+      );
     }
 
     // Use Cloudinary if configured, otherwise fall back to local filesystem

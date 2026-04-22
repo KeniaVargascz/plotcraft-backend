@@ -14,7 +14,9 @@ export class MediaService {
   }
 
   buildFilename(originalName: string) {
-    const extension = extname(originalName) || '.bin';
-    return `${Date.now()}-${Math.random().toString(36).slice(2, 10)}${extension}`;
+    const SAFE_EXTENSIONS = new Set(['.jpg', '.jpeg', '.png', '.webp', '.gif', '.svg']);
+    const ext = extname(originalName).toLowerCase();
+    const safeExt = SAFE_EXTENSIONS.has(ext) ? ext : '.bin';
+    return `${Date.now()}-${Math.random().toString(36).slice(2, 10)}${safeExt}`;
   }
 }

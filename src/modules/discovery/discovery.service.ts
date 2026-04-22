@@ -56,6 +56,20 @@ export class DiscoveryService implements OnModuleInit, OnModuleDestroy {
 
   async getSnapshot(refresh = false) {
     return this.fromCache('snapshot', refresh, async () => {
+      const safe = <T>(promise: Promise<T>, fallback: T): Promise<T> =>
+        promise.catch((err) => {
+          this.logger.warn(`Snapshot sub-query failed: ${err.message}`);
+          return fallback;
+        });
+
+      const defaultStats = {
+        totalNovels: 0,
+        totalAuthors: 0,
+        totalWorlds: 0,
+        totalCharacters: 0,
+        totalChaptersPublished: 0,
+      };
+
       const [
         trendingNovels,
         trendingWorlds,
@@ -66,14 +80,14 @@ export class DiscoveryService implements OnModuleInit, OnModuleDestroy {
         stats,
         communityPosts,
       ] = await Promise.all([
-        this.computeTrendingNovels(6),
-        this.computeTrendingWorlds(4),
-        this.computeTrendingCharacters(6),
-        this.computeTrendingAuthors(4),
-        this.computeNewReleases(6),
-        this.computeGenresSpotlight(4, 3),
-        this.computePlatformStats(),
-        this.computeCommunityPosts(6),
+        safe(this.computeTrendingNovels(6), []),
+        safe(this.computeTrendingWorlds(4), []),
+        safe(this.computeTrendingCharacters(6), []),
+        safe(this.computeTrendingAuthors(4), []),
+        safe(this.computeNewReleases(6), []),
+        safe(this.computeGenresSpotlight(4, 3), []),
+        safe(this.computePlatformStats(), defaultStats),
+        safe(this.computeCommunityPosts(6), []),
       ]);
 
       return {
@@ -448,11 +462,13 @@ export class DiscoveryService implements OnModuleInit, OnModuleDestroy {
       }
     }
 
-    return rows.map((row) => ({
-      novel: this.toNovelSummary(byId.get(row.novelId)!),
-      newChaptersCount: row._count._all,
-      latestChapter: latestChapterByNovelId.get(row.novelId) ?? null,
-    }));
+    return rows
+      .filter((row) => byId.has(row.novelId))
+      .map((row) => ({
+        novel: this.toNovelSummary(byId.get(row.novelId)!),
+        newChaptersCount: row._count._all,
+        latestChapter: latestChapterByNovelId.get(row.novelId) ?? null,
+      }));
   }
 
   private async computeGenresSpotlight(limit: number, topNovels: number) {

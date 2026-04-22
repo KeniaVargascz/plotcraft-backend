@@ -1,6 +1,6 @@
 export type SearchQueryParts = {
   normalized: string;
-  tsquery: string | null;
+  tsquery: string;
   ilike: string;
   terms: string[];
   useFullText: boolean;
@@ -17,15 +17,16 @@ export function buildSearchQuery(input: string): SearchQueryParts {
     .split(' ')
     .map((term) => term.trim())
     .filter(Boolean);
-  // Full-text search disabled: $queryRawUnsafe with positional params ($1, $2)
-  // is incompatible with PgBouncer transaction mode (Neon pooler).
-  // The tsvector columns and GIN indexes exist but the raw SQL queries fail
-  // at runtime. Re-enable when using a direct DB connection for search.
+  // Full-text search disabled: PgBouncer transaction mode (Neon pooler)
+  // has issues with prepared statements in raw queries.
+  // The tsvector columns and GIN indexes exist; re-enable when using a
+  // direct DB connection or after verifying $queryRaw works with PgBouncer.
   const useFullText = false;
+  const tsquery = terms.length > 0 ? terms.join(' & ') : '';
 
   return {
     normalized,
-    tsquery: null,
+    tsquery,
     ilike: `%${normalized}%`,
     terms,
     useFullText,

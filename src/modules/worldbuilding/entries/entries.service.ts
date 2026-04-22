@@ -573,31 +573,25 @@ export class EntriesService {
     const tsquery = terms.join(' & ');
     const ilike = `%${sanitized}%`;
 
-    const rows = await this.prisma.$queryRawUnsafe<
+    const rows = await this.prisma.$queryRaw<
       Array<{ id: string; score: number }>
-    >(
-      `
+    >`
       SELECT e.id,
              CASE
-               WHEN e.search_vector @@ to_tsquery('spanish', $1)
-                 THEN ts_rank(e.search_vector, to_tsquery('spanish', $1))
+               WHEN e.search_vector @@ to_tsquery('spanish', ${tsquery})
+                 THEN ts_rank(e.search_vector, to_tsquery('spanish', ${tsquery}))
                ELSE 0.05
              END AS score
       FROM wb_entries e
-      WHERE e.world_id = $2::uuid
+      WHERE e.world_id = ${world.id}::uuid
         AND (
-          e.search_vector @@ to_tsquery('spanish', $1)
-          OR e.name ILIKE $3
-          OR COALESCE(e.summary, '') ILIKE $3
+          e.search_vector @@ to_tsquery('spanish', ${tsquery})
+          OR e.name ILIKE ${ilike}
+          OR COALESCE(e.summary, '') ILIKE ${ilike}
         )
       ORDER BY score DESC, e.created_at DESC
-      LIMIT $4
-      `,
-      tsquery,
-      world.id,
-      ilike,
-      limit,
-    );
+      LIMIT ${limit}
+    `;
 
     if (rows.length === 0) {
       return { data: [] };

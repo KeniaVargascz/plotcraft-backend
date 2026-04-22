@@ -63,6 +63,12 @@ describe('AuthService', () => {
       sendOtpVerification: jest.fn(),
       sendWelcome: jest.fn(),
     } as any;
+    const cacheService = {
+      get: jest.fn().mockResolvedValue(null),
+      set: jest.fn().mockResolvedValue(undefined),
+      del: jest.fn().mockResolvedValue(undefined),
+      invalidatePattern: jest.fn().mockResolvedValue(undefined),
+    } as any;
     service = new AuthService(
       prisma,
       usersService,
@@ -70,6 +76,7 @@ describe('AuthService', () => {
       configService,
       otpService,
       emailService,
+      cacheService,
     );
   });
 

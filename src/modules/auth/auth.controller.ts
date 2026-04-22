@@ -1,7 +1,6 @@
 import { Body, Controller, Get, HttpCode, Post } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
-import { UseGuards } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Public } from '../../common/decorators/public.decorator';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
@@ -16,7 +15,6 @@ import type { JwtPayload } from './strategies/jwt.strategy';
 
 @ApiTags('auth')
 @Controller('auth')
-@UseGuards(ThrottlerGuard)
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
@@ -93,7 +91,7 @@ export class AuthController {
   @Post('logout')
   @ApiOperation({ summary: 'Revocar refresh token actual' })
   logout(@CurrentUser() user: JwtPayload, @Body() dto: RefreshTokenDto) {
-    return this.authService.logout(user.sub, dto);
+    return this.authService.logout(user, dto);
   }
 
   @ApiBearerAuth()

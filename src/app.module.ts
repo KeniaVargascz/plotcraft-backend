@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { APP_FILTER, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
+import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { AuthModule } from './modules/auth/auth.module';
 import { BookmarksModule } from './modules/bookmarks/bookmarks.module';
 import { ChaptersModule } from './modules/chapters/chapters.module';
@@ -59,6 +60,10 @@ import { RepositoryModule } from './common/repository/repository.module';
     PrismaModule,
     CacheModule,
     QueueModule,
+    ThrottlerModule.forRoot([
+      { name: 'short', ttl: 60_000, limit: 30 },
+      { name: 'medium', ttl: 900_000, limit: 200 },
+    ]),
     RepositoryModule,
     AuthModule,
     UsersModule,
@@ -104,6 +109,7 @@ import { RepositoryModule } from './common/repository/repository.module';
   providers: [
     { provide: APP_PIPE, useClass: ValidationPipe },
     { provide: APP_FILTER, useClass: HttpExceptionFilter },
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
     { provide: APP_INTERCEPTOR, useClass: TransformInterceptor },
     { provide: APP_INTERCEPTOR, useClass: CacheHeadersInterceptor },
   ],

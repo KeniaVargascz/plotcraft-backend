@@ -65,64 +65,53 @@ export class SearchNovelsService {
       };
     }
 
-    const params: unknown[] = [search.tsquery, search.ilike];
-    const conditions = [
-      'n.is_public = true',
-      "(n.search_vector @@ to_tsquery('spanish', $1) OR n.title ILIKE $2 OR COALESCE(n.synopsis, '') ILIKE $2)",
+    const conditions: Prisma.Sql[] = [
+      Prisma.sql`n.is_public = true`,
+      Prisma.sql`(n.search_vector @@ to_tsquery('spanish', ${search.tsquery}) OR n.title ILIKE ${search.ilike} OR COALESCE(n.synopsis, '') ILIKE ${search.ilike})`,
     ];
 
     if (query.genre) {
-      params.push(query.genre);
       conditions.push(
-        `EXISTS (
+        Prisma.sql`EXISTS (
           SELECT 1
           FROM novel_genres ng
           JOIN genres g ON g.id = ng.genre_id
-          WHERE ng.novel_id = n.id AND g.slug = $${params.length}
+          WHERE ng.novel_id = n.id AND g.slug = ${query.genre}
         )`,
       );
     }
 
     if (query.rating) {
-      params.push(query.rating);
-      conditions.push(`n.rating = $${params.length}::"NovelRating"`);
+      conditions.push(Prisma.sql`n.rating = ${query.rating}::"NovelRating"`);
     }
 
     if (query.status) {
-      params.push(query.status);
-      conditions.push(`n.status = $${params.length}::"NovelStatus"`);
+      conditions.push(Prisma.sql`n.status = ${query.status}::"NovelStatus"`);
     }
 
-    params.push(offset, limit);
-
-    const sql = `
-      SELECT n.id,
-             CASE
-               WHEN n.search_vector @@ to_tsquery('spanish', $1)
-                 THEN ts_rank(n.search_vector, to_tsquery('spanish', $1))
-               ELSE 0.05
-             END AS score
-      FROM novels n
-      WHERE ${conditions.join(' AND ')}
-      ORDER BY score DESC, n.created_at DESC
-      OFFSET $${params.length - 1}
-      LIMIT $${params.length}
-    `;
-    const countSql = `
-      SELECT LEAST(COUNT(*), 999)::int AS total
-      FROM novels n
-      WHERE ${conditions.join(' AND ')}
-    `;
+    const whereClause = conditions.reduce((acc, cond) =>
+      Prisma.sql`${acc} AND ${cond}`,
+    );
 
     const [rows, totalRows] = await Promise.all([
-      this.prisma.$queryRawUnsafe<Array<{ id: string; score: number }>>(
-        sql,
-        ...params,
-      ),
-      this.prisma.$queryRawUnsafe<Array<{ total: number }>>(
-        countSql,
-        ...params.slice(0, params.length - 2),
-      ),
+      this.prisma.$queryRaw<Array<{ id: string; score: number }>>`
+        SELECT n.id,
+               CASE
+                 WHEN n.search_vector @@ to_tsquery('spanish', ${search.tsquery})
+                   THEN ts_rank(n.search_vector, to_tsquery('spanish', ${search.tsquery}))
+                 ELSE 0.05
+               END AS score
+        FROM novels n
+        WHERE ${whereClause}
+        ORDER BY score DESC, n.created_at DESC
+        OFFSET ${offset}
+        LIMIT ${limit}
+      `,
+      this.prisma.$queryRaw<Array<{ total: number }>>`
+        SELECT LEAST(COUNT(*), 999)::int AS total
+        FROM novels n
+        WHERE ${whereClause}
+      `,
     ]);
     const novels = await this.prisma.novel.findMany({
       where: { id: { in: rows.map((row) => row.id) } },

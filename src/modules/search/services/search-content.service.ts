@@ -9,6 +9,7 @@ import {
 import { buildSearchQuery } from '../utils/search-query-builder.util';
 import { SearchSection } from '../types/search-section.type';
 
+
 @Injectable()
 export class SearchContentService {
   constructor(private readonly prisma: PrismaService) {}
@@ -174,42 +175,38 @@ export class SearchContentService {
       };
     }
 
-    const params: unknown[] = [search.tsquery, search.ilike];
-    const conditions = [
-      'p.deleted_at IS NULL',
-      "(p.search_vector @@ to_tsquery('spanish', $1) OR p.content ILIKE $2)",
+    const conditions: Prisma.Sql[] = [
+      Prisma.sql`p.deleted_at IS NULL`,
+      Prisma.sql`(p.search_vector @@ to_tsquery('spanish', ${search.tsquery}) OR p.content ILIKE ${search.ilike})`,
     ];
 
     if (query.type) {
-      params.push(query.type);
-      conditions.push(`p.type = $${params.length}::"PostType"`);
+      conditions.push(Prisma.sql`p.type = ${query.type}::"PostType"`);
     }
 
-    params.push(offset, limit);
-    const sql = `
-      SELECT p.id,
-             CASE
-               WHEN p.search_vector @@ to_tsquery('spanish', $1)
-                 THEN ts_rank(p.search_vector, to_tsquery('spanish', $1))
-               ELSE 0.05
-             END AS score
-      FROM posts p
-      WHERE ${conditions.join(' AND ')}
-      ORDER BY score DESC, p.created_at DESC
-      OFFSET $${params.length - 1}
-      LIMIT $${params.length}
-    `;
-    const countSql = `
-      SELECT LEAST(COUNT(*), 999)::int AS total
-      FROM posts p
-      WHERE ${conditions.join(' AND ')}
-    `;
+    const whereClause = conditions.reduce((acc, cond) =>
+      Prisma.sql`${acc} AND ${cond}`,
+    );
+
     const [rows, totalRows] = await Promise.all([
-      this.prisma.$queryRawUnsafe<Array<{ id: string }>>(sql, ...params),
-      this.prisma.$queryRawUnsafe<Array<{ total: number }>>(
-        countSql,
-        ...params.slice(0, params.length - 2),
-      ),
+      this.prisma.$queryRaw<Array<{ id: string }>>`
+        SELECT p.id,
+               CASE
+                 WHEN p.search_vector @@ to_tsquery('spanish', ${search.tsquery})
+                   THEN ts_rank(p.search_vector, to_tsquery('spanish', ${search.tsquery}))
+                 ELSE 0.05
+               END AS score
+        FROM posts p
+        WHERE ${whereClause}
+        ORDER BY score DESC, p.created_at DESC
+        OFFSET ${offset}
+        LIMIT ${limit}
+      `,
+      this.prisma.$queryRaw<Array<{ total: number }>>`
+        SELECT LEAST(COUNT(*), 999)::int AS total
+        FROM posts p
+        WHERE ${whereClause}
+      `,
     ]);
     const posts = await this.prisma.post.findMany({
       where: { id: { in: rows.map((row) => row.id) } },

@@ -20,9 +20,17 @@ describe('OtpService', () => {
   const bcryptHash = jest.mocked(bcrypt.hash);
   const bcryptCompare = jest.mocked(bcrypt.compare);
 
+  const cacheService = {
+    get: jest.fn().mockResolvedValue(null),
+    set: jest.fn().mockResolvedValue(undefined),
+    del: jest.fn().mockResolvedValue(undefined),
+    invalidatePattern: jest.fn().mockResolvedValue(undefined),
+  } as any;
+
   beforeEach(() => {
     jest.clearAllMocks();
-    service = new OtpService(prisma);
+    cacheService.get.mockResolvedValue(null);
+    service = new OtpService(prisma, cacheService);
   });
 
   describe('create()', () => {

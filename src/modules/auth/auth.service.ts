@@ -23,8 +23,15 @@ import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { RegisterInitiateDto } from './dto/register-initiate.dto';
 import { RegisterVerifyDto } from './dto/register-verify.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
-import type { JwtPayload } from './strategies/jwt.strategy';
+import {
+  type JwtPayload,
+  ACCESS_TOKEN_BLACKLIST_PREFIX,
+} from './strategies/jwt.strategy';
 import { APP_CONFIG } from '../../config/constants';
+import {
+  CacheService,
+  CACHE_SERVICE,
+} from '../../common/services/cache.service';
 
 type SessionUser = Prisma.UserGetPayload<{ include: { profile: true } }>;
 
@@ -41,6 +48,7 @@ export class AuthService {
     private readonly configService: ConfigService,
     private readonly otpService: OtpService,
     private readonly emailService: EmailService,
+    @Inject(CACHE_SERVICE) private readonly cache: CacheService,
   ) {}
 
   async login(dto: LoginDto) {
@@ -176,9 +184,9 @@ export class AuthService {
     };
   }
 
-  async logout(userId: string, dto: RefreshTokenDto) {
+  async logout(caller: JwtPayload, dto: RefreshTokenDto) {
     const activeTokens = await this.prisma.refreshToken.findMany({
-      where: { userId, revoked: false, expiresAt: { gt: new Date() } },
+      where: { userId: caller.sub, revoked: false, expiresAt: { gt: new Date() } },
       take: 10,
     });
 
@@ -195,6 +203,18 @@ export class AuthService {
       where: { family: matchedToken.family },
       data: { revoked: true, revokedAt: new Date() },
     });
+
+    // Blacklist the current access token until it expires
+    if (caller.jti && caller.exp) {
+      const remainingMs = Math.max(0, caller.exp * 1000 - Date.now());
+      if (remainingMs > 0) {
+        await this.cache.set(
+          `${ACCESS_TOKEN_BLACKLIST_PREFIX}${caller.jti}`,
+          true,
+          remainingMs,
+        );
+      }
+    }
 
     return { message: 'Sesion cerrada correctamente' };
   }
@@ -438,6 +458,18 @@ export class AuthService {
       where: { userId: user.id, revoked: false },
       data: { revoked: true },
     });
+
+    // Blacklist all active access tokens for this user via cache pattern
+    await this.cache.invalidatePattern(
+      `${ACCESS_TOKEN_BLACKLIST_PREFIX}*`,
+    );
+    // Since we can't enumerate active JTIs, we store a user-level blacklist
+    // that the JwtStrategy checks. TTL = max access token lifetime.
+    await this.cache.set(
+      `blacklist:user:${user.id}`,
+      true,
+      60 * 60 * 1000, // 60 min (access token max lifetime)
+    );
   }
 
   async getOptionalJwtPayloadFromAuthHeader(
@@ -464,6 +496,7 @@ export class AuthService {
       username: user.username,
       email: user.email,
       isAdmin: user.isAdmin,
+      jti: crypto.randomUUID(),
     };
 
     const accessToken = await this.jwtService.signAsync(payload, {
