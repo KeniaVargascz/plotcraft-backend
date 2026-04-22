@@ -9,26 +9,15 @@ import { AppModule } from './app.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 
 async function bootstrap() {
-  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
+    bodyParser: false, // Disable built-in parser to control order
+  });
   const configService = app.get(ConfigService);
   const reflector = app.get(Reflector);
 
   app.use(helmet());
-  app.useBodyParser('json', { limit: '1mb' });
-  app.useBodyParser('urlencoded', { limit: '1mb', extended: true });
 
-  const corsOrigin = configService.get<string>(
-    'CORS_ORIGIN',
-    'http://localhost:4200',
-  );
-  app.enableCors({
-    origin: corsOrigin.split(',').map((o) => o.trim()),
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
-    credentials: true,
-  });
-
-  // Reject non-JSON Content-Type on mutation requests (except multipart uploads)
+  // Content-Type validation BEFORE body parsers — rejects XML, YAML, etc.
   app.use((req: Request, res: Response, next: NextFunction) => {
     const isMutation = ['POST', 'PUT', 'PATCH'].includes(req.method);
     if (isMutation && req.headers['content-type']) {
@@ -48,6 +37,20 @@ async function bootstrap() {
     next();
   });
 
+  app.useBodyParser('json', { limit: '1mb' });
+  app.useBodyParser('urlencoded', { limit: '1mb', extended: true });
+
+  const corsOrigin = configService.get<string>(
+    'CORS_ORIGIN',
+    'http://localhost:4200',
+  );
+  app.enableCors({
+    origin: corsOrigin.split(',').map((o) => o.trim()),
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true,
+  });
+
   // Backward compatibility: redirect /api/* to /api/v1/*
   app.use((req: Request, res: Response, next: NextFunction) => {
     if (req.url.startsWith('/api/') && !req.url.startsWith('/api/v1/')) {
@@ -62,7 +65,11 @@ async function bootstrap() {
     prefix: '/uploads/',
   });
 
-  if (process.env.NODE_ENV !== 'production') {
+  const isProduction =
+    process.env.NODE_ENV === 'production' ||
+    configService.get<string>('NODE_ENV') === 'production' ||
+    configService.get<string>('RENDER') === 'true'; // Render sets RENDER=true automatically
+  if (!isProduction) {
     const swaggerConfig = new DocumentBuilder()
       .setTitle('PlotCraft API')
       .setDescription('Entregable 1: autenticacion, usuarios y perfiles')
