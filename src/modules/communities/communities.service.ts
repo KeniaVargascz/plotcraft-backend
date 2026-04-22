@@ -74,7 +74,6 @@ export class CommunitiesService {
           total,
           totalPages,
           hasMore: page < totalPages,
-          nextCursor: null,
         },
       };
     }
@@ -100,9 +99,6 @@ export class CommunitiesService {
         nextCursor: hasMore ? (items.at(-1)?.id ?? null) : null,
         hasMore,
         limit,
-        page: null,
-        total: null,
-        totalPages: null,
       },
     };
   }

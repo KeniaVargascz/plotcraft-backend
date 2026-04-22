@@ -446,7 +446,6 @@ export class WorldsService {
           total,
           totalPages,
           hasMore: page < totalPages,
-          nextCursor: null,
         },
       };
     }
@@ -470,9 +469,6 @@ export class WorldsService {
         nextCursor: hasMore ? (items.at(-1)?.id ?? null) : null,
         hasMore,
         limit,
-        page: null,
-        total: null,
-        totalPages: null,
       },
     };
   }

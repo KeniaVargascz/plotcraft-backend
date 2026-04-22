@@ -351,7 +351,6 @@ export class SearchService {
           total: section.total_hint,
           totalPages,
           hasMore: query.page < totalPages,
-          nextCursor: null,
         },
       };
     }
@@ -368,9 +367,6 @@ export class SearchService {
             : null,
         hasMore: offset + limit < section.total_hint,
         limit,
-        page: null,
-        total: null,
-        totalPages: null,
       },
     };
   }
@@ -392,7 +388,6 @@ export class SearchService {
           total: section.total_hint,
           totalPages,
           hasMore: query.page < totalPages,
-          nextCursor: null,
         },
       };
     }
@@ -409,9 +404,6 @@ export class SearchService {
             : null,
         hasMore: offset + limit < section.total_hint,
         limit,
-        page: null,
-        total: null,
-        totalPages: null,
       },
     };
   }
@@ -436,7 +428,6 @@ export class SearchService {
           total: section.total_hint,
           totalPages,
           hasMore: query.page < totalPages,
-          nextCursor: null,
         },
       };
     }
@@ -453,9 +444,6 @@ export class SearchService {
             : null,
         hasMore: offset + limit < section.total_hint,
         limit,
-        page: null,
-        total: null,
-        totalPages: null,
       },
     };
   }
@@ -477,7 +465,6 @@ export class SearchService {
           total: section.total_hint,
           totalPages,
           hasMore: query.page < totalPages,
-          nextCursor: null,
         },
       };
     }
@@ -494,9 +481,6 @@ export class SearchService {
             : null,
         hasMore: offset + limit < section.total_hint,
         limit,
-        page: null,
-        total: null,
-        totalPages: null,
       },
     };
   }
@@ -518,7 +502,6 @@ export class SearchService {
           total: section.total_hint,
           totalPages,
           hasMore: query.page < totalPages,
-          nextCursor: null,
         },
       };
     }
@@ -535,9 +518,6 @@ export class SearchService {
             : null,
         hasMore: offset + limit < section.total_hint,
         limit,
-        page: null,
-        total: null,
-        totalPages: null,
       },
     };
   }

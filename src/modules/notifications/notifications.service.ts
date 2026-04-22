@@ -98,8 +98,11 @@ export class NotificationsService {
 
     return {
       data: items,
-      nextCursor,
-      hasMore,
+      pagination: {
+        nextCursor,
+        hasMore,
+        limit: take,
+      },
     };
   }
 

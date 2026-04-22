@@ -62,7 +62,6 @@ export class SeriesService {
           total,
           totalPages,
           hasMore: page < totalPages,
-          nextCursor: null,
         },
       };
     }
@@ -84,9 +83,6 @@ export class SeriesService {
         nextCursor: hasMore ? (items.at(-1)?.id ?? null) : null,
         hasMore,
         limit,
-        page: null,
-        total: null,
-        totalPages: null,
       },
     };
   }

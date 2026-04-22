@@ -18,8 +18,11 @@ export interface INotificationsService {
     query: NotificationQueryDto,
   ): Promise<{
     data: unknown[];
-    nextCursor: string | null;
-    hasMore: boolean;
+    pagination: {
+      nextCursor: string | null;
+      hasMore: boolean;
+      limit: number;
+    };
   }>;
 
   getUnreadCount(userId: string): Promise<{ count: number }>;

@@ -651,7 +651,6 @@ export class NovelsService {
           total,
           totalPages,
           hasMore: page < totalPages,
-          nextCursor: null,
         },
       };
     }
@@ -679,9 +678,6 @@ export class NovelsService {
         nextCursor: hasMore ? (items.at(-1)?.id ?? null) : null,
         hasMore,
         limit,
-        page: null,
-        total: null,
-        totalPages: null,
       },
     };
   }
