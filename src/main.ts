@@ -65,11 +65,9 @@ async function bootstrap() {
     prefix: '/uploads/',
   });
 
-  const isProduction =
-    process.env.NODE_ENV === 'production' ||
-    configService.get<string>('NODE_ENV') === 'production' ||
-    configService.get<string>('RENDER') === 'true'; // Render sets RENDER=true automatically
-  if (!isProduction) {
+  // Swagger solo se activa con ENABLE_SWAGGER=true (desarrollo local)
+  const enableSwagger = configService.get<string>('ENABLE_SWAGGER') === 'true';
+  if (enableSwagger) {
     const swaggerConfig = new DocumentBuilder()
       .setTitle('PlotCraft API')
       .setDescription('Entregable 1: autenticacion, usuarios y perfiles')
