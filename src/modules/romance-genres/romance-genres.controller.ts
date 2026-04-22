@@ -1,5 +1,6 @@
 import { Controller, Get } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { CacheTtl } from '../../common/decorators/cache-ttl.decorator';
 import { Public } from '../../common/decorators/public.decorator';
 import { RomanceGenresService } from './romance-genres.service';
 
@@ -9,6 +10,7 @@ export class RomanceGenresController {
   constructor(private readonly romanceGenresService: RomanceGenresService) {}
 
   @Public()
+  @CacheTtl(86400)
   @Get()
   @ApiOperation({ summary: 'Listado de generos de romance disponibles' })
   listRomanceGenres() {

@@ -1,5 +1,6 @@
 import { Controller, Get, Param, Query } from '@nestjs/common';
 import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { CacheTtl } from '../../common/decorators/cache-ttl.decorator';
 import { Public } from '../../common/decorators/public.decorator';
 import { DiscoveryResponseDto } from './dto/discovery-response.dto';
 import { FeaturedResponseDto } from './dto/featured-response.dto';
@@ -9,6 +10,7 @@ import { DiscoveryService } from './discovery.service';
 @ApiTags('discovery')
 @Controller('discovery')
 @Public()
+@CacheTtl(300)
 export class DiscoveryController {
   constructor(private readonly discoveryService: DiscoveryService) {}
 

@@ -43,6 +43,7 @@ import { MediaModule } from './modules/media/media.module';
 import { VisualBoardsModule } from './modules/visual-boards/visual-boards.module';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
+import { CacheHeadersInterceptor } from './common/interceptors/cache-headers.interceptor';
 import { ValidationPipe } from './common/pipes/validation.pipe';
 import { PrismaModule } from './prisma/prisma.module';
 import { CacheModule } from './common/cache.module';
@@ -104,6 +105,7 @@ import { RepositoryModule } from './common/repository/repository.module';
     { provide: APP_PIPE, useClass: ValidationPipe },
     { provide: APP_FILTER, useClass: HttpExceptionFilter },
     { provide: APP_INTERCEPTOR, useClass: TransformInterceptor },
+    { provide: APP_INTERCEPTOR, useClass: CacheHeadersInterceptor },
   ],
 })
 export class AppModule {}

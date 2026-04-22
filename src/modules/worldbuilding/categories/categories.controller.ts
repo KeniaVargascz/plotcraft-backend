@@ -8,6 +8,7 @@ import {
   Post,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { CacheTtl } from '../../../common/decorators/cache-ttl.decorator';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import { Public } from '../../../common/decorators/public.decorator';
 import type { JwtPayload } from '../../auth/strategies/jwt.strategy';
@@ -23,6 +24,7 @@ export class CategoriesController {
   constructor(private readonly categoriesService: CategoriesService) {}
 
   @Public()
+  @CacheTtl(86400)
   @Get('worlds/wb/templates')
   @ApiOperation({ summary: 'Listar plantillas de categorias disponibles' })
   listTemplates() {
