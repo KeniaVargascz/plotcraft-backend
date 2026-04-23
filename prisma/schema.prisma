@@ -77,6 +77,7 @@ model User {
 
   @@index([email])
   @@index([username])
+  @@index([lockedUntil])
   @@map("users")
 }
 
@@ -1892,6 +1893,6 @@ model OtpCode {
   usedAt    DateTime? @map("used_at")
   createdAt DateTime  @default(now()) @map("created_at")
 
-  @@index([userId, type])
+  @@index([userId, type, usedAt])
   @@map("otp_codes")
 }
