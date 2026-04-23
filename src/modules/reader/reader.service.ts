@@ -166,7 +166,15 @@ export class ReaderService {
             },
           },
         },
-        chapter: true,
+        chapter: {
+          select: {
+            id: true,
+            title: true,
+            slug: true,
+            order: true,
+            wordCount: true,
+          },
+        },
       },
     });
 
@@ -193,7 +201,15 @@ export class ReaderService {
             },
           },
         },
-        chapter: true,
+        chapter: {
+          select: {
+            id: true,
+            title: true,
+            slug: true,
+            order: true,
+            wordCount: true,
+          },
+        },
       },
     });
 
@@ -240,7 +256,15 @@ export class ReaderService {
             },
           },
         },
-        chapter: true,
+        chapter: {
+          select: {
+            id: true,
+            title: true,
+            slug: true,
+            order: true,
+            wordCount: true,
+          },
+        },
       },
     });
     const hasMore = rows.length > limit;

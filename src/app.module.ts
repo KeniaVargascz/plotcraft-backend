@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
+import { SentryModule } from '@sentry/nestjs/setup';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { AuthModule } from './modules/auth/auth.module';
 import { BookmarksModule } from './modules/bookmarks/bookmarks.module';
@@ -53,6 +54,7 @@ import { RepositoryModule } from './common/repository/repository.module';
 
 @Module({
   imports: [
+    SentryModule.forRoot(),
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: '.env',

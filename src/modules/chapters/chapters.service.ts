@@ -401,7 +401,19 @@ export class ChaptersService {
           }
         : {}),
       orderBy: { order: 'asc' },
-      include: this.chapterInclude(),
+      select: {
+        id: true,
+        title: true,
+        slug: true,
+        order: true,
+        status: true,
+        wordCount: true,
+        scheduledAt: true,
+        publishedAt: true,
+        createdAt: true,
+        updatedAt: true,
+        // Exclude: content, contentSnapshot (saves ~300KB per chapter)
+      },
     });
 
     const hasMore = chapters.length > limit;
@@ -511,11 +523,18 @@ export class ChaptersService {
     } satisfies Prisma.ChapterInclude;
   }
 
-  private toChapterListResponse(
-    chapter: Prisma.ChapterGetPayload<{
-      include: ReturnType<ChaptersService['chapterInclude']>;
-    }>,
-  ) {
+  private toChapterListResponse(chapter: {
+    id: string;
+    title: string;
+    slug: string;
+    order: number;
+    status: string;
+    wordCount: number;
+    scheduledAt: Date | null;
+    publishedAt: Date | null;
+    createdAt: Date;
+    updatedAt: Date;
+  }) {
     return {
       id: chapter.id,
       title: chapter.title,

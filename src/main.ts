@@ -1,3 +1,4 @@
+import './instrument'; // Sentry must be imported before everything else
 import { ConfigService } from '@nestjs/config';
 import { NestFactory, Reflector } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
