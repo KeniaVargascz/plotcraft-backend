@@ -7,6 +7,10 @@ import { AdminDashboardController } from './controllers/admin-dashboard.controll
 import { AdminAuditController } from './controllers/admin-audit.controller';
 import { AdminUsersController } from './controllers/admin-users.controller';
 import { AdminCommunitiesController } from './controllers/admin-communities.controller';
+import { AdminNovelsController } from './controllers/admin-novels.controller';
+import { AdminForumController } from './controllers/admin-forum.controller';
+import { AdminCatalogsController } from './controllers/admin-catalogs.controller';
+import { AdminPostsController } from './controllers/admin-posts.controller';
 import { PublicFeaturesController } from './controllers/public-features.controller';
 import { AdminAuthService } from './services/admin-auth.service';
 import { AdminFeaturesService } from './services/admin-features.service';
@@ -14,6 +18,10 @@ import { AdminDashboardService } from './services/admin-dashboard.service';
 import { AdminAuditService } from './services/admin-audit.service';
 import { AdminUsersService } from './services/admin-users.service';
 import { AdminCommunitiesService } from './services/admin-communities.service';
+import { AdminNovelsService } from './services/admin-novels.service';
+import { AdminForumService } from './services/admin-forum.service';
+import { AdminCatalogsService } from './services/admin-catalogs.service';
+import { AdminPostsService } from './services/admin-posts.service';
 import { FeatureFlagCacheService } from '../../common/services/feature-flag-cache.service';
 
 @Module({
@@ -25,6 +33,10 @@ import { FeatureFlagCacheService } from '../../common/services/feature-flag-cach
     AdminAuditController,
     AdminUsersController,
     AdminCommunitiesController,
+    AdminNovelsController,
+    AdminForumController,
+    AdminCatalogsController,
+    AdminPostsController,
     PublicFeaturesController,
   ],
   providers: [
@@ -34,6 +46,10 @@ import { FeatureFlagCacheService } from '../../common/services/feature-flag-cach
     AdminAuditService,
     AdminUsersService,
     AdminCommunitiesService,
+    AdminNovelsService,
+    AdminForumService,
+    AdminCatalogsService,
+    AdminPostsService,
     FeatureFlagCacheService,
   ],
   exports: [AdminFeaturesService, FeatureFlagCacheService],
