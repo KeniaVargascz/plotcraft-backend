@@ -5,10 +5,14 @@ import { AdminAuthController } from './controllers/admin-auth.controller';
 import { AdminFeaturesController } from './controllers/admin-features.controller';
 import { AdminDashboardController } from './controllers/admin-dashboard.controller';
 import { AdminAuditController } from './controllers/admin-audit.controller';
+import { AdminUsersController } from './controllers/admin-users.controller';
+import { AdminCommunitiesController } from './controllers/admin-communities.controller';
 import { AdminAuthService } from './services/admin-auth.service';
 import { AdminFeaturesService } from './services/admin-features.service';
 import { AdminDashboardService } from './services/admin-dashboard.service';
 import { AdminAuditService } from './services/admin-audit.service';
+import { AdminUsersService } from './services/admin-users.service';
+import { AdminCommunitiesService } from './services/admin-communities.service';
 
 @Module({
   imports: [PrismaModule, AuthModule],
@@ -17,12 +21,16 @@ import { AdminAuditService } from './services/admin-audit.service';
     AdminFeaturesController,
     AdminDashboardController,
     AdminAuditController,
+    AdminUsersController,
+    AdminCommunitiesController,
   ],
   providers: [
     AdminAuthService,
     AdminFeaturesService,
     AdminDashboardService,
     AdminAuditService,
+    AdminUsersService,
+    AdminCommunitiesService,
   ],
   exports: [AdminFeaturesService],
 })

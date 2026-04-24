@@ -20,4 +20,10 @@ export class AdminDashboardController {
   getActivity(@Query('days') days?: string) {
     return this.dashboardService.getRecentActivity(Number(days) || 7);
   }
+
+  @Get('growth')
+  @ApiOperation({ summary: 'Series temporales de crecimiento' })
+  getGrowth(@Query('days') days?: string) {
+    return this.dashboardService.getGrowth(Number(days) || 30);
+  }
 }
