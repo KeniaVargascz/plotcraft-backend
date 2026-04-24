@@ -2,18 +2,22 @@ import { Controller, Get } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Public } from '../../../common/decorators/public.decorator';
 import { CacheTtl } from '../../../common/decorators/cache-ttl.decorator';
-import { FeatureFlagCacheService } from '../../../common/services/feature-flag-cache.service';
+import { PrismaService } from '../../../prisma/prisma.service';
 
 @ApiTags('features')
 @Controller('features')
 export class PublicFeaturesController {
-  constructor(private readonly featureFlagCache: FeatureFlagCacheService) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   @Get('active')
   @Public()
   @CacheTtl(60)
   @ApiOperation({ summary: 'Feature flags activos (público, para frontend)' })
   async getActive() {
-    return this.featureFlagCache.getActiveFlags();
+    const flags = await this.prisma.adminFeatureFlag.findMany({
+      where: { enabled: true },
+      select: { key: true },
+    });
+    return flags.map((f) => f.key);
   }
 }
