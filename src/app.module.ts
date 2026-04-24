@@ -48,6 +48,7 @@ import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
 import { CacheHeadersInterceptor } from './common/interceptors/cache-headers.interceptor';
 import { ValidationPipe } from './common/pipes/validation.pipe';
+import { FeatureFlagGuard } from './common/guards/feature-flag.guard';
 import { PrismaModule } from './prisma/prisma.module';
 import { CacheModule } from './common/cache.module';
 import { QueueModule } from './common/queue/queue.module';
@@ -116,6 +117,7 @@ import { RepositoryModule } from './common/repository/repository.module';
     { provide: APP_GUARD, useClass: ThrottlerGuard },
     { provide: APP_INTERCEPTOR, useClass: TransformInterceptor },
     { provide: APP_INTERCEPTOR, useClass: CacheHeadersInterceptor },
+    { provide: APP_GUARD, useClass: FeatureFlagGuard },
   ],
 })
 export class AppModule {}

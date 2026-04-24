@@ -10,6 +10,7 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { RequireFeature } from '../../common/decorators/require-feature.decorator';
 import type { JwtPayload } from '../auth/strategies/jwt.strategy';
 import { CreateHighlightDto } from './dto/create-highlight.dto';
 import { HighlightQueryDto } from './dto/highlight-query.dto';
@@ -18,6 +19,7 @@ import { HighlightsService } from './highlights.service';
 
 @ApiTags('highlights')
 @ApiBearerAuth()
+@RequireFeature('reader.library.highlights')
 @Controller('highlights')
 export class HighlightsController {
   constructor(private readonly highlightsService: HighlightsService) {}

@@ -2,12 +2,14 @@ import { Controller, Get, Headers, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Public } from '../../common/decorators/public.decorator';
+import { RequireFeature } from '../../common/decorators/require-feature.decorator';
 import { AuthService } from '../auth/auth.service';
 import type { JwtPayload } from '../auth/strategies/jwt.strategy';
 import { FeedQueryDto } from './dto/feed-query.dto';
 import { FeedService } from './feed.service';
 
 @ApiTags('feed')
+@RequireFeature('social.feed')
 @Controller('feed')
 export class FeedController {
   constructor(

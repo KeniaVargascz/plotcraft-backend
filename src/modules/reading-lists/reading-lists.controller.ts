@@ -12,6 +12,7 @@ import {
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Public } from '../../common/decorators/public.decorator';
+import { RequireFeature } from '../../common/decorators/require-feature.decorator';
 import { AuthService } from '../auth/auth.service';
 import type { JwtPayload } from '../auth/strategies/jwt.strategy';
 import { AddToListDto } from './dto/add-to-list.dto';
@@ -20,6 +21,7 @@ import { UpdateReadingListDto } from './dto/update-reading-list.dto';
 import { ReadingListsService } from './reading-lists.service';
 
 @ApiTags('reading-lists')
+@RequireFeature('reader.library.lists')
 @Controller('reading-lists')
 export class ReadingListsController {
   constructor(

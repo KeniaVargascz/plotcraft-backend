@@ -12,6 +12,7 @@ import {
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Response } from 'express';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { RequireFeature } from '../../common/decorators/require-feature.decorator';
 import type { JwtPayload } from '../auth/strategies/jwt.strategy';
 import { TimelineService } from './timeline.service';
 import { CreateTimelineDto } from './dto/create-timeline.dto';
@@ -23,6 +24,7 @@ import { ReorderEventsDto } from './dto/reorder-events.dto';
 
 @ApiTags('timelines')
 @ApiBearerAuth()
+@RequireFeature('author.timelines')
 @Controller('timelines')
 export class TimelineController {
   constructor(private readonly timelineService: TimelineService) {}

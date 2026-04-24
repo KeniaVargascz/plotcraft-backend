@@ -13,6 +13,7 @@ import {
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Public } from '../../common/decorators/public.decorator';
+import { RequireFeature } from '../../common/decorators/require-feature.decorator';
 import { AuthService } from '../auth/auth.service';
 import type { JwtPayload } from '../auth/strategies/jwt.strategy';
 import { AddItemDto } from './dto/add-item.dto';
@@ -27,6 +28,7 @@ import { VisualBoardQueryDto } from './dto/visual-board-query.dto';
 import { VisualBoardsService } from './visual-boards.service';
 
 @ApiTags('visual-boards')
+@RequireFeature('author.visual_boards')
 @Controller('visual-boards')
 export class VisualBoardsController {
   constructor(

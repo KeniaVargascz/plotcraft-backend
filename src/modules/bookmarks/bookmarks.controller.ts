@@ -9,6 +9,7 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { RequireFeature } from '../../common/decorators/require-feature.decorator';
 import type { JwtPayload } from '../auth/strategies/jwt.strategy';
 import { BookmarksService } from './bookmarks.service';
 import { BookmarkQueryDto } from './dto/bookmark-query.dto';
@@ -16,6 +17,7 @@ import { CreateBookmarkDto } from './dto/create-bookmark.dto';
 
 @ApiTags('bookmarks')
 @ApiBearerAuth()
+@RequireFeature('reader.library.bookmarks')
 @Controller('bookmarks')
 export class BookmarksController {
   constructor(private readonly bookmarksService: BookmarksService) {}
