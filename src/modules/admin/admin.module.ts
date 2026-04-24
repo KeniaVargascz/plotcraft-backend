@@ -11,6 +11,8 @@ import { AdminNovelsController } from './controllers/admin-novels.controller';
 import { AdminForumController } from './controllers/admin-forum.controller';
 import { AdminCatalogsController } from './controllers/admin-catalogs.controller';
 import { AdminPostsController } from './controllers/admin-posts.controller';
+import { AdminAnalyticsController } from './controllers/admin-analytics.controller';
+import { AdminSettingsController } from './controllers/admin-settings.controller';
 import { PublicFeaturesController } from './controllers/public-features.controller';
 import { AdminAuthService } from './services/admin-auth.service';
 import { AdminFeaturesService } from './services/admin-features.service';
@@ -22,6 +24,8 @@ import { AdminNovelsService } from './services/admin-novels.service';
 import { AdminForumService } from './services/admin-forum.service';
 import { AdminCatalogsService } from './services/admin-catalogs.service';
 import { AdminPostsService } from './services/admin-posts.service';
+import { AdminAnalyticsService } from './services/admin-analytics.service';
+import { AdminSettingsService } from './services/admin-settings.service';
 import { FeatureFlagCacheService } from '../../common/services/feature-flag-cache.service';
 
 @Module({
@@ -37,6 +41,8 @@ import { FeatureFlagCacheService } from '../../common/services/feature-flag-cach
     AdminForumController,
     AdminCatalogsController,
     AdminPostsController,
+    AdminAnalyticsController,
+    AdminSettingsController,
     PublicFeaturesController,
   ],
   providers: [
@@ -50,6 +56,8 @@ import { FeatureFlagCacheService } from '../../common/services/feature-flag-cach
     AdminForumService,
     AdminCatalogsService,
     AdminPostsService,
+    AdminAnalyticsService,
+    AdminSettingsService,
     FeatureFlagCacheService,
   ],
   exports: [AdminFeaturesService, FeatureFlagCacheService],
