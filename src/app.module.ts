@@ -43,6 +43,7 @@ import { CommunityForumsModule } from './modules/community-forums/community-foru
 import { CommunityCharactersModule } from './modules/community-characters/community-characters.module';
 import { MediaModule } from './modules/media/media.module';
 import { VisualBoardsModule } from './modules/visual-boards/visual-boards.module';
+import { AdminModule } from './modules/admin/admin.module';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
 import { CacheHeadersInterceptor } from './common/interceptors/cache-headers.interceptor';
@@ -107,6 +108,7 @@ import { RepositoryModule } from './common/repository/repository.module';
     CommunityCharactersModule,
     MediaModule,
     VisualBoardsModule,
+    AdminModule,
   ],
   providers: [
     { provide: APP_PIPE, useClass: ValidationPipe },
