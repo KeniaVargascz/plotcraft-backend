@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
+import { FeatureFlagCacheService } from '../../../common/services/feature-flag-cache.service';
 import { UpdateFeatureFlagDto } from '../dto/update-feature-flag.dto';
 import { AdminAuditService } from './admin-audit.service';
 import type { JwtPayload } from '../../auth/strategies/jwt.strategy';
@@ -9,6 +10,7 @@ export class AdminFeaturesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly auditService: AdminAuditService,
+    private readonly featureFlagCache: FeatureFlagCacheService,
   ) {}
 
   async findAllGrouped() {
@@ -54,6 +56,7 @@ export class AdminFeaturesService {
       details: { previousValue: flag.enabled, newValue: dto.enabled },
     });
 
+    this.featureFlagCache.invalidate();
     return updated;
   }
 
@@ -72,6 +75,7 @@ export class AdminFeaturesService {
       details: { affectedCount: result.count },
     });
 
+    this.featureFlagCache.invalidate();
     return { group, enabled, affectedCount: result.count };
   }
 }
