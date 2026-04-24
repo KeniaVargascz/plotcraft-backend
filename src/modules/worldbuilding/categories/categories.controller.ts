@@ -11,6 +11,7 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CacheTtl } from '../../../common/decorators/cache-ttl.decorator';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import { Public } from '../../../common/decorators/public.decorator';
+import { RequireFeature } from '../../../common/decorators/require-feature.decorator';
 import type { JwtPayload } from '../../auth/strategies/jwt.strategy';
 import { CategoriesService } from './categories.service';
 import { CreateCategoryDto } from './dto/create-category.dto';
@@ -19,6 +20,7 @@ import { ReorderCategoriesDto } from './dto/reorder-categories.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
 
 @ApiTags('worldbuilding-categories')
+@RequireFeature('author.worlds.worldbuilding')
 @Controller()
 export class CategoriesController {
   constructor(private readonly categoriesService: CategoriesService) {}

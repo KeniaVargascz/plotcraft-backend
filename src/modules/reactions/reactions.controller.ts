@@ -1,11 +1,13 @@
 import { Body, Controller, Param, Post } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { RequireFeature } from '../../common/decorators/require-feature.decorator';
 import type { JwtPayload } from '../auth/strategies/jwt.strategy';
 import { ToggleReactionDto } from './dto/toggle-reaction.dto';
 import { ReactionsService } from './reactions.service';
 
 @ApiTags('reactions')
+@RequireFeature('social.feed')
 @Controller('posts/:postId/reactions')
 export class ReactionsController {
   constructor(private readonly reactionsService: ReactionsService) {}

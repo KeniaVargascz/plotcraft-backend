@@ -1,12 +1,14 @@
 import { Body, Controller, Get, Post, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { RequireFeature } from '../../common/decorators/require-feature.decorator';
 import type { JwtPayload } from '../auth/strategies/jwt.strategy';
 import { LibraryService } from './library.service';
 import { ReadingGoalDto } from './dto/reading-goal.dto';
 
 @ApiTags('library')
 @ApiBearerAuth()
+@RequireFeature('reader.library')
 @Controller('library')
 export class LibraryController {
   constructor(private readonly libraryService: LibraryService) {}

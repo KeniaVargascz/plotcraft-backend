@@ -13,6 +13,7 @@ import {
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CommunityCharacterStatus } from '@prisma/client';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { RequireFeature } from '../../common/decorators/require-feature.decorator';
 import { Public } from '../../common/decorators/public.decorator';
 import { AuthService } from '../auth/auth.service';
 import type { JwtPayload } from '../auth/strategies/jwt.strategy';
@@ -22,6 +23,7 @@ import { ReviewSuggestionDto } from './dto/review-suggestion.dto';
 import { UpdateCommunityCharacterDto } from './dto/update-community-character.dto';
 
 @ApiTags('community-characters')
+@RequireFeature('community.communities')
 @Controller('communities/:slug/characters')
 export class CommunityCharactersController {
   constructor(

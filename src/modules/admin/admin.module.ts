@@ -26,8 +26,6 @@ import { AdminCatalogsService } from './services/admin-catalogs.service';
 import { AdminPostsService } from './services/admin-posts.service';
 import { AdminAnalyticsService } from './services/admin-analytics.service';
 import { AdminSettingsService } from './services/admin-settings.service';
-import { FeatureFlagCacheService } from '../../common/services/feature-flag-cache.service';
-
 @Module({
   imports: [PrismaModule, AuthModule],
   controllers: [
@@ -58,8 +56,7 @@ import { FeatureFlagCacheService } from '../../common/services/feature-flag-cach
     AdminPostsService,
     AdminAnalyticsService,
     AdminSettingsService,
-    FeatureFlagCacheService,
   ],
-  exports: [AdminFeaturesService, FeatureFlagCacheService],
+  exports: [AdminFeaturesService],
 })
 export class AdminModule {}

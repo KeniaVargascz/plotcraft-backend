@@ -15,6 +15,7 @@ import {
 } from '@nestjs/swagger';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Public } from '../../common/decorators/public.decorator';
+import { RequireFeature } from '../../common/decorators/require-feature.decorator';
 import { AUTH_SERVICE, IAuthService } from '../auth/auth.interface';
 import type { JwtPayload } from '../auth/strategies/jwt.strategy';
 import {
@@ -32,6 +33,7 @@ import { SearchSuggestionsDto } from './dto/search-suggestions.dto';
 import { SearchService } from './search.service';
 
 @ApiTags('search')
+@RequireFeature('explore.search')
 @Controller('search')
 export class SearchController {
   constructor(

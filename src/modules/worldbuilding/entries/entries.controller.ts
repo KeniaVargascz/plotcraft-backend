@@ -12,6 +12,7 @@ import {
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import { Public } from '../../../common/decorators/public.decorator';
+import { RequireFeature } from '../../../common/decorators/require-feature.decorator';
 import type { JwtPayload } from '../../auth/strategies/jwt.strategy';
 import { AuthService } from '../../auth/auth.service';
 import { EntriesService } from './entries.service';
@@ -22,6 +23,7 @@ import { ReorderEntriesDto } from './dto/reorder-entries.dto';
 import { UpdateEntryDto } from './dto/update-entry.dto';
 
 @ApiTags('worldbuilding-entries')
+@RequireFeature('author.worlds.worldbuilding')
 @Controller('worlds/:slug/wb')
 export class EntriesController {
   constructor(

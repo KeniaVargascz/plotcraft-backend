@@ -11,6 +11,7 @@ import {
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Public } from '../../common/decorators/public.decorator';
+import { RequireFeature } from '../../common/decorators/require-feature.decorator';
 import type { JwtPayload } from '../auth/strategies/jwt.strategy';
 import { ChapterQueryDto } from './dto/chapter-query.dto';
 import { CreateChapterDto } from './dto/create-chapter.dto';
@@ -21,6 +22,7 @@ import { ChaptersService } from './chapters.service';
 import { ChapterCommentsService } from './chapter-comments.service';
 
 @ApiTags('chapters')
+@RequireFeature('explore.novels_catalog')
 @Controller('novels/:slug/chapters')
 export class ChaptersController {
   constructor(

@@ -9,6 +9,7 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { RequireFeature } from '../../common/decorators/require-feature.decorator';
 import type { JwtPayload } from '../auth/strategies/jwt.strategy';
 import { ReaderPreferencesDto } from './dto/reader-preferences.dto';
 import { UpdateProgressDto } from './dto/update-progress.dto';
@@ -16,6 +17,7 @@ import { ReaderService } from './reader.service';
 
 @ApiTags('reader')
 @ApiBearerAuth()
+@RequireFeature('reader.library')
 @Controller('reader')
 export class ReaderController {
   constructor(private readonly readerService: ReaderService) {}

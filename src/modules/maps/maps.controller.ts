@@ -11,6 +11,7 @@ import {
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Public } from '../../common/decorators/public.decorator';
+import { RequireFeature } from '../../common/decorators/require-feature.decorator';
 import { AuthService } from '../auth/auth.service';
 import type { JwtPayload } from '../auth/strategies/jwt.strategy';
 import { CreateMarkerDto } from './dto/create-marker.dto';
@@ -21,6 +22,7 @@ import { UpdateViewportDto } from './dto/update-viewport.dto';
 import { MapsService } from './maps.service';
 
 @ApiTags('maps')
+@RequireFeature('author.worlds')
 @Controller('worlds/:slug/map')
 export class MapsController {
   constructor(

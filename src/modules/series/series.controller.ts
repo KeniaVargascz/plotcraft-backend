@@ -12,6 +12,7 @@ import {
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Public } from '../../common/decorators/public.decorator';
+import { RequireFeature } from '../../common/decorators/require-feature.decorator';
 import { AuthService } from '../auth/auth.service';
 import type { JwtPayload } from '../auth/strategies/jwt.strategy';
 import { AddNovelToSeriesDto } from './dto/add-novel-to-series.dto';
@@ -23,6 +24,7 @@ import { UpdateSeriesStatusDto } from './dto/update-series-status.dto';
 import { SeriesService } from './series.service';
 
 @ApiTags('series')
+@RequireFeature('explore.series_catalog')
 @Controller('series')
 export class SeriesController {
   constructor(

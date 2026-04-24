@@ -49,6 +49,7 @@ import { TransformInterceptor } from './common/interceptors/transform.intercepto
 import { CacheHeadersInterceptor } from './common/interceptors/cache-headers.interceptor';
 import { ValidationPipe } from './common/pipes/validation.pipe';
 import { FeatureFlagGuard } from './common/guards/feature-flag.guard';
+import { FeatureFlagModule } from './common/feature-flag.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { CacheModule } from './common/cache.module';
 import { QueueModule } from './common/queue/queue.module';
@@ -64,6 +65,7 @@ import { RepositoryModule } from './common/repository/repository.module';
     PrismaModule,
     CacheModule,
     QueueModule,
+    FeatureFlagModule,
     ThrottlerModule.forRoot([
       { name: 'short', ttl: 60_000, limit: 30 },
       { name: 'medium', ttl: 900_000, limit: 200 },
