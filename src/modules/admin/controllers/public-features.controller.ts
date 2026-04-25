@@ -20,4 +20,17 @@ export class PublicFeaturesController {
     });
     return flags.map((f) => f.key);
   }
+
+  @Get('banner')
+  @Public()
+  @CacheTtl(0)
+  @ApiOperation({ summary: 'Banner informativo (público)' })
+  async getBanner() {
+    const settings = await this.prisma.appSetting.findMany({
+      where: { key: { in: ['banner.enabled', 'banner.html'] } },
+    });
+    const map = Object.fromEntries(settings.map((s) => [s.key, s.value]));
+    const enabled = map['banner.enabled'] === 'true';
+    return { enabled, html: enabled ? (map['banner.html'] ?? '') : '' };
+  }
 }
