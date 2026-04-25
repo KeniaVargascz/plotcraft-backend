@@ -485,6 +485,7 @@ export class NovelsService {
             some: {
               genre: {
                 slug: { in: Array.from(slugs) },
+                isActive: true,
               },
             },
           },
