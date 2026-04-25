@@ -10,7 +10,7 @@ export class LanguagesController {
   constructor(private readonly languagesService: LanguagesService) {}
 
   @Public()
-  @CacheTtl(300)
+  @CacheTtl(0)
   @Get()
   @ApiOperation({ summary: 'Listado completo de idiomas disponibles' })
   listLanguages() {

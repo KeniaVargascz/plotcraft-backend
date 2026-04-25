@@ -10,7 +10,7 @@ export class RomanceGenresController {
   constructor(private readonly romanceGenresService: RomanceGenresService) {}
 
   @Public()
-  @CacheTtl(300)
+  @CacheTtl(0)
   @Get()
   @ApiOperation({ summary: 'Listado de generos de romance disponibles' })
   listRomanceGenres() {

@@ -43,7 +43,11 @@ export class CacheHeadersInterceptor implements NestInterceptor {
       tap(() => {
         if (isPublic) {
           const ttl = customTtl ?? DEFAULT_PUBLIC_TTL;
-          res.setHeader('Cache-Control', `public, max-age=${ttl}`);
+          if (ttl === 0) {
+            res.setHeader('Cache-Control', 'no-store');
+          } else {
+            res.setHeader('Cache-Control', `public, max-age=${ttl}`);
+          }
         } else {
           res.setHeader('Cache-Control', 'private, no-store');
         }
