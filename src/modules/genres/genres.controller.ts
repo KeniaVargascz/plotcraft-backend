@@ -10,7 +10,7 @@ export class GenresController {
   constructor(private readonly genresService: GenresService) {}
 
   @Public()
-  @CacheTtl(86400)
+  @CacheTtl(300)
   @Get()
   @ApiOperation({ summary: 'Listado completo de generos disponibles' })
   listGenres() {

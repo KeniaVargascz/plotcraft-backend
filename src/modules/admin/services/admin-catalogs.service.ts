@@ -57,6 +57,7 @@ export class AdminCatalogsService {
     const lang = await this.prisma.catalogLanguage.findUnique({ where: { id } });
     if (!lang) throw new NotFoundException('Idioma no encontrado');
     const updated = await this.prisma.catalogLanguage.update({ where: { id }, data });
+    await this.cache.del('catalog:languages');
     await this.auditService.log({ adminId: admin.sub, adminEmail: admin.email, action: 'LANGUAGE_UPDATED', resourceType: 'language', resourceId: id, details: data });
     return updated;
   }
@@ -76,6 +77,7 @@ export class AdminCatalogsService {
     const warning = await this.prisma.catalogWarning.findUnique({ where: { id } });
     if (!warning) throw new NotFoundException('Warning no encontrado');
     const updated = await this.prisma.catalogWarning.update({ where: { id }, data });
+    await this.cache.del('catalog:warnings');
     await this.auditService.log({ adminId: admin.sub, adminEmail: admin.email, action: 'WARNING_UPDATED', resourceType: 'warning', resourceId: id, details: data });
     return updated;
   }
@@ -95,6 +97,7 @@ export class AdminCatalogsService {
     const rg = await this.prisma.catalogRomanceGenre.findUnique({ where: { id } });
     if (!rg) throw new NotFoundException('Romance genre no encontrado');
     const updated = await this.prisma.catalogRomanceGenre.update({ where: { id }, data });
+    await this.cache.del('catalog:romance-genres');
     await this.auditService.log({ adminId: admin.sub, adminEmail: admin.email, action: 'ROMANCE_GENRE_UPDATED', resourceType: 'romance_genre', resourceId: id, details: data });
     return updated;
   }

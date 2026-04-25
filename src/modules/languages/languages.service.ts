@@ -2,7 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CACHE_SERVICE, CacheService } from '../../common/services/cache.service';
 
-const CATALOG_TTL = 24 * 60 * 60 * 1000;
+const CATALOG_TTL = 5 * 60 * 1000; // 5 minutes
 
 @Injectable()
 export class LanguagesService {

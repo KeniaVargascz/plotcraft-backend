@@ -10,7 +10,7 @@ export class WarningsController {
   constructor(private readonly warningsService: WarningsService) {}
 
   @Public()
-  @CacheTtl(86400)
+  @CacheTtl(300)
   @Get()
   @ApiOperation({ summary: 'Listar catálogo de warnings' })
   list() {

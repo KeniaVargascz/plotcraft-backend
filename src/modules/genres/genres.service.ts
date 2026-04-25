@@ -3,7 +3,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { CACHE_SERVICE, CacheService } from '../../common/services/cache.service';
 import { CANONICAL_GENRE_SLUGS } from './genre-catalog';
 
-const CATALOG_TTL = 24 * 60 * 60 * 1000; // 24 hours
+const CATALOG_TTL = 5 * 60 * 1000; // 5 minutes
 
 @Injectable()
 export class GenresService {
