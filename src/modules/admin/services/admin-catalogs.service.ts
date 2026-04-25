@@ -1,6 +1,7 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import { Inject, Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { AdminAuditService } from './admin-audit.service';
+import { CACHE_SERVICE, CacheService } from '../../../common/services/cache.service';
 import type { JwtPayload } from '../../auth/strategies/jwt.strategy';
 
 @Injectable()
@@ -8,6 +9,7 @@ export class AdminCatalogsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly auditService: AdminAuditService,
+    @Inject(CACHE_SERVICE) private readonly cache: CacheService,
   ) {}
 
   // === GENRES ===
@@ -23,10 +25,11 @@ export class AdminCatalogsService {
     return genre;
   }
 
-  async updateGenre(id: string, data: { slug?: string; label?: string }, admin: JwtPayload) {
+  async updateGenre(id: string, data: { slug?: string; label?: string; isActive?: boolean }, admin: JwtPayload) {
     const genre = await this.prisma.genre.findUnique({ where: { id } });
     if (!genre) throw new NotFoundException('Género no encontrado');
     const updated = await this.prisma.genre.update({ where: { id }, data });
+    await this.cache.del('catalog:genres');
     await this.auditService.log({ adminId: admin.sub, adminEmail: admin.email, action: 'GENRE_UPDATED', resourceType: 'genre', resourceId: id, details: data });
     return updated;
   }

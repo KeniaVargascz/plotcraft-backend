@@ -405,10 +405,11 @@ enum CharacterKinshipType {
 
 
 model Genre {
-  id     String       @id @default(uuid()) @db.Uuid
-  slug   String       @unique @db.VarChar(80)
-  label  String       @db.VarChar(120)
-  novels NovelGenre[]
+  id       String       @id @default(uuid()) @db.Uuid
+  slug     String       @unique @db.VarChar(80)
+  label    String       @db.VarChar(120)
+  isActive Boolean      @default(true) @map("is_active")
+  novels   NovelGenre[]
 
   @@map("genres")
 }

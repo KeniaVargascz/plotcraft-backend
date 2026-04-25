@@ -580,6 +580,7 @@ export class SearchService {
         }),
         this.prisma.genre.findMany({
           where: {
+            isActive: true,
             OR: [
               { label: { contains: normalized, mode: 'insensitive' } },
               { slug: { contains: normalized, mode: 'insensitive' } },

@@ -473,6 +473,7 @@ export class DiscoveryService implements OnModuleInit, OnModuleDestroy {
 
   private async computeGenresSpotlight(limit: number, topNovels: number) {
     const genres = await this.prisma.genre.findMany({
+      where: { isActive: true },
       include: {
         _count: {
           select: { novels: true },

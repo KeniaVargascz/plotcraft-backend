@@ -17,7 +17,7 @@ export class GenresService {
     if (cached) return cached;
 
     const genres = await this.prisma.genre.findMany({
-      where: { slug: { in: CANONICAL_GENRE_SLUGS } },
+      where: { slug: { in: CANONICAL_GENRE_SLUGS }, isActive: true },
       orderBy: { label: 'asc' },
     });
 

@@ -24,7 +24,7 @@ export class AdminCatalogsController {
 
   @Patch('genres/:id')
   @ApiOperation({ summary: 'Editar género' })
-  updateGenre(@Param('id') id: string, @Body() body: { slug?: string; label?: string }, @CurrentUser() admin: JwtPayload) {
+  updateGenre(@Param('id') id: string, @Body() body: { slug?: string; label?: string; isActive?: boolean }, @CurrentUser() admin: JwtPayload) {
     return this.catalogsService.updateGenre(id, body, admin);
   }
 
