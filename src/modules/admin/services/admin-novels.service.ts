@@ -78,13 +78,13 @@ export class AdminNovelsService {
         _count: { select: { chapters: true, likes: true, bookmarks: true, subscriptions: true, novelComments: true } },
       },
     });
-    if (!novel) throw new NotFoundException('Novela no encontrada');
+    if (!novel) throw new NotFoundException({ statusCode: 404, message: 'Novel not found', code: 'NOVEL_NOT_FOUND' });
     return novel;
   }
 
   async moderate(id: string, data: { status?: string; isPublic?: boolean }, admin: JwtPayload) {
     const novel = await this.prisma.novel.findUnique({ where: { id }, select: { id: true, title: true, status: true, isPublic: true } });
-    if (!novel) throw new NotFoundException('Novela no encontrada');
+    if (!novel) throw new NotFoundException({ statusCode: 404, message: 'Novel not found', code: 'NOVEL_NOT_FOUND' });
 
     const updateData: any = {};
     if (data.status) updateData.status = data.status;
@@ -103,7 +103,7 @@ export class AdminNovelsService {
 
   async remove(id: string, admin: JwtPayload) {
     const novel = await this.prisma.novel.findUnique({ where: { id }, select: { id: true, title: true, authorId: true } });
-    if (!novel) throw new NotFoundException('Novela no encontrada');
+    if (!novel) throw new NotFoundException({ statusCode: 404, message: 'Novel not found', code: 'NOVEL_NOT_FOUND' });
 
     await this.prisma.novel.delete({ where: { id } });
 

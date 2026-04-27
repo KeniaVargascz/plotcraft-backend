@@ -13,6 +13,7 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Public } from '../../common/decorators/public.decorator';
 import { RequireFeature } from '../../common/decorators/require-feature.decorator';
+import { FeatureFlag } from '../../config/feature-flags.constants';
 import { AuthService } from '../auth/auth.service';
 import type { JwtPayload } from '../auth/strategies/jwt.strategy';
 import { CreateNovelDto } from './dto/create-novel.dto';
@@ -29,7 +30,7 @@ import { NovelInteractionsService } from './services/novel-interactions.service'
 import { NovelCharacterLinkService } from './services/novel-character-link.service';
 
 @ApiTags('novels')
-@RequireFeature('explore.novels_catalog')
+@RequireFeature(FeatureFlag.EXPLORE_NOVELS_CATALOG)
 @Controller('novels')
 export class NovelsController {
   constructor(

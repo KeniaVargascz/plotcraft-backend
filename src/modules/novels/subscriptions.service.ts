@@ -12,16 +12,16 @@ export class SubscriptionsService {
 
   async subscribe(slug: string, userId: string) {
     const novel = await this.prisma.novel.findUnique({ where: { slug } });
-    if (!novel) throw new NotFoundException('Novela no encontrada');
+    if (!novel) throw new NotFoundException({ statusCode: 404, message: 'Novel not found', code: 'NOVEL_NOT_FOUND' });
     if (novel.authorId === userId) {
-      throw new ForbiddenException('No puedes suscribirte a tu propia novela.');
+      throw new ForbiddenException({ statusCode: 403, message: 'You cannot subscribe to your own novel', code: 'SUBSCRIBE_OWN_NOVEL_FORBIDDEN' });
     }
 
     const existing = await this.prisma.novelSubscription.findUnique({
       where: { novelId_userId: { novelId: novel.id, userId } },
     });
     if (existing) {
-      throw new ConflictException('Ya estas suscrito a esta novela.');
+      throw new ConflictException({ statusCode: 409, message: 'You are already subscribed to this novel', code: 'ALREADY_SUBSCRIBED' });
     }
 
     await this.prisma.$transaction([
@@ -45,13 +45,13 @@ export class SubscriptionsService {
 
   async unsubscribe(slug: string, userId: string) {
     const novel = await this.prisma.novel.findUnique({ where: { slug } });
-    if (!novel) throw new NotFoundException('Novela no encontrada');
+    if (!novel) throw new NotFoundException({ statusCode: 404, message: 'Novel not found', code: 'NOVEL_NOT_FOUND' });
 
     const existing = await this.prisma.novelSubscription.findUnique({
       where: { novelId_userId: { novelId: novel.id, userId } },
     });
     if (!existing) {
-      throw new NotFoundException('No estas suscrito a esta novela.');
+      throw new NotFoundException({ statusCode: 404, message: 'You are not subscribed to this novel', code: 'SUBSCRIPTION_NOT_FOUND' });
     }
 
     await this.prisma.$transaction([

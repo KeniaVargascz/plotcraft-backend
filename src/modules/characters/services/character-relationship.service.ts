@@ -38,13 +38,11 @@ export class CharacterRelationshipService {
     });
 
     if (!target) {
-      throw new NotFoundException('Personaje objetivo no encontrado');
+      throw new NotFoundException({ statusCode: 404, message: 'Target character not found', code: 'TARGET_CHARACTER_NOT_FOUND' });
     }
 
     if (source.id === target.id) {
-      throw new BadRequestException(
-        'Un personaje no puede relacionarse consigo mismo',
-      );
+      throw new BadRequestException({ statusCode: 400, message: 'A character cannot have a relationship with itself', code: 'SELF_RELATIONSHIP_FORBIDDEN' });
     }
 
     const description = dto.description?.trim() || null;
@@ -71,9 +69,7 @@ export class CharacterRelationshipService {
       });
 
       if (existing) {
-        throw new BadRequestException(
-          'La relacion de parentesco ya existe entre estos personajes',
-        );
+        throw new BadRequestException({ statusCode: 400, message: 'Kinship relationship already exists between these characters', code: 'KINSHIP_ALREADY_EXISTS' });
       }
 
       const relationshipGroupId = randomUUID();
@@ -109,9 +105,7 @@ export class CharacterRelationshipService {
 
     const type = dto.type?.trim();
     if (!type) {
-      throw new BadRequestException(
-        'Debes indicar un tipo de relacion o un parentesco valido',
-      );
+      throw new BadRequestException({ statusCode: 400, message: 'You must specify a relationship type or a valid kinship', code: 'RELATIONSHIP_TYPE_REQUIRED' });
     }
 
     const relationshipGroupId = dto.isMutual ? randomUUID() : null;
@@ -177,7 +171,7 @@ export class CharacterRelationshipService {
     });
 
     if (!relationship) {
-      throw new NotFoundException('Relacion no encontrada');
+      throw new NotFoundException({ statusCode: 404, message: 'Relationship not found', code: 'RELATIONSHIP_NOT_FOUND' });
     }
 
     if (relationship.relationshipGroupId) {
@@ -261,7 +255,7 @@ export class CharacterRelationshipService {
     });
 
     if (!character) {
-      throw new NotFoundException('Personaje no encontrado');
+      throw new NotFoundException({ statusCode: 404, message: 'Character not found', code: 'CHARACTER_NOT_FOUND' });
     }
 
     return character;
@@ -280,11 +274,11 @@ export class CharacterRelationshipService {
     });
 
     if (!character) {
-      throw new NotFoundException('Personaje no encontrado');
+      throw new NotFoundException({ statusCode: 404, message: 'Character not found', code: 'CHARACTER_NOT_FOUND' });
     }
 
     if (!character.isPublic && character.authorId !== viewerId) {
-      throw new NotFoundException('Personaje no encontrado');
+      throw new NotFoundException({ statusCode: 404, message: 'Character not found', code: 'CHARACTER_NOT_FOUND' });
     }
 
     return character;
@@ -440,7 +434,7 @@ export class CharacterRelationshipService {
           isMutual: false,
         };
       default:
-        throw new BadRequestException('Tipo de parentesco no soportado');
+        throw new BadRequestException({ statusCode: 400, message: 'Unsupported kinship type', code: 'KINSHIP_TYPE_UNSUPPORTED' });
     }
   }
 }

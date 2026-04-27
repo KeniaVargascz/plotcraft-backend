@@ -33,11 +33,11 @@ export class FollowsService {
     });
 
     if (!targetUser) {
-      throw new NotFoundException('Usuario no encontrado');
+      throw new NotFoundException({ statusCode: 404, message: 'User not found', code: 'USER_NOT_FOUND' });
     }
 
     if (targetUser.id === followerId) {
-      throw new BadRequestException('No puedes seguirte a ti mismo');
+      throw new BadRequestException({ statusCode: 400, message: 'You cannot follow yourself', code: 'CANNOT_FOLLOW_SELF' });
     }
 
     const existingFollow = await this.prisma.follow.findUnique({
@@ -50,7 +50,7 @@ export class FollowsService {
     });
 
     if (existingFollow) {
-      throw new ConflictException('Ya sigues a este usuario');
+      throw new ConflictException({ statusCode: 409, message: 'You are already following this user', code: 'ALREADY_FOLLOWING' });
     }
 
     await this.prisma.follow.create({
@@ -83,7 +83,7 @@ export class FollowsService {
     });
 
     if (!targetUser) {
-      throw new NotFoundException('Usuario no encontrado');
+      throw new NotFoundException({ statusCode: 404, message: 'User not found', code: 'USER_NOT_FOUND' });
     }
 
     const existingFollow = await this.prisma.follow.findUnique({
@@ -96,7 +96,7 @@ export class FollowsService {
     });
 
     if (!existingFollow) {
-      throw new NotFoundException('No sigues a este usuario');
+      throw new NotFoundException({ statusCode: 404, message: 'You are not following this user', code: 'NOT_FOLLOWING' });
     }
 
     await this.prisma.follow.delete({
@@ -183,7 +183,7 @@ export class FollowsService {
     });
 
     if (!targetUser) {
-      throw new NotFoundException('Usuario no encontrado');
+      throw new NotFoundException({ statusCode: 404, message: 'User not found', code: 'USER_NOT_FOUND' });
     }
 
     const limit = options.limit ?? 20;

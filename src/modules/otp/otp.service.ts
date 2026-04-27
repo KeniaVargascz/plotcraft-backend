@@ -56,6 +56,14 @@ export class OtpService {
         reason: 'not_found' | 'expired' | 'invalid' | 'too_many_attempts';
       }
   > {
+    // Track attempts per user+type — survives OTP resend cycles
+    const cacheKey = `${OTP_ATTEMPTS_PREFIX}${userId}:${type}`;
+    const currentAttempts = (await this.cache.get<number>(cacheKey)) ?? 0;
+
+    if (currentAttempts >= OTP_MAX_ATTEMPTS) {
+      return { valid: false, reason: 'too_many_attempts' };
+    }
+
     const otpRecord = await this.prisma.otpCode.findFirst({
       where: { userId, type, usedAt: null },
       orderBy: { createdAt: 'desc' },
@@ -70,30 +78,32 @@ export class OtpService {
     }
 
     const isMatch = await bcrypt.compare(plainCode, otpRecord.code);
-    const cacheKey = `${OTP_ATTEMPTS_PREFIX}${otpRecord.id}`;
+
+    // Always increment attempts (constant-time path)
+    const attempts = currentAttempts + 1;
 
     if (!isMatch) {
-      const attempts = ((await this.cache.get<number>(cacheKey)) ?? 0) + 1;
       await this.cache.set(cacheKey, attempts, OTP_ATTEMPTS_TTL_MS);
 
       if (attempts >= OTP_MAX_ATTEMPTS) {
-        await this.prisma.otpCode.update({
-          where: { id: otpRecord.id },
+        // Burn all active OTPs for this user+type
+        await this.prisma.otpCode.updateMany({
+          where: { userId, type, usedAt: null },
           data: { usedAt: new Date() },
         });
-        await this.cache.del(cacheKey);
         return { valid: false, reason: 'too_many_attempts' };
       }
 
       return { valid: false, reason: 'invalid' };
     }
 
+    // Success — mark OTP as used and clear attempts
     await this.prisma.otpCode.update({
       where: { id: otpRecord.id },
       data: { usedAt: new Date() },
     });
-
     await this.cache.del(cacheKey);
+
     return { valid: true };
   }
 }

@@ -64,13 +64,11 @@ export class BookmarksService {
     });
 
     if (!chapter || chapter.novelId !== dto.novel_id) {
-      throw new BadRequestException(
-        'El capitulo no pertenece a la novela indicada',
-      );
+      throw new BadRequestException({ statusCode: 400, message: 'Chapter does not belong to the specified novel', code: 'CHAPTER_NOVEL_MISMATCH' });
     }
 
     if (!chapter.novel.isPublic && chapter.novel.authorId !== userId) {
-      throw new ForbiddenException('No puedes marcar esta novela');
+      throw new ForbiddenException({ statusCode: 403, message: 'You cannot bookmark this novel', code: 'BOOKMARK_NOVEL_FORBIDDEN' });
     }
 
     const bookmark = await this.prisma.chapterBookmark.create({
@@ -96,18 +94,18 @@ export class BookmarksService {
     });
 
     if (!bookmark) {
-      throw new NotFoundException('Marcador no encontrado');
+      throw new NotFoundException({ statusCode: 404, message: 'Bookmark not found', code: 'BOOKMARK_NOT_FOUND' });
     }
 
     if (bookmark.userId !== userId) {
-      throw new ForbiddenException('No puedes eliminar este marcador');
+      throw new ForbiddenException({ statusCode: 403, message: 'You cannot delete this bookmark', code: 'BOOKMARK_DELETE_FORBIDDEN' });
     }
 
     await this.prisma.chapterBookmark.delete({
       where: { id: bookmarkId },
     });
 
-    return { message: 'Marcador eliminado correctamente' };
+    return { message: 'Bookmark deleted successfully' };
   }
 
   private toBookmarkResponse(bookmark: {

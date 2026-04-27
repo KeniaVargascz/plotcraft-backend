@@ -43,19 +43,19 @@ export class ForumPollService {
     });
 
     if (!thread || thread.deletedAt) {
-      throw new NotFoundException('Thread not found');
+      throw new NotFoundException({ statusCode: 404, message: 'Thread not found', code: 'THREAD_NOT_FOUND' });
     }
 
     if (!thread.poll) {
-      throw new NotFoundException('This thread has no poll');
+      throw new NotFoundException({ statusCode: 404, message: 'This thread has no poll', code: 'POLL_NOT_FOUND' });
     }
 
     if (thread.poll.status !== PollStatus.OPEN) {
-      throw new BadRequestException('This poll is closed');
+      throw new BadRequestException({ statusCode: 400, message: 'This poll is closed', code: 'POLL_CLOSED' });
     }
 
     if (thread.poll.closesAt && new Date(thread.poll.closesAt) < new Date()) {
-      throw new BadRequestException('This poll has expired');
+      throw new BadRequestException({ statusCode: 400, message: 'This poll has expired', code: 'POLL_EXPIRED' });
     }
 
     const optionExists = thread.poll.options.some(
@@ -63,7 +63,7 @@ export class ForumPollService {
     );
 
     if (!optionExists) {
-      throw new BadRequestException('Invalid poll option');
+      throw new BadRequestException({ statusCode: 400, message: 'Invalid poll option', code: 'POLL_INVALID_OPTION' });
     }
 
     try {
@@ -79,7 +79,7 @@ export class ForumPollService {
         error instanceof Prisma.PrismaClientKnownRequestError &&
         error.code === 'P2002'
       ) {
-        throw new ConflictException('You have already voted in this poll');
+        throw new ConflictException({ statusCode: 409, message: 'You have already voted in this poll', code: 'POLL_ALREADY_VOTED' });
       }
       throw error;
     }
@@ -94,11 +94,11 @@ export class ForumPollService {
     });
 
     if (!thread || thread.deletedAt) {
-      throw new NotFoundException('Thread not found');
+      throw new NotFoundException({ statusCode: 404, message: 'Thread not found', code: 'THREAD_NOT_FOUND' });
     }
 
     if (!thread.poll) {
-      throw new NotFoundException('This thread has no poll');
+      throw new NotFoundException({ statusCode: 404, message: 'This thread has no poll', code: 'POLL_NOT_FOUND' });
     }
 
     const vote = await this.prisma.pollVote.findUnique({
@@ -111,7 +111,7 @@ export class ForumPollService {
     });
 
     if (!vote) {
-      throw new NotFoundException('You have not voted in this poll');
+      throw new NotFoundException({ statusCode: 404, message: 'You have not voted in this poll', code: 'POLL_VOTE_NOT_FOUND' });
     }
 
     await this.prisma.pollVote.delete({

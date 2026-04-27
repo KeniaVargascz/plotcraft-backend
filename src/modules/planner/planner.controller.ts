@@ -11,6 +11,7 @@ import {
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { RequireFeature } from '../../common/decorators/require-feature.decorator';
+import { FeatureFlag } from '../../config/feature-flags.constants';
 import type { JwtPayload } from '../auth/strategies/jwt.strategy';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { CreateTaskDto } from './dto/create-task.dto';
@@ -23,7 +24,7 @@ import { PlannerService } from './planner.service';
 
 @ApiTags('planner')
 @ApiBearerAuth()
-@RequireFeature('author.planner')
+@RequireFeature(FeatureFlag.AUTHOR_PLANNER)
 @Controller('planner')
 export class PlannerController {
   constructor(private readonly plannerService: PlannerService) {}

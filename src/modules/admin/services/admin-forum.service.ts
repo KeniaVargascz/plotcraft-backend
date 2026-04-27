@@ -54,7 +54,7 @@ export class AdminForumService {
 
   async togglePin(id: string, admin: JwtPayload) {
     const thread = await this.prisma.forumThread.findUnique({ where: { id }, select: { id: true, title: true, isPinned: true } });
-    if (!thread) throw new NotFoundException('Hilo no encontrado');
+    if (!thread) throw new NotFoundException({ statusCode: 404, message: 'Thread not found', code: 'THREAD_NOT_FOUND' });
 
     const updated = await this.prisma.forumThread.update({ where: { id }, data: { isPinned: !thread.isPinned }, select: { id: true, title: true, isPinned: true } });
 
@@ -70,7 +70,7 @@ export class AdminForumService {
 
   async close(id: string, admin: JwtPayload) {
     const thread = await this.prisma.forumThread.findUnique({ where: { id }, select: { id: true, title: true } });
-    if (!thread) throw new NotFoundException('Hilo no encontrado');
+    if (!thread) throw new NotFoundException({ statusCode: 404, message: 'Thread not found', code: 'THREAD_NOT_FOUND' });
 
     const updated = await this.prisma.forumThread.update({ where: { id }, data: { status: 'CLOSED' }, select: { id: true, title: true, status: true } });
 
@@ -85,7 +85,7 @@ export class AdminForumService {
 
   async removeThread(id: string, admin: JwtPayload) {
     const thread = await this.prisma.forumThread.findUnique({ where: { id }, select: { id: true, title: true } });
-    if (!thread) throw new NotFoundException('Hilo no encontrado');
+    if (!thread) throw new NotFoundException({ statusCode: 404, message: 'Thread not found', code: 'THREAD_NOT_FOUND' });
 
     await this.prisma.forumThread.update({ where: { id }, data: { deletedAt: new Date() } });
 
@@ -100,7 +100,7 @@ export class AdminForumService {
 
   async removeReply(id: string, admin: JwtPayload) {
     const reply = await this.prisma.forumReply.findUnique({ where: { id }, select: { id: true, threadId: true } });
-    if (!reply) throw new NotFoundException('Respuesta no encontrada');
+    if (!reply) throw new NotFoundException({ statusCode: 404, message: 'Reply not found', code: 'REPLY_NOT_FOUND' });
 
     await this.prisma.forumReply.update({ where: { id }, data: { deletedAt: new Date() } });
 

@@ -126,7 +126,7 @@ export class PostsService {
     });
 
     if (!post) {
-      throw new NotFoundException('Publicacion no encontrada');
+      throw new NotFoundException({ statusCode: 404, message: 'Post not found', code: 'POST_NOT_FOUND' });
     }
 
     const charMap = await this.fetchCharacterMap([post]);
@@ -139,11 +139,11 @@ export class PostsService {
     });
 
     if (!post) {
-      throw new NotFoundException('Publicacion no encontrada');
+      throw new NotFoundException({ statusCode: 404, message: 'Post not found', code: 'POST_NOT_FOUND' });
     }
 
     if (post.authorId !== userId) {
-      throw new ForbiddenException('No puedes editar esta publicacion');
+      throw new ForbiddenException({ statusCode: 403, message: 'You cannot edit this post', code: 'POST_EDIT_FORBIDDEN' });
     }
 
     await this.prisma.post.update({
@@ -162,11 +162,11 @@ export class PostsService {
     });
 
     if (!post) {
-      throw new NotFoundException('Publicacion no encontrada');
+      throw new NotFoundException({ statusCode: 404, message: 'Post not found', code: 'POST_NOT_FOUND' });
     }
 
     if (post.authorId !== userId) {
-      throw new ForbiddenException('No puedes eliminar esta publicacion');
+      throw new ForbiddenException({ statusCode: 403, message: 'You cannot delete this post', code: 'POST_DELETE_FORBIDDEN' });
     }
 
     await this.prisma.post.update({
@@ -176,7 +176,7 @@ export class PostsService {
       },
     });
 
-    return { message: 'Publicacion eliminada' };
+    return { message: 'Post deleted' };
   }
 
   async savePost(postId: string, userId: string) {
@@ -213,7 +213,7 @@ export class PostsService {
   private async ensurePostExists(postId: string) {
     const post = await this.prisma.post.findUnique({ where: { id: postId } });
     if (!post) {
-      throw new NotFoundException('Publicacion no encontrada');
+      throw new NotFoundException({ statusCode: 404, message: 'Post not found', code: 'POST_NOT_FOUND' });
     }
   }
 
@@ -435,15 +435,13 @@ export class PostsService {
   private async validateContentLinking(userId: string, dto: CreatePostDto) {
     if (dto.type === PostType.RECOMMENDATION) {
       if (!dto.novel_id) {
-        throw new BadRequestException(
-          'novel_id requerido para recomendaciones',
-        );
+        throw new BadRequestException({ statusCode: 400, message: 'novel_id is required for recommendations', code: 'NOVEL_ID_REQUIRED_FOR_RECOMMENDATION' });
       }
       const novel = await this.prisma.novel.findUnique({
         where: { id: dto.novel_id },
       });
       if (!novel) {
-        throw new NotFoundException('Novela no encontrada');
+        throw new NotFoundException({ statusCode: 404, message: 'Novel not found', code: 'NOVEL_NOT_FOUND' });
       }
       return;
     }
@@ -453,7 +451,7 @@ export class PostsService {
         where: { id: dto.novel_id },
       });
       if (!novel || novel.authorId !== userId) {
-        throw new ForbiddenException('No puedes vincular esta novela');
+        throw new ForbiddenException({ statusCode: 403, message: 'You cannot link this novel', code: 'NOVEL_LINK_FORBIDDEN' });
       }
     }
 
@@ -462,10 +460,10 @@ export class PostsService {
         where: { id: dto.chapter_id },
       });
       if (!chapter || chapter.authorId !== userId) {
-        throw new ForbiddenException('No puedes vincular este capitulo');
+        throw new ForbiddenException({ statusCode: 403, message: 'You cannot link this chapter', code: 'CHAPTER_LINK_FORBIDDEN' });
       }
       if (dto.novel_id && chapter.novelId !== dto.novel_id) {
-        throw new BadRequestException('El capitulo no pertenece a la novela');
+        throw new BadRequestException({ statusCode: 400, message: 'Chapter does not belong to the novel', code: 'CHAPTER_NOVEL_MISMATCH' });
       }
     }
 
@@ -474,7 +472,7 @@ export class PostsService {
         where: { id: dto.world_id },
       });
       if (!world || world.authorId !== userId) {
-        throw new ForbiddenException('No puedes vincular este mundo');
+        throw new ForbiddenException({ statusCode: 403, message: 'You cannot link this world', code: 'WORLD_LINK_FORBIDDEN' });
       }
     }
 
@@ -483,9 +481,7 @@ export class PostsService {
         where: { id: { in: dto.character_ids }, authorId: userId },
       });
       if (chars.length !== dto.character_ids.length) {
-        throw new ForbiddenException(
-          'No puedes vincular todos estos personajes',
-        );
+        throw new ForbiddenException({ statusCode: 403, message: 'You cannot link all these characters', code: 'CHARACTERS_LINK_FORBIDDEN' });
       }
     }
   }

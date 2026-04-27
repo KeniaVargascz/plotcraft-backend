@@ -30,13 +30,13 @@ export class ChapterCommentsService {
         where: { userId: chapter.novel.authorId },
       });
       if (privacy && !privacy.allowNovelComments) {
-        throw new ForbiddenException('El autor ha limitado los comentarios.');
+        throw new ForbiddenException({ statusCode: 403, message: 'The author has restricted comments', code: 'COMMENTS_RESTRICTED' });
       }
     }
 
     const trimmed = content?.trim();
     if (!trimmed) {
-      throw new ForbiddenException('El comentario no puede estar vacio.');
+      throw new ForbiddenException({ statusCode: 403, message: 'Comment cannot be empty', code: 'COMMENT_EMPTY' });
     }
 
     const comment = await this.prisma.chapterComment.create({
@@ -155,10 +155,10 @@ export class ChapterCommentsService {
     const comment = await this.prisma.chapterComment.findFirst({
       where: { id: commentId, chapterId: chapter.id, deletedAt: null },
     });
-    if (!comment) throw new NotFoundException('Comentario no encontrado');
+    if (!comment) throw new NotFoundException({ statusCode: 404, message: 'Comment not found', code: 'COMMENT_NOT_FOUND' });
 
     if (comment.authorId !== userId && chapter.novel.authorId !== userId) {
-      throw new ForbiddenException('No puedes eliminar este comentario');
+      throw new ForbiddenException({ statusCode: 403, message: 'You cannot delete this comment', code: 'COMMENT_DELETE_FORBIDDEN' });
     }
 
     await this.prisma.chapterComment.update({
@@ -177,7 +177,7 @@ export class ChapterCommentsService {
         novel: { select: { id: true, authorId: true } },
       },
     });
-    if (!chapter) throw new NotFoundException('Capitulo no encontrado');
+    if (!chapter) throw new NotFoundException({ statusCode: 404, message: 'Chapter not found', code: 'CHAPTER_NOT_FOUND' });
     return chapter;
   }
 

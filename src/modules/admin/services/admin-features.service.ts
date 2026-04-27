@@ -37,45 +37,57 @@ export class AdminFeaturesService {
 
   async update(key: string, dto: UpdateFeatureFlagDto, user: JwtPayload) {
     const flag = await this.prisma.adminFeatureFlag.findUnique({ where: { key } });
-    if (!flag) throw new NotFoundException(`Feature flag "${key}" no encontrado`);
-
-    const updated = await this.prisma.adminFeatureFlag.update({
-      where: { key },
-      data: {
-        enabled: dto.enabled,
-        updatedBy: user.sub,
-      },
+    if (!flag) throw new NotFoundException({
+      statusCode: 404,
+      message: `Feature flag "${key}" not found`,
+      code: 'FEATURE_FLAG_NOT_FOUND',
     });
 
-    await this.auditService.log({
-      adminId: user.sub,
-      adminEmail: user.email,
-      action: dto.enabled ? 'FEATURE_ENABLED' : 'FEATURE_DISABLED',
-      resourceType: 'feature_flag',
-      resourceId: key,
-      details: { previousValue: flag.enabled, newValue: dto.enabled },
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const result = await tx.adminFeatureFlag.update({
+        where: { key },
+        data: {
+          enabled: dto.enabled,
+          updatedBy: user.sub,
+        },
+      });
+
+      await this.auditService.logWithTx(tx, {
+        adminId: user.sub,
+        adminEmail: user.email,
+        action: dto.enabled ? 'FEATURE_ENABLED' : 'FEATURE_DISABLED',
+        resourceType: 'feature_flag',
+        resourceId: key,
+        details: { previousValue: flag.enabled, newValue: dto.enabled },
+      });
+
+      return result;
     });
 
-    this.featureFlagCache.invalidate();
+    await this.featureFlagCache.invalidate();
     return updated;
   }
 
   async toggleGroup(group: string, enabled: boolean, user: JwtPayload) {
-    const result = await this.prisma.adminFeatureFlag.updateMany({
-      where: { group },
-      data: { enabled, updatedBy: user.sub },
+    const result = await this.prisma.$transaction(async (tx) => {
+      const updated = await tx.adminFeatureFlag.updateMany({
+        where: { group },
+        data: { enabled, updatedBy: user.sub },
+      });
+
+      await this.auditService.logWithTx(tx, {
+        adminId: user.sub,
+        adminEmail: user.email,
+        action: enabled ? 'GROUP_ENABLED' : 'GROUP_DISABLED',
+        resourceType: 'feature_flag_group',
+        resourceId: group,
+        details: { affectedCount: updated.count },
+      });
+
+      return updated;
     });
 
-    await this.auditService.log({
-      adminId: user.sub,
-      adminEmail: user.email,
-      action: enabled ? 'GROUP_ENABLED' : 'GROUP_DISABLED',
-      resourceType: 'feature_flag_group',
-      resourceId: group,
-      details: { affectedCount: result.count },
-    });
-
-    this.featureFlagCache.invalidate();
+    await this.featureFlagCache.invalidate();
     return { group, enabled, affectedCount: result.count };
   }
 }

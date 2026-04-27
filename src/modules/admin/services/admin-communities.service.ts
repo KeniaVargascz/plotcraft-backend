@@ -78,8 +78,8 @@ export class AdminCommunitiesService {
 
   async approve(id: string, admin: JwtPayload) {
     const community = await this.prisma.community.findUnique({ where: { id }, select: { id: true, name: true, status: true } });
-    if (!community) throw new NotFoundException('Comunidad no encontrada');
-    if (community.status !== 'PENDING') throw new BadRequestException('Solo comunidades pendientes pueden ser aprobadas');
+    if (!community) throw new NotFoundException({ statusCode: 404, message: 'Community not found', code: 'COMMUNITY_NOT_FOUND' });
+    if (community.status !== 'PENDING') throw new BadRequestException({ statusCode: 400, message: 'Only pending communities can be approved', code: 'COMMUNITY_NOT_PENDING' });
 
     const updated = await this.prisma.community.update({
       where: { id },
@@ -101,8 +101,8 @@ export class AdminCommunitiesService {
 
   async reject(id: string, reason: string, admin: JwtPayload) {
     const community = await this.prisma.community.findUnique({ where: { id }, select: { id: true, name: true, status: true } });
-    if (!community) throw new NotFoundException('Comunidad no encontrada');
-    if (community.status !== 'PENDING') throw new BadRequestException('Solo comunidades pendientes pueden ser rechazadas');
+    if (!community) throw new NotFoundException({ statusCode: 404, message: 'Community not found', code: 'COMMUNITY_NOT_FOUND' });
+    if (community.status !== 'PENDING') throw new BadRequestException({ statusCode: 400, message: 'Only pending communities can be rejected', code: 'COMMUNITY_NOT_PENDING' });
 
     const updated = await this.prisma.community.update({
       where: { id },
@@ -124,7 +124,7 @@ export class AdminCommunitiesService {
 
   async suspend(id: string, admin: JwtPayload) {
     const community = await this.prisma.community.findUnique({ where: { id }, select: { id: true, name: true, status: true } });
-    if (!community) throw new NotFoundException('Comunidad no encontrada');
+    if (!community) throw new NotFoundException({ statusCode: 404, message: 'Community not found', code: 'COMMUNITY_NOT_FOUND' });
 
     const updated = await this.prisma.community.update({
       where: { id },
@@ -146,7 +146,7 @@ export class AdminCommunitiesService {
 
   async activate(id: string, admin: JwtPayload) {
     const community = await this.prisma.community.findUnique({ where: { id }, select: { id: true, name: true } });
-    if (!community) throw new NotFoundException('Comunidad no encontrada');
+    if (!community) throw new NotFoundException({ statusCode: 404, message: 'Community not found', code: 'COMMUNITY_NOT_FOUND' });
 
     const updated = await this.prisma.community.update({
       where: { id },

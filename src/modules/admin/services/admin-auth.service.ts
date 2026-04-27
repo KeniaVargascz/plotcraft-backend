@@ -27,7 +27,7 @@ export class AdminAuthService {
     if (!user?.isAdmin) {
       throw new UnauthorizedException({
         code: 'NOT_ADMIN',
-        message: 'Acceso restringido a administradores.',
+        message: 'Access restricted to administrators.',
       });
     }
 
@@ -60,7 +60,7 @@ export class AdminAuthService {
     });
 
     if (!user.isAdmin) {
-      throw new UnauthorizedException('Acceso restringido a administradores.');
+      throw new UnauthorizedException({ statusCode: 401, message: 'Access restricted to administrators.', code: 'NOT_ADMIN' });
     }
 
     return user;

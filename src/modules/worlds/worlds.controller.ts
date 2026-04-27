@@ -13,6 +13,7 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Public } from '../../common/decorators/public.decorator';
 import { RequireFeature } from '../../common/decorators/require-feature.decorator';
+import { FeatureFlag } from '../../config/feature-flags.constants';
 import { AuthService } from '../auth/auth.service';
 import type { JwtPayload } from '../auth/strategies/jwt.strategy';
 import { CreateLocationDto } from './dto/create-location.dto';
@@ -23,7 +24,7 @@ import { WorldQueryDto } from './dto/world-query.dto';
 import { WorldsService } from './worlds.service';
 
 @ApiTags('worlds')
-@RequireFeature('explore.worlds_catalog')
+@RequireFeature(FeatureFlag.EXPLORE_WORLDS_CATALOG)
 @Controller('worlds')
 export class WorldsController {
   constructor(

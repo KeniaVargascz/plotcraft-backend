@@ -108,15 +108,15 @@ export class CommunitiesService {
       where: { slug },
       include: this.communityInclude(),
     });
-    if (!community) throw new NotFoundException('Comunidad no encontrada');
+    if (!community) throw new NotFoundException({ statusCode: 404, message: 'Community not found', code: 'COMMUNITY_NOT_FOUND' });
     if (community.status === CommunityStatus.REJECTED) {
-      throw new NotFoundException('Comunidad no encontrada');
+      throw new NotFoundException({ statusCode: 404, message: 'Community not found', code: 'COMMUNITY_NOT_FOUND' });
     }
     if (
       community.status === CommunityStatus.PENDING &&
       viewerId !== community.ownerId
     ) {
-      throw new NotFoundException('Comunidad no encontrada');
+      throw new NotFoundException({ statusCode: 404, message: 'Community not found', code: 'COMMUNITY_NOT_FOUND' });
     }
 
     const ctx = await this.buildViewerContext(
@@ -132,41 +132,31 @@ export class CommunitiesService {
 
     if (isPrivate) {
       if (!dto.linkedNovelId) {
-        throw new UnprocessableEntityException(
-          'Una comunidad privada debe estar vinculada a una novela.',
-        );
+        throw new UnprocessableEntityException({ statusCode: 422, message: 'A private community must be linked to a novel', code: 'PRIVATE_COMMUNITY_REQUIRES_NOVEL' });
       }
       const novel = await this.prisma.novel.findUnique({
         where: { id: dto.linkedNovelId },
       });
       if (!novel) {
-        throw new NotFoundException('Novela no encontrada');
+        throw new NotFoundException({ statusCode: 404, message: 'Novel not found', code: 'NOVEL_NOT_FOUND' });
       }
       if (novel.authorId !== ownerId) {
-        throw new ForbiddenException(
-          'Solo puedes vincular tus propias novelas.',
-        );
+        throw new ForbiddenException({ statusCode: 403, message: 'You can only link your own novels', code: 'ONLY_OWN_NOVELS_ALLOWED' });
       }
       if (novel.novelType === NovelType.FANFIC) {
-        throw new UnprocessableEntityException(
-          'Un fanfiction solo puede relacionarse a un Fandom',
-        );
+        throw new UnprocessableEntityException({ statusCode: 422, message: 'A fanfiction can only be linked to a Fandom', code: 'FANFIC_ONLY_FANDOM' });
       }
       const ageMs = Date.now() - novel.createdAt.getTime();
       const ageDays = ageMs / (1000 * 60 * 60 * 24);
       if (ageDays < MIN_NOVEL_AGE_DAYS) {
-        throw new UnprocessableEntityException(
-          `La novela debe tener al menos ${MIN_NOVEL_AGE_DAYS} dias de antiguedad para crear una comunidad privada.`,
-        );
+        throw new UnprocessableEntityException({ statusCode: 422, message: `The novel must be at least ${MIN_NOVEL_AGE_DAYS} days old to create a private community`, code: 'NOVEL_TOO_NEW' });
       }
       const minFollowers = await this.getMinFollowersForPrivate();
       const followers = await this.prisma.follow.count({
         where: { followingId: ownerId },
       });
       if (followers < minFollowers) {
-        throw new UnprocessableEntityException(
-          `Necesitas al menos ${minFollowers} seguidores para crear una comunidad privada.`,
-        );
+        throw new UnprocessableEntityException({ statusCode: 422, message: `You need at least ${minFollowers} followers to create a private community`, code: 'INSUFFICIENT_FOLLOWERS' });
       }
     }
 
@@ -228,17 +218,15 @@ export class CommunitiesService {
     const community = await this.prisma.community.findUnique({
       where: { slug },
     });
-    if (!community) throw new NotFoundException('Comunidad no encontrada');
+    if (!community) throw new NotFoundException({ statusCode: 404, message: 'Community not found', code: 'COMMUNITY_NOT_FOUND' });
     if (community.ownerId !== userId) {
-      throw new ForbiddenException('No puedes editar esta comunidad');
+      throw new ForbiddenException({ statusCode: 403, message: 'You cannot edit this community', code: 'COMMUNITY_EDIT_FORBIDDEN' });
     }
     if (
       community.type !== CommunityType.PRIVATE &&
       community.status === CommunityStatus.ACTIVE
     ) {
-      throw new ForbiddenException(
-        'Las comunidades publicas y de fandom aprobadas solo pueden ser editadas por administradores.',
-      );
+      throw new ForbiddenException({ statusCode: 403, message: 'Approved public and fandom communities can only be edited by administrators', code: 'COMMUNITY_EDIT_ADMIN_ONLY' });
     }
 
     await this.prisma.community.update({
@@ -267,27 +255,23 @@ export class CommunitiesService {
     const community = await this.prisma.community.findUnique({
       where: { slug },
     });
-    if (!community) throw new NotFoundException('Comunidad no encontrada');
+    if (!community) throw new NotFoundException({ statusCode: 404, message: 'Community not found', code: 'COMMUNITY_NOT_FOUND' });
     if (community.ownerId !== userId) {
-      throw new ForbiddenException('No puedes eliminar esta comunidad');
+      throw new ForbiddenException({ statusCode: 403, message: 'You cannot delete this community', code: 'COMMUNITY_DELETE_FORBIDDEN' });
     }
     if (
       community.type !== CommunityType.PRIVATE &&
       community.status === CommunityStatus.ACTIVE
     ) {
-      throw new ForbiddenException(
-        'Las comunidades publicas y de fandom aprobadas solo pueden ser eliminadas por administradores.',
-      );
+      throw new ForbiddenException({ statusCode: 403, message: 'Approved public and fandom communities can only be deleted by administrators', code: 'COMMUNITY_DELETE_ADMIN_ONLY' });
     }
 
     if (community.membersCount > 1 && !force) {
-      throw new UnprocessableEntityException(
-        'Esta comunidad tiene miembros activos. Confirma la eliminacion forzada.',
-      );
+      throw new UnprocessableEntityException({ statusCode: 422, message: 'This community has active members. Confirm forced deletion.', code: 'COMMUNITY_HAS_ACTIVE_MEMBERS' });
     }
 
     await this.prisma.community.delete({ where: { id: community.id } });
-    return { message: 'Comunidad eliminada correctamente' };
+    return { message: 'Community deleted successfully' };
   }
 
   async findMyOwned(userId: string) {
@@ -317,28 +301,22 @@ export class CommunitiesService {
     const community = await this.prisma.community.findUnique({
       where: { slug },
     });
-    if (!community) throw new NotFoundException('Comunidad no encontrada');
+    if (!community) throw new NotFoundException({ statusCode: 404, message: 'Community not found', code: 'COMMUNITY_NOT_FOUND' });
     if (community.ownerId !== viewerId) {
-      throw new ForbiddenException(
-        'Solo el creador puede gestionar obras relacionadas.',
-      );
+      throw new ForbiddenException({ statusCode: 403, message: 'Only the creator can manage related works', code: 'RELATED_NOVELS_OWNER_ONLY' });
     }
     if (community.type !== CommunityType.PRIVATE) {
-      throw new UnprocessableEntityException(
-        'Solo las comunidades privadas pueden tener obras relacionadas.',
-      );
+      throw new UnprocessableEntityException({ statusCode: 422, message: 'Only private communities can have related works', code: 'RELATED_NOVELS_PRIVATE_ONLY' });
     }
     const novel = await this.prisma.novel.findUnique({
       where: { id: novelId },
     });
-    if (!novel) throw new NotFoundException('Novela no encontrada');
+    if (!novel) throw new NotFoundException({ statusCode: 404, message: 'Novel not found', code: 'NOVEL_NOT_FOUND' });
     if (novel.authorId !== viewerId) {
-      throw new ForbiddenException('Solo puedes vincular tus propias novelas.');
+      throw new ForbiddenException({ statusCode: 403, message: 'You can only link your own novels', code: 'ONLY_OWN_NOVELS_ALLOWED' });
     }
     if (community.linkedNovelId === novelId) {
-      throw new UnprocessableEntityException(
-        'Esta novela ya es la novela principal de la comunidad.',
-      );
+      throw new UnprocessableEntityException({ statusCode: 422, message: 'This novel is already the main novel of the community', code: 'NOVEL_ALREADY_MAIN' });
     }
     await this.prisma.communityRelatedNovel.upsert({
       where: { communityId_novelId: { communityId: community.id, novelId } },
@@ -352,11 +330,9 @@ export class CommunitiesService {
     const community = await this.prisma.community.findUnique({
       where: { slug },
     });
-    if (!community) throw new NotFoundException('Comunidad no encontrada');
+    if (!community) throw new NotFoundException({ statusCode: 404, message: 'Community not found', code: 'COMMUNITY_NOT_FOUND' });
     if (community.ownerId !== viewerId) {
-      throw new ForbiddenException(
-        'Solo el creador puede gestionar obras relacionadas.',
-      );
+      throw new ForbiddenException({ statusCode: 403, message: 'Only the creator can manage related works', code: 'RELATED_NOVELS_OWNER_ONLY' });
     }
     await this.prisma.communityRelatedNovel
       .delete({

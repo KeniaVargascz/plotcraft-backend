@@ -11,6 +11,7 @@ import {
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CommunityStatus } from '@prisma/client';
 import { RequireFeature } from '../../common/decorators/require-feature.decorator';
+import { FeatureFlag } from '../../config/feature-flags.constants';
 import { AdminGuard } from '../../common/guards/admin.guard';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CommunitiesService } from './communities.service';
@@ -20,7 +21,7 @@ import { ReviewCommunityDto } from './dto/review-community.dto';
 @ApiTags('admin-communities')
 @ApiBearerAuth()
 @UseGuards(AdminGuard)
-@RequireFeature('community.communities')
+@RequireFeature(FeatureFlag.COMMUNITY_COMMUNITIES)
 @Controller('admin/communities')
 export class AdminCommunitiesController {
   constructor(

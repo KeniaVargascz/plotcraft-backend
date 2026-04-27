@@ -11,6 +11,7 @@ import {
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { RequireFeature } from '../../common/decorators/require-feature.decorator';
+import { FeatureFlag } from '../../config/feature-flags.constants';
 import type { JwtPayload } from '../auth/strategies/jwt.strategy';
 import { CreateHighlightDto } from './dto/create-highlight.dto';
 import { HighlightQueryDto } from './dto/highlight-query.dto';
@@ -19,7 +20,7 @@ import { HighlightsService } from './highlights.service';
 
 @ApiTags('highlights')
 @ApiBearerAuth()
-@RequireFeature('reader.library.highlights')
+@RequireFeature(FeatureFlag.READER_LIBRARY_HIGHLIGHTS)
 @Controller('highlights')
 export class HighlightsController {
   constructor(private readonly highlightsService: HighlightsService) {}

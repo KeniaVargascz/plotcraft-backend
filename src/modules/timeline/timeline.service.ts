@@ -131,7 +131,7 @@ export class TimelineService {
     });
 
     if (!timeline) {
-      throw new NotFoundException('Timeline not found');
+      throw new NotFoundException({ statusCode: 404, message: 'Timeline not found', code: 'TIMELINE_NOT_FOUND' });
     }
 
     return this.toTimelineDetail(timeline);
@@ -170,9 +170,7 @@ export class TimelineService {
     });
 
     if (eventCount > 50 && !confirm) {
-      throw new BadRequestException(
-        `This timeline has ${eventCount} events. Pass confirm: true to delete.`,
-      );
+      throw new BadRequestException({ statusCode: 400, message: `This timeline has ${eventCount} events. Pass confirm: true to delete.`, code: 'TIMELINE_DELETE_CONFIRMATION_REQUIRED' });
     }
 
     await this.prisma.timeline.delete({ where: { id } });
@@ -185,11 +183,11 @@ export class TimelineService {
     });
 
     if (!novel) {
-      throw new NotFoundException('Novel not found');
+      throw new NotFoundException({ statusCode: 404, message: 'Novel not found', code: 'NOVEL_NOT_FOUND' });
     }
 
     if (novel.authorId !== userId) {
-      throw new ForbiddenException('You do not own this novel');
+      throw new ForbiddenException({ statusCode: 403, message: 'You do not own this novel', code: 'NOVEL_FORBIDDEN' });
     }
 
     let timeline = await this.prisma.timeline.findFirst({
@@ -331,7 +329,7 @@ export class TimelineService {
     });
 
     if (!event) {
-      throw new NotFoundException('Event not found');
+      throw new NotFoundException({ statusCode: 404, message: 'Event not found', code: 'EVENT_NOT_FOUND' });
     }
 
     if (dto.chapterId) {
@@ -396,7 +394,7 @@ export class TimelineService {
     });
 
     if (!event) {
-      throw new NotFoundException('Event not found');
+      throw new NotFoundException({ statusCode: 404, message: 'Event not found', code: 'EVENT_NOT_FOUND' });
     }
 
     await this.prisma.timelineEvent.delete({ where: { id: eventId } });
@@ -521,7 +519,7 @@ export class TimelineService {
     });
 
     if (!timeline) {
-      throw new NotFoundException('Timeline not found');
+      throw new NotFoundException({ statusCode: 404, message: 'Timeline not found', code: 'TIMELINE_NOT_FOUND' });
     }
 
     return {
@@ -655,7 +653,7 @@ export class TimelineService {
     });
 
     if (!timeline) {
-      throw new NotFoundException('Timeline not found');
+      throw new NotFoundException({ statusCode: 404, message: 'Timeline not found', code: 'TIMELINE_NOT_FOUND' });
     }
 
     return timeline;
@@ -667,7 +665,7 @@ export class TimelineService {
     });
 
     if (!novel) {
-      throw new NotFoundException('Novel not found or not owned by user');
+      throw new NotFoundException({ statusCode: 404, message: 'Novel not found or not owned by user', code: 'NOVEL_NOT_FOUND_OR_NOT_OWNED' });
     }
 
     return novel;
@@ -679,7 +677,7 @@ export class TimelineService {
     });
 
     if (!chapter) {
-      throw new NotFoundException('Chapter not found or not owned by user');
+      throw new NotFoundException({ statusCode: 404, message: 'Chapter not found or not owned by user', code: 'CHAPTER_NOT_FOUND_OR_NOT_OWNED' });
     }
 
     return chapter;
@@ -691,7 +689,7 @@ export class TimelineService {
     });
 
     if (!character) {
-      throw new NotFoundException('Character not found or not owned by user');
+      throw new NotFoundException({ statusCode: 404, message: 'Character not found or not owned by user', code: 'CHARACTER_NOT_FOUND_OR_NOT_OWNED' });
     }
 
     return character;
@@ -703,7 +701,7 @@ export class TimelineService {
     });
 
     if (!world) {
-      throw new NotFoundException('World not found or not owned by user');
+      throw new NotFoundException({ statusCode: 404, message: 'World not found or not owned by user', code: 'WORLD_NOT_FOUND_OR_NOT_OWNED' });
     }
 
     return world;

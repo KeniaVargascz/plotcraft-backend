@@ -243,7 +243,7 @@ export class ForumService {
     });
 
     if (!thread || thread.deletedAt) {
-      throw new NotFoundException('Thread not found');
+      throw new NotFoundException({ statusCode: 404, message: 'Thread not found', code: 'THREAD_NOT_FOUND' });
     }
 
     // Increment view count if viewer is not the author
@@ -384,9 +384,7 @@ export class ForumService {
         select: { communityId: true },
       });
       if (memberships.length !== linkedIds.length) {
-        throw new ForbiddenException(
-          'Solo puedes vincular hilos a comunidades a las que perteneces.',
-        );
+        throw new ForbiddenException({ statusCode: 403, message: 'You can only link threads to communities you belong to', code: 'THREAD_LINK_MEMBER_REQUIRED' });
       }
     }
 
@@ -445,7 +443,7 @@ export class ForumService {
     const thread = await this.findOwnedThread(slug, userId);
 
     if (thread.status !== ThreadStatus.OPEN) {
-      throw new BadRequestException('Only open threads can be updated');
+      throw new BadRequestException({ statusCode: 400, message: 'Only open threads can be updated', code: 'THREAD_NOT_OPEN' });
     }
 
     const newSlug =
@@ -521,21 +519,21 @@ export class ForumService {
 
   pinThread(slug: string) {
     void slug;
-    throw new ForbiddenException('Only admins can pin threads');
+    throw new ForbiddenException({ statusCode: 403, message: 'Only admins can pin threads', code: 'PIN_ADMIN_ONLY' });
   }
 
   unpinThread(slug: string) {
     void slug;
-    throw new ForbiddenException('Only admins can unpin threads');
+    throw new ForbiddenException({ statusCode: 403, message: 'Only admins can unpin threads', code: 'UNPIN_ADMIN_ONLY' });
   }
 
   async archiveThread(slug: string, userId: string) {
     const thread = await this.prisma.forumThread.findUnique({
       where: { slug },
     });
-    if (!thread) throw new NotFoundException('Thread not found');
+    if (!thread) throw new NotFoundException({ statusCode: 404, message: 'Thread not found', code: 'THREAD_NOT_FOUND' });
     if (thread.authorId !== userId)
-      throw new ForbiddenException('Only the author can archive this thread');
+      throw new ForbiddenException({ statusCode: 403, message: 'Only the author can archive this thread', code: 'THREAD_ARCHIVE_AUTHOR_ONLY' });
     await this.prisma.forumThread.update({
       where: { id: thread.id },
       data: { status: 'ARCHIVED' },
@@ -583,11 +581,11 @@ export class ForumService {
     });
 
     if (!thread || thread.deletedAt) {
-      throw new NotFoundException('Thread not found');
+      throw new NotFoundException({ statusCode: 404, message: 'Thread not found', code: 'THREAD_NOT_FOUND' });
     }
 
     if (thread.authorId !== userId) {
-      throw new ForbiddenException('You are not the author of this thread');
+      throw new ForbiddenException({ statusCode: 403, message: 'You are not the author of this thread', code: 'THREAD_NOT_AUTHOR' });
     }
 
     return thread;

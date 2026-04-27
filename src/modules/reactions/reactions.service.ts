@@ -21,7 +21,7 @@ export class ReactionsService {
     });
 
     if (!post) {
-      throw new NotFoundException('Publicacion no encontrada');
+      throw new NotFoundException({ statusCode: 404, message: 'Post not found', code: 'POST_NOT_FOUND' });
     }
 
     const reactionType = dto.reactionType ?? ReactionType.LIKE;

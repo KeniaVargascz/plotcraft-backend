@@ -25,7 +25,7 @@ export class NovelValidationService {
     });
 
     if (count !== genreIds.length) {
-      throw new BadRequestException('Uno o mas generos no existen');
+      throw new BadRequestException({ statusCode: 400, message: 'One or more genres do not exist', code: 'GENRES_NOT_FOUND' });
     }
   }
 
@@ -37,7 +37,7 @@ export class NovelValidationService {
       });
 
       if (!language || !language.isActive) {
-        throw new BadRequestException('El idioma seleccionado no existe');
+        throw new BadRequestException({ statusCode: 400, message: 'Selected language does not exist', code: 'LANGUAGE_NOT_FOUND' });
       }
 
       return language.id;
@@ -49,9 +49,7 @@ export class NovelValidationService {
     });
 
     if (!fallback || !fallback.isActive) {
-      throw new BadRequestException(
-        'No existe un idioma por defecto configurado',
-      );
+      throw new BadRequestException({ statusCode: 400, message: 'No default language configured', code: 'DEFAULT_LANGUAGE_NOT_FOUND' });
     }
 
     return fallback.id;
@@ -66,9 +64,7 @@ export class NovelValidationService {
     });
 
     if (!publishedChapters) {
-      throw new BadRequestException(
-        'La novela necesita al menos un capitulo publicado para ser publica',
-      );
+      throw new BadRequestException({ statusCode: 400, message: 'Novel requires at least one published chapter to be public', code: 'NOVEL_NO_PUBLISHED_CHAPTERS' });
     }
   }
 
@@ -79,13 +75,11 @@ export class NovelValidationService {
       select: { id: true, authorId: true },
     });
     if (characters.length !== ids.length) {
-      throw new NotFoundException('Uno o mas personajes no existen');
+      throw new NotFoundException({ statusCode: 404, message: 'One or more characters do not exist', code: 'CHARACTERS_NOT_FOUND' });
     }
     const notOwned = characters.find((c) => c.authorId !== userId);
     if (notOwned) {
-      throw new ForbiddenException(
-        'Solo puedes incluir personajes propios en las parejas',
-      );
+      throw new ForbiddenException({ statusCode: 403, message: 'You can only include your own characters in pairings', code: 'PAIRING_CHARACTERS_FORBIDDEN' });
     }
   }
 

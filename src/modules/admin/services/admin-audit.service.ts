@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { Prisma, PrismaClient } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
 
-interface AuditLogEntry {
+export interface AuditLogEntry {
   adminId: string;
   adminEmail: string;
   action: string;
@@ -19,12 +19,28 @@ interface AuditQuery {
   adminId?: string;
 }
 
+type PrismaTransactionClient = Omit<
+  PrismaClient,
+  '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'
+>;
+
 @Injectable()
 export class AdminAuditService {
   constructor(private readonly prisma: PrismaService) {}
 
   async log(entry: AuditLogEntry) {
-    return this.prisma.adminAuditLog.create({
+    return this.logWithClient(this.prisma, entry);
+  }
+
+  async logWithTx(tx: PrismaTransactionClient, entry: AuditLogEntry) {
+    return this.logWithClient(tx, entry);
+  }
+
+  private async logWithClient(
+    client: PrismaTransactionClient,
+    entry: AuditLogEntry,
+  ) {
+    return client.adminAuditLog.create({
       data: {
         adminId: entry.adminId,
         adminEmail: entry.adminEmail,

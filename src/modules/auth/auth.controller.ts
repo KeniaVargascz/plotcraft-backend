@@ -32,6 +32,7 @@ export class AuthController {
   @Public()
   @HttpCode(200)
   @Post('register/verify')
+  @Throttle({ short: { limit: 10, ttl: 60000 } })
   @ApiOperation({ summary: 'Verificar codigo OTP de registro' })
   registerVerify(@Body() dto: RegisterVerifyDto) {
     return this.authService.registerVerify(dto);
@@ -40,6 +41,7 @@ export class AuthController {
   @Public()
   @HttpCode(200)
   @Post('register/resend')
+  @Throttle({ short: { limit: 3, ttl: 60000 } })
   @ApiOperation({ summary: 'Reenviar codigo OTP' })
   resendOtp(@Body() dto: ResendOtpDto) {
     return this.authService.resendOtp(dto).then(() => ({
@@ -61,6 +63,7 @@ export class AuthController {
   @Public()
   @HttpCode(200)
   @Post('reset-password')
+  @Throttle({ short: { limit: 5, ttl: 60000 } })
   @ApiOperation({ summary: 'Restablecer contraseña con codigo OTP' })
   resetPassword(@Body() dto: ResetPasswordDto) {
     return this.authService.resetPassword(dto).then(() => ({
@@ -92,6 +95,16 @@ export class AuthController {
   @ApiOperation({ summary: 'Revocar refresh token actual' })
   logout(@CurrentUser() user: JwtPayload, @Body() dto: RefreshTokenDto) {
     return this.authService.logout(user, dto);
+  }
+
+  @ApiBearerAuth()
+  @HttpCode(200)
+  @Post('logout-all')
+  @ApiOperation({ summary: 'Revocar todas las sesiones del usuario' })
+  logoutAll(@CurrentUser() user: JwtPayload) {
+    return this.authService.logoutAllDevices(user.sub).then(() => ({
+      message: 'Logged out from all devices',
+    }));
   }
 
   @ApiBearerAuth()

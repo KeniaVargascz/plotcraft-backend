@@ -25,12 +25,12 @@ export class CommunityMembersService {
       where: { slug },
       include: { owner: { select: { username: true } } },
     });
-    if (!community) throw new NotFoundException('Comunidad no encontrada');
+    if (!community) throw new NotFoundException({ statusCode: 404, message: 'Community not found', code: 'COMMUNITY_NOT_FOUND' });
     if (community.status !== CommunityStatus.ACTIVE) {
-      throw new UnprocessableEntityException('Esta comunidad no esta activa.');
+      throw new UnprocessableEntityException({ statusCode: 422, message: 'This community is not active', code: 'COMMUNITY_NOT_ACTIVE' });
     }
     if (community.ownerId === userId) {
-      throw new ConflictException('Ya eres el creador de esta comunidad.');
+      throw new ConflictException({ statusCode: 409, message: 'You are already the creator of this community', code: 'ALREADY_COMMUNITY_CREATOR' });
     }
 
     const existing = await this.prisma.communityMember.findUnique({
@@ -39,7 +39,7 @@ export class CommunityMembersService {
       },
     });
     if (existing && existing.status === CommunityMemberStatus.ACTIVE) {
-      throw new ConflictException('Ya eres miembro de esta comunidad.');
+      throw new ConflictException({ statusCode: 409, message: 'You are already a member of this community', code: 'ALREADY_COMMUNITY_MEMBER' });
     }
 
     if (community.type === CommunityType.PRIVATE) {
@@ -52,9 +52,7 @@ export class CommunityMembersService {
         },
       });
       if (!follows) {
-        throw new ForbiddenException(
-          `Solo los seguidores de @${community.owner.username} pueden unirse a esta comunidad.`,
-        );
+        throw new ForbiddenException({ statusCode: 403, message: `Only followers of @${community.owner.username} can join this community`, code: 'MUST_FOLLOW_OWNER' });
       }
     }
 
@@ -83,11 +81,9 @@ export class CommunityMembersService {
     const community = await this.prisma.community.findUnique({
       where: { slug },
     });
-    if (!community) throw new NotFoundException('Comunidad no encontrada');
+    if (!community) throw new NotFoundException({ statusCode: 404, message: 'Community not found', code: 'COMMUNITY_NOT_FOUND' });
     if (community.ownerId === userId) {
-      throw new UnprocessableEntityException(
-        'El creador no puede abandonar su propia comunidad.',
-      );
+      throw new UnprocessableEntityException({ statusCode: 422, message: 'The creator cannot leave their own community', code: 'CREATOR_CANNOT_LEAVE' });
     }
 
     const member = await this.prisma.communityMember.findUnique({
@@ -96,7 +92,7 @@ export class CommunityMembersService {
       },
     });
     if (!member)
-      throw new NotFoundException('No eres miembro de esta comunidad');
+      throw new NotFoundException({ statusCode: 404, message: 'You are not a member of this community', code: 'NOT_COMMUNITY_MEMBER' });
 
     const [, updated] = await this.prisma.$transaction([
       this.prisma.communityMember.delete({
@@ -118,7 +114,7 @@ export class CommunityMembersService {
       where: { slug },
       select: { id: true },
     });
-    if (!community) throw new NotFoundException('Comunidad no encontrada');
+    if (!community) throw new NotFoundException({ statusCode: 404, message: 'Community not found', code: 'COMMUNITY_NOT_FOUND' });
 
     const rows = await this.prisma.communityMember.findMany({
       where: {
@@ -168,9 +164,9 @@ export class CommunityMembersService {
     const community = await this.prisma.community.findUnique({
       where: { slug },
     });
-    if (!community) throw new NotFoundException('Comunidad no encontrada');
+    if (!community) throw new NotFoundException({ statusCode: 404, message: 'Community not found', code: 'COMMUNITY_NOT_FOUND' });
     if (community.status !== CommunityStatus.ACTIVE) {
-      throw new UnprocessableEntityException('Esta comunidad no esta activa.');
+      throw new UnprocessableEntityException({ statusCode: 422, message: 'This community is not active', code: 'COMMUNITY_NOT_ACTIVE' });
     }
 
     const existing = await this.prisma.communityFollow.findUnique({
@@ -179,7 +175,7 @@ export class CommunityMembersService {
       },
     });
     if (existing) {
-      throw new ConflictException('Ya sigues esta comunidad.');
+      throw new ConflictException({ statusCode: 409, message: 'You are already following this community', code: 'ALREADY_FOLLOWING_COMMUNITY' });
     }
 
     const [, updated] = await this.prisma.$transaction([
@@ -199,7 +195,7 @@ export class CommunityMembersService {
     const community = await this.prisma.community.findUnique({
       where: { slug },
     });
-    if (!community) throw new NotFoundException('Comunidad no encontrada');
+    if (!community) throw new NotFoundException({ statusCode: 404, message: 'Community not found', code: 'COMMUNITY_NOT_FOUND' });
 
     const existing = await this.prisma.communityFollow.findUnique({
       where: {
@@ -207,7 +203,7 @@ export class CommunityMembersService {
       },
     });
     if (!existing) {
-      throw new NotFoundException('No sigues esta comunidad');
+      throw new NotFoundException({ statusCode: 404, message: 'You are not following this community', code: 'NOT_FOLLOWING_COMMUNITY' });
     }
 
     const [, updated] = await this.prisma.$transaction([

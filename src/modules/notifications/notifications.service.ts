@@ -129,11 +129,11 @@ export class NotificationsService {
     });
 
     if (!notification) {
-      throw new NotFoundException('Notification not found');
+      throw new NotFoundException({ statusCode: 404, message: 'Notification not found', code: 'NOTIFICATION_NOT_FOUND' });
     }
 
     if (notification.userId !== userId) {
-      throw new ForbiddenException('You do not own this notification');
+      throw new ForbiddenException({ statusCode: 403, message: 'You do not own this notification', code: 'NOTIFICATION_OWNERSHIP_FORBIDDEN' });
     }
 
     await this.prisma.notification.update({
@@ -161,11 +161,11 @@ export class NotificationsService {
     });
 
     if (!notification) {
-      throw new NotFoundException('Notification not found');
+      throw new NotFoundException({ statusCode: 404, message: 'Notification not found', code: 'NOTIFICATION_NOT_FOUND' });
     }
 
     if (notification.userId !== userId) {
-      throw new ForbiddenException('You do not own this notification');
+      throw new ForbiddenException({ statusCode: 403, message: 'You do not own this notification', code: 'NOTIFICATION_OWNERSHIP_FORBIDDEN' });
     }
 
     await this.prisma.notification.delete({

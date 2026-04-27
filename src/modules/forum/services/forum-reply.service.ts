@@ -50,16 +50,14 @@ export class ForumReplyService {
     });
 
     if (!thread || thread.deletedAt) {
-      throw new NotFoundException('Thread not found');
+      throw new NotFoundException({ statusCode: 404, message: 'Thread not found', code: 'THREAD_NOT_FOUND' });
     }
 
     if (
       thread.status !== ThreadStatus.OPEN &&
       thread.status !== ThreadStatus.PINNED
     ) {
-      throw new BadRequestException(
-        'Cannot reply to a closed or archived thread',
-      );
+      throw new BadRequestException({ statusCode: 400, message: 'Cannot reply to a closed or archived thread', code: 'THREAD_NOT_OPEN' });
     }
 
     if (thread.authorId !== userId) {
@@ -85,9 +83,7 @@ export class ForumReplyService {
         }),
       ]);
       if (!follow && !communityMembership) {
-        throw new ForbiddenException(
-          'Solo puedes comentar en hilos de autores que sigues o de comunidades a las que perteneces.',
-        );
+        throw new ForbiddenException({ statusCode: 403, message: 'You can only comment on threads from authors you follow or communities you belong to', code: 'REPLY_NOT_ALLOWED' });
       }
     }
 
@@ -97,7 +93,7 @@ export class ForumReplyService {
         select: { id: true, threadId: true, deletedAt: true },
       });
       if (!parent || parent.deletedAt || parent.threadId !== thread.id) {
-        throw new NotFoundException('Parent reply not found in this thread');
+        throw new NotFoundException({ statusCode: 404, message: 'Parent reply not found in this thread', code: 'PARENT_REPLY_NOT_FOUND' });
       }
     }
 
@@ -188,7 +184,7 @@ export class ForumReplyService {
     });
 
     if (!reply) {
-      throw new NotFoundException('Reply not found');
+      throw new NotFoundException({ statusCode: 404, message: 'Reply not found', code: 'REPLY_NOT_FOUND' });
     }
 
     // Unmark any existing solutions and mark the new one
@@ -214,7 +210,7 @@ export class ForumReplyService {
     });
 
     if (!reply) {
-      throw new NotFoundException('Reply not found');
+      throw new NotFoundException({ statusCode: 404, message: 'Reply not found', code: 'REPLY_NOT_FOUND' });
     }
 
     await this.prisma.forumReply.update({
@@ -233,11 +229,11 @@ export class ForumReplyService {
     });
 
     if (!thread || thread.deletedAt) {
-      throw new NotFoundException('Thread not found');
+      throw new NotFoundException({ statusCode: 404, message: 'Thread not found', code: 'THREAD_NOT_FOUND' });
     }
 
     if (thread.authorId !== userId) {
-      throw new ForbiddenException('You are not the author of this thread');
+      throw new ForbiddenException({ statusCode: 403, message: 'You are not the author of this thread', code: 'THREAD_NOT_AUTHOR' });
     }
 
     return thread;
@@ -249,7 +245,7 @@ export class ForumReplyService {
     });
 
     if (!thread || thread.deletedAt) {
-      throw new NotFoundException('Thread not found');
+      throw new NotFoundException({ statusCode: 404, message: 'Thread not found', code: 'THREAD_NOT_FOUND' });
     }
 
     const reply = await this.prisma.forumReply.findFirst({
@@ -257,11 +253,11 @@ export class ForumReplyService {
     });
 
     if (!reply) {
-      throw new NotFoundException('Reply not found');
+      throw new NotFoundException({ statusCode: 404, message: 'Reply not found', code: 'REPLY_NOT_FOUND' });
     }
 
     if (reply.authorId !== userId) {
-      throw new ForbiddenException('You are not the author of this reply');
+      throw new ForbiddenException({ statusCode: 403, message: 'You are not the author of this reply', code: 'REPLY_NOT_AUTHOR' });
     }
 
     return reply;

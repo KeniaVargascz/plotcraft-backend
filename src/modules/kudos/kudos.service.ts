@@ -18,11 +18,11 @@ export class KudosService {
     });
 
     if (!character) {
-      throw new NotFoundException('Personaje no encontrado');
+      throw new NotFoundException({ statusCode: 404, message: 'Character not found', code: 'CHARACTER_NOT_FOUND' });
     }
 
     if (character.authorId === userId) {
-      throw new ForbiddenException('No puedes dar kudo a tu propio personaje');
+      throw new ForbiddenException({ statusCode: 403, message: 'You cannot give kudos to your own character', code: 'KUDO_OWN_CHARACTER_FORBIDDEN' });
     }
 
     const existing = await this.prisma.characterKudo.findUnique({
@@ -30,7 +30,7 @@ export class KudosService {
     });
 
     if (existing) {
-      throw new ConflictException('Ya has dado kudo a este personaje');
+      throw new ConflictException({ statusCode: 409, message: 'You have already given kudos to this character', code: 'CHARACTER_KUDO_ALREADY_EXISTS' });
     }
 
     await this.prisma.$transaction([
@@ -54,7 +54,7 @@ export class KudosService {
     });
 
     if (!existing) {
-      throw new NotFoundException('No has dado kudo a este personaje');
+      throw new NotFoundException({ statusCode: 404, message: 'You have not given kudos to this character', code: 'CHARACTER_KUDO_NOT_FOUND' });
     }
 
     await this.prisma.$transaction([
@@ -78,11 +78,11 @@ export class KudosService {
     });
 
     if (!world) {
-      throw new NotFoundException('Mundo no encontrado');
+      throw new NotFoundException({ statusCode: 404, message: 'World not found', code: 'WORLD_NOT_FOUND' });
     }
 
     if (world.authorId === userId) {
-      throw new ForbiddenException('No puedes dar kudo a tu propio mundo');
+      throw new ForbiddenException({ statusCode: 403, message: 'You cannot give kudos to your own world', code: 'KUDO_OWN_WORLD_FORBIDDEN' });
     }
 
     const existing = await this.prisma.worldKudo.findUnique({
@@ -90,7 +90,7 @@ export class KudosService {
     });
 
     if (existing) {
-      throw new ConflictException('Ya has dado kudo a este mundo');
+      throw new ConflictException({ statusCode: 409, message: 'You have already given kudos to this world', code: 'WORLD_KUDO_ALREADY_EXISTS' });
     }
 
     await this.prisma.$transaction([
@@ -114,7 +114,7 @@ export class KudosService {
     });
 
     if (!existing) {
-      throw new NotFoundException('No has dado kudo a este mundo');
+      throw new NotFoundException({ statusCode: 404, message: 'You have not given kudos to this world', code: 'WORLD_KUDO_NOT_FOUND' });
     }
 
     await this.prisma.$transaction([

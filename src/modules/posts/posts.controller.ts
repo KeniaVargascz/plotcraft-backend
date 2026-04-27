@@ -13,6 +13,7 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Public } from '../../common/decorators/public.decorator';
 import { RequireFeature } from '../../common/decorators/require-feature.decorator';
+import { FeatureFlag } from '../../config/feature-flags.constants';
 import { AuthService } from '../auth/auth.service';
 import type { JwtPayload } from '../auth/strategies/jwt.strategy';
 import { CreatePostDto } from './dto/create-post.dto';
@@ -21,7 +22,7 @@ import { UpdatePostDto } from './dto/update-post.dto';
 import { PostsService } from './posts.service';
 
 @ApiTags('posts')
-@RequireFeature('social.feed')
+@RequireFeature(FeatureFlag.SOCIAL_FEED)
 @Controller('posts')
 export class PostsController {
   constructor(

@@ -59,9 +59,7 @@ export class HighlightsService {
 
   async create(userId: string, dto: CreateHighlightDto) {
     if (dto.end_offset <= dto.start_offset) {
-      throw new BadRequestException(
-        'end_offset debe ser mayor que start_offset',
-      );
+      throw new BadRequestException({ statusCode: 400, message: 'end_offset must be greater than start_offset', code: 'INVALID_HIGHLIGHT_OFFSETS' });
     }
 
     const chapter = await this.prisma.chapter.findUnique({
@@ -70,13 +68,11 @@ export class HighlightsService {
     });
 
     if (!chapter || chapter.novelId !== dto.novel_id) {
-      throw new BadRequestException(
-        'El capitulo no pertenece a la novela indicada',
-      );
+      throw new BadRequestException({ statusCode: 400, message: 'Chapter does not belong to the specified novel', code: 'CHAPTER_NOVEL_MISMATCH' });
     }
 
     if (!chapter.novel.isPublic && chapter.novel.authorId !== userId) {
-      throw new ForbiddenException('No puedes subrayar este capitulo');
+      throw new ForbiddenException({ statusCode: 403, message: 'You cannot highlight this chapter', code: 'HIGHLIGHT_CHAPTER_FORBIDDEN' });
     }
 
     const highlight = await this.prisma.highlight.create({
@@ -109,11 +105,11 @@ export class HighlightsService {
     });
 
     if (!highlight) {
-      throw new NotFoundException('Subrayado no encontrado');
+      throw new NotFoundException({ statusCode: 404, message: 'Highlight not found', code: 'HIGHLIGHT_NOT_FOUND' });
     }
 
     if (highlight.userId !== userId) {
-      throw new ForbiddenException('No puedes editar este subrayado');
+      throw new ForbiddenException({ statusCode: 403, message: 'You cannot edit this highlight', code: 'HIGHLIGHT_EDIT_FORBIDDEN' });
     }
 
     const updated = await this.prisma.highlight.update({
@@ -137,18 +133,18 @@ export class HighlightsService {
     });
 
     if (!highlight) {
-      throw new NotFoundException('Subrayado no encontrado');
+      throw new NotFoundException({ statusCode: 404, message: 'Highlight not found', code: 'HIGHLIGHT_NOT_FOUND' });
     }
 
     if (highlight.userId !== userId) {
-      throw new ForbiddenException('No puedes eliminar este subrayado');
+      throw new ForbiddenException({ statusCode: 403, message: 'You cannot delete this highlight', code: 'HIGHLIGHT_DELETE_FORBIDDEN' });
     }
 
     await this.prisma.highlight.delete({
       where: { id: highlightId },
     });
 
-    return { message: 'Subrayado eliminado correctamente' };
+    return { message: 'Highlight deleted successfully' };
   }
 
   private toHighlightResponse(highlight: {

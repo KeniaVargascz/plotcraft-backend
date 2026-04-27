@@ -92,7 +92,7 @@ export class SeriesService {
       where: { slug },
       include: this.seriesInclude(),
     });
-    if (!series) throw new NotFoundException('Serie no encontrada');
+    if (!series) throw new NotFoundException({ statusCode: 404, message: 'Series not found', code: 'SERIES_NOT_FOUND' });
     return this.toSeriesResponse(series);
   }
 
@@ -102,9 +102,7 @@ export class SeriesService {
 
     // A collection must contain at least one novel or one child collection
     if (!novelIds.length && !childSeriesIds.length) {
-      throw new UnprocessableEntityException(
-        'Una coleccion debe contener al menos una novela o una coleccion hija.',
-      );
+      throw new UnprocessableEntityException({ statusCode: 422, message: 'A collection must contain at least one novel or one child collection', code: 'COLLECTION_EMPTY' });
     }
 
     // Verify all novels belong to the user and are not in another collection
@@ -114,28 +112,22 @@ export class SeriesService {
         select: { id: true, authorId: true },
       });
       if (novels.length !== novelIds.length) {
-        throw new NotFoundException('Una o mas novelas no existen.');
+        throw new NotFoundException({ statusCode: 404, message: 'One or more novels do not exist', code: 'NOVELS_NOT_FOUND' });
       }
       const notOwned = novels.find((n) => n.authorId !== userId);
       if (notOwned) {
-        throw new ForbiddenException(
-          'Solo puedes anadir tus propias novelas a una coleccion.',
-        );
+        throw new ForbiddenException({ statusCode: 403, message: 'You can only add your own novels to a collection', code: 'COLLECTION_NOVEL_NOT_OWNED' });
       }
       const linked = await this.prisma.seriesNovel.findMany({
         where: { novelId: { in: novelIds } },
       });
       if (linked.length) {
-        throw new UnprocessableEntityException(
-          'Una o mas novelas ya pertenecen a otra coleccion.',
-        );
+        throw new UnprocessableEntityException({ statusCode: 422, message: 'One or more novels already belong to another collection', code: 'NOVELS_ALREADY_IN_COLLECTION' });
       }
       const seriesType = dto.type ?? SeriesType.SAGA;
       const limit = TYPE_LIMITS[seriesType];
       if (limit && novelIds.length > limit) {
-        throw new UnprocessableEntityException(
-          `Una coleccion ${seriesType} solo admite ${limit} novelas.`,
-        );
+        throw new UnprocessableEntityException({ statusCode: 422, message: `A ${seriesType} collection only allows ${limit} novels`, code: 'COLLECTION_NOVEL_LIMIT_EXCEEDED' });
       }
     }
 
@@ -146,13 +138,11 @@ export class SeriesService {
         select: { id: true, authorId: true },
       });
       if (children.length !== childSeriesIds.length) {
-        throw new NotFoundException('Una o mas colecciones hijas no existen.');
+        throw new NotFoundException({ statusCode: 404, message: 'One or more child collections do not exist', code: 'CHILD_COLLECTIONS_NOT_FOUND' });
       }
       const notOwned = children.find((c) => c.authorId !== userId);
       if (notOwned) {
-        throw new ForbiddenException(
-          'Solo puedes anidar tus propias colecciones.',
-        );
+        throw new ForbiddenException({ statusCode: 403, message: 'You can only nest your own collections', code: 'CHILD_COLLECTION_NOT_OWNED' });
       }
     }
 
@@ -202,15 +192,13 @@ export class SeriesService {
     // Validate parent: must belong to same author and not be self/descendant
     if (dto.parentId !== undefined && dto.parentId !== null) {
       if (dto.parentId === series.id) {
-        throw new BadRequestException(
-          'Una coleccion no puede ser su propia padre.',
-        );
+        throw new BadRequestException({ statusCode: 400, message: 'A collection cannot be its own parent', code: 'COLLECTION_SELF_PARENT' });
       }
       const parent = await this.prisma.series.findUnique({
         where: { id: dto.parentId },
       });
       if (!parent || parent.authorId !== userId) {
-        throw new NotFoundException('Coleccion padre no encontrada');
+        throw new NotFoundException({ statusCode: 404, message: 'Parent collection not found', code: 'PARENT_COLLECTION_NOT_FOUND' });
       }
     }
 
@@ -234,7 +222,7 @@ export class SeriesService {
   async deleteSeries(slug: string, userId: string) {
     const series = await this.findOwnedSeries(slug, userId);
     await this.prisma.series.delete({ where: { id: series.id } });
-    return { message: 'Serie eliminada correctamente' };
+    return { message: 'Series deleted successfully' };
   }
 
   async addNovelToSeries(
@@ -247,20 +235,16 @@ export class SeriesService {
     const novel = await this.prisma.novel.findUnique({
       where: { id: dto.novelId },
     });
-    if (!novel) throw new NotFoundException('Novela no encontrada');
+    if (!novel) throw new NotFoundException({ statusCode: 404, message: 'Novel not found', code: 'NOVEL_NOT_FOUND' });
     if (novel.authorId !== userId) {
-      throw new ForbiddenException(
-        'Solo puedes anadir tus propias novelas a una serie.',
-      );
+      throw new ForbiddenException({ statusCode: 403, message: 'You can only add your own novels to a series', code: 'SERIES_NOVEL_NOT_OWNED' });
     }
 
     const alreadyLinked = await this.prisma.seriesNovel.findFirst({
       where: { novelId: dto.novelId },
     });
     if (alreadyLinked) {
-      throw new UnprocessableEntityException(
-        'Esta novela ya pertenece a otra serie.',
-      );
+      throw new UnprocessableEntityException({ statusCode: 422, message: 'This novel already belongs to another series', code: 'NOVEL_ALREADY_IN_SERIES' });
     }
 
     const currentCount = await this.prisma.seriesNovel.count({
@@ -268,9 +252,7 @@ export class SeriesService {
     });
     const limit = TYPE_LIMITS[series.type];
     if (limit && currentCount >= limit) {
-      throw new UnprocessableEntityException(
-        `Esta serie tipo ${series.type} solo admite ${limit} novelas.`,
-      );
+      throw new UnprocessableEntityException({ statusCode: 422, message: `This ${series.type} series only allows ${limit} novels`, code: 'SERIES_NOVEL_LIMIT_EXCEEDED' });
     }
 
     const orderTaken = await this.prisma.seriesNovel.findUnique({
@@ -282,9 +264,7 @@ export class SeriesService {
       },
     });
     if (orderTaken) {
-      throw new UnprocessableEntityException(
-        'Ya existe una novela con ese orderIndex en la serie.',
-      );
+      throw new UnprocessableEntityException({ statusCode: 422, message: 'A novel with that orderIndex already exists in the series', code: 'SERIES_ORDER_INDEX_TAKEN' });
     }
 
     await this.prisma.seriesNovel.create({
@@ -303,7 +283,7 @@ export class SeriesService {
     const link = await this.prisma.seriesNovel.findUnique({
       where: { seriesId_novelId: { seriesId: series.id, novelId } },
     });
-    if (!link) throw new NotFoundException('Novela no encontrada en la serie');
+    if (!link) throw new NotFoundException({ statusCode: 404, message: 'Novel not found in the series', code: 'NOVEL_NOT_IN_SERIES' });
 
     const wasDeleted = await this.prisma.$transaction(async (tx) => {
       await tx.seriesNovel.delete({
@@ -350,7 +330,7 @@ export class SeriesService {
       return {
         deleted: true,
         message:
-          'La coleccion fue eliminada porque era su ultimo libro. Las novelas no se eliminaron.',
+          'The collection was deleted because it was its last book. The novels were not deleted.',
       };
     }
 
@@ -364,27 +344,21 @@ export class SeriesService {
     });
 
     if (dto.novels.length !== links.length) {
-      throw new BadRequestException(
-        'Debes incluir todas las novelas de la serie en el reorden',
-      );
+      throw new BadRequestException({ statusCode: 400, message: 'You must include all novels in the series for reordering', code: 'REORDER_INCOMPLETE_NOVELS' });
     }
     const seriesIds = new Set(links.map((l) => l.novelId));
     const reqIds = new Set(dto.novels.map((n) => n.novelId));
     if (reqIds.size !== dto.novels.length) {
-      throw new BadRequestException('La lista contiene novelas duplicadas');
+      throw new BadRequestException({ statusCode: 400, message: 'The list contains duplicate novels', code: 'REORDER_DUPLICATE_NOVELS' });
     }
     for (const n of dto.novels) {
       if (!seriesIds.has(n.novelId)) {
-        throw new BadRequestException(
-          'Una o mas novelas no pertenecen a esta serie',
-        );
+        throw new BadRequestException({ statusCode: 400, message: 'One or more novels do not belong to this series', code: 'REORDER_NOVELS_NOT_IN_SERIES' });
       }
     }
     const orderIndices = new Set(dto.novels.map((n) => n.orderIndex));
     if (orderIndices.size !== dto.novels.length) {
-      throw new BadRequestException(
-        'Los orderIndex no pueden estar duplicados',
-      );
+      throw new BadRequestException({ statusCode: 400, message: 'Order indices cannot be duplicated', code: 'REORDER_DUPLICATE_INDICES' });
     }
 
     await this.prisma.$transaction(async (tx) => {
@@ -429,9 +403,7 @@ export class SeriesService {
       });
       const required = TYPE_LIMITS[series.type];
       if (required && links.length !== required) {
-        throw new UnprocessableEntityException(
-          `Una serie ${series.type} debe tener ${required} novelas para marcarse como completada.`,
-        );
+        throw new UnprocessableEntityException({ statusCode: 422, message: `A ${series.type} series must have ${required} novels to be marked as completed`, code: 'SERIES_COMPLETION_NOVEL_COUNT' });
       }
       if (required) {
         const allClosed = links.every(
@@ -440,9 +412,7 @@ export class SeriesService {
             l.novel.status === NovelStatus.ARCHIVED,
         );
         if (!allClosed) {
-          throw new UnprocessableEntityException(
-            'Todas las novelas de la serie deben estar completadas o archivadas.',
-          );
+          throw new UnprocessableEntityException({ statusCode: 422, message: 'All novels in the series must be completed or archived', code: 'SERIES_NOVELS_NOT_CLOSED' });
         }
       }
     }
@@ -457,9 +427,9 @@ export class SeriesService {
 
   private async findOwnedSeries(slug: string, userId: string) {
     const series = await this.prisma.series.findUnique({ where: { slug } });
-    if (!series) throw new NotFoundException('Serie no encontrada');
+    if (!series) throw new NotFoundException({ statusCode: 404, message: 'Series not found', code: 'SERIES_NOT_FOUND' });
     if (series.authorId !== userId) {
-      throw new ForbiddenException('No puedes gestionar esta serie');
+      throw new ForbiddenException({ statusCode: 403, message: 'You cannot manage this series', code: 'SERIES_FORBIDDEN' });
     }
     return series;
   }

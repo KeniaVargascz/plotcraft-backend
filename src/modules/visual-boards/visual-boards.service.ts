@@ -30,9 +30,9 @@ export class VisualBoardsService {
     const board = await this.prisma.visualBoard.findUnique({
       where: { id: boardId },
     });
-    if (!board) throw new NotFoundException('Tablero no encontrado');
+    if (!board) throw new NotFoundException({ statusCode: 404, message: 'Board not found', code: 'BOARD_NOT_FOUND' });
     if (board.authorId !== userId) {
-      throw new ForbiddenException('No puedes gestionar este tablero');
+      throw new ForbiddenException({ statusCode: 403, message: 'You cannot manage this board', code: 'BOARD_FORBIDDEN' });
     }
     return board;
   }
@@ -98,7 +98,7 @@ export class VisualBoardsService {
       },
     });
     if (!board || (!board.isPublic && board.authorId !== viewerId)) {
-      throw new NotFoundException('Tablero no encontrado');
+      throw new NotFoundException({ statusCode: 404, message: 'Board not found', code: 'BOARD_NOT_FOUND' });
     }
 
     const linked = await this.resolveLinkedEntity(
@@ -264,7 +264,7 @@ export class VisualBoardsService {
     this.validateReorderSet(
       sections.map((section) => section.id),
       dto.sections.map((section) => section.sectionId),
-      'secciones',
+      'sections',
     );
 
     await this.prisma.$transaction(async (tx) => {
@@ -368,7 +368,7 @@ export class VisualBoardsService {
     this.validateReorderSet(
       items.map((item) => item.id),
       dto.items.map((item) => item.itemId),
-      'imagenes',
+      'images',
     );
 
     await this.prisma.$transaction(async (tx) => {
@@ -473,9 +473,7 @@ export class VisualBoardsService {
     linkedId?: string | null,
   ) {
     if ((linkedType && !linkedId) || (!linkedType && linkedId)) {
-      throw new UnprocessableEntityException(
-        'linkedType y linkedId deben enviarse juntos.',
-      );
+      throw new UnprocessableEntityException({ statusCode: 422, message: 'linkedType and linkedId must be sent together', code: 'LINKED_FIELDS_INCOMPLETE' });
     }
     if (!linkedType || !linkedId) {
       return;
@@ -487,9 +485,7 @@ export class VisualBoardsService {
       linkedId,
     );
     if (!target) {
-      throw new UnprocessableEntityException(
-        'El elemento vinculado no existe o no pertenece al autor.',
-      );
+      throw new UnprocessableEntityException({ statusCode: 422, message: 'The linked entity does not exist or does not belong to the author', code: 'LINKED_ENTITY_NOT_FOUND' });
     }
   }
 
@@ -569,7 +565,7 @@ export class VisualBoardsService {
       where: { id: sectionId, boardId },
     });
     if (!section) {
-      throw new NotFoundException('Seccion no encontrada');
+      throw new NotFoundException({ statusCode: 404, message: 'Section not found', code: 'SECTION_NOT_FOUND' });
     }
     return section;
   }
@@ -579,7 +575,7 @@ export class VisualBoardsService {
       where: { id: itemId, sectionId },
     });
     if (!item) {
-      throw new NotFoundException('Imagen no encontrada');
+      throw new NotFoundException({ statusCode: 404, message: 'Image not found', code: 'IMAGE_NOT_FOUND' });
     }
     return item;
   }
@@ -632,25 +628,19 @@ export class VisualBoardsService {
     label: string,
   ) {
     if (existingIds.length !== requestedIds.length) {
-      throw new UnprocessableEntityException(
-        `Debes incluir todas las ${label} en el reorden.`,
-      );
+      throw new UnprocessableEntityException({ statusCode: 422, message: `You must include all ${label} in the reorder`, code: 'REORDER_INCOMPLETE' });
     }
 
     const existing = new Set(existingIds);
     const requested = new Set(requestedIds);
 
     if (requested.size !== requestedIds.length) {
-      throw new UnprocessableEntityException(
-        `La lista de ${label} contiene ids duplicados.`,
-      );
+      throw new UnprocessableEntityException({ statusCode: 422, message: `The ${label} list contains duplicate IDs`, code: 'REORDER_DUPLICATE_IDS' });
     }
 
     for (const id of requestedIds) {
       if (!existing.has(id)) {
-        throw new UnprocessableEntityException(
-          `Una o mas ${label} no pertenecen al recurso indicado.`,
-        );
+        throw new UnprocessableEntityException({ statusCode: 422, message: `One or more ${label} do not belong to the specified resource`, code: 'REORDER_ITEMS_NOT_OWNED' });
       }
     }
   }

@@ -135,7 +135,7 @@ export class ForumThreadsService {
       },
     });
 
-    if (!thread) throw new NotFoundException('Hilo no encontrado.');
+    if (!thread) throw new NotFoundException({ statusCode: 404, message: 'Thread not found', code: 'THREAD_NOT_FOUND' });
 
     if (viewerId !== thread.authorId) {
       await this.prisma.forumThread
@@ -234,9 +234,7 @@ export class ForumThreadsService {
         select: { communityId: true },
       });
       if (memberships.length !== linkedIds.length) {
-        throw new ForbiddenException(
-          'Solo puedes vincular hilos a comunidades a las que perteneces.',
-        );
+        throw new ForbiddenException({ statusCode: 403, message: 'You can only link threads to communities you belong to', code: 'THREAD_LINK_MEMBER_REQUIRED' });
       }
     }
 
@@ -302,7 +300,7 @@ export class ForumThreadsService {
       where: { slug: communitySlug },
       select: { id: true },
     });
-    if (!community) throw new NotFoundException('Comunidad no encontrada.');
+    if (!community) throw new NotFoundException({ statusCode: 404, message: 'Community not found', code: 'COMMUNITY_NOT_FOUND' });
 
     const links = await this.prisma.threadCommunityLink.findMany({
       where: {

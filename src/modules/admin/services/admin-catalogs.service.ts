@@ -19,7 +19,7 @@ export class AdminCatalogsService {
 
   async createGenre(data: { slug: string; label: string }, admin: JwtPayload) {
     const exists = await this.prisma.genre.findUnique({ where: { slug: data.slug } });
-    if (exists) throw new ConflictException('El slug ya existe');
+    if (exists) throw new ConflictException({ statusCode: 409, message: 'Slug already exists', code: 'SLUG_ALREADY_EXISTS' });
     const genre = await this.prisma.genre.create({ data });
     await this.auditService.log({ adminId: admin.sub, adminEmail: admin.email, action: 'GENRE_CREATED', resourceType: 'genre', resourceId: genre.id, details: data });
     return genre;
@@ -27,7 +27,7 @@ export class AdminCatalogsService {
 
   async updateGenre(id: string, data: { slug?: string; label?: string; isActive?: boolean }, admin: JwtPayload) {
     const genre = await this.prisma.genre.findUnique({ where: { id } });
-    if (!genre) throw new NotFoundException('Género no encontrado');
+    if (!genre) throw new NotFoundException({ statusCode: 404, message: 'Genre not found', code: 'GENRE_NOT_FOUND' });
     const updated = await this.prisma.genre.update({ where: { id }, data });
     await this.cache.del('catalog:genres');
     await this.auditService.log({ adminId: admin.sub, adminEmail: admin.email, action: 'GENRE_UPDATED', resourceType: 'genre', resourceId: id, details: data });
@@ -36,7 +36,7 @@ export class AdminCatalogsService {
 
   async deleteGenre(id: string, admin: JwtPayload) {
     const genre = await this.prisma.genre.findUnique({ where: { id } });
-    if (!genre) throw new NotFoundException('Género no encontrado');
+    if (!genre) throw new NotFoundException({ statusCode: 404, message: 'Genre not found', code: 'GENRE_NOT_FOUND' });
     await this.prisma.genre.delete({ where: { id } });
     await this.auditService.log({ adminId: admin.sub, adminEmail: admin.email, action: 'GENRE_DELETED', resourceType: 'genre', resourceId: id, details: { label: genre.label } });
     return { deleted: true };
@@ -55,7 +55,7 @@ export class AdminCatalogsService {
 
   async updateLanguage(id: string, data: { name?: string; code?: string; isActive?: boolean }, admin: JwtPayload) {
     const lang = await this.prisma.catalogLanguage.findUnique({ where: { id } });
-    if (!lang) throw new NotFoundException('Idioma no encontrado');
+    if (!lang) throw new NotFoundException({ statusCode: 404, message: 'Language not found', code: 'LANGUAGE_NOT_FOUND' });
     const updated = await this.prisma.catalogLanguage.update({ where: { id }, data });
     await this.cache.del('catalog:languages');
     await this.auditService.log({ adminId: admin.sub, adminEmail: admin.email, action: 'LANGUAGE_UPDATED', resourceType: 'language', resourceId: id, details: data });
@@ -75,7 +75,7 @@ export class AdminCatalogsService {
 
   async updateWarning(id: string, data: { slug?: string; label?: string; isActive?: boolean }, admin: JwtPayload) {
     const warning = await this.prisma.catalogWarning.findUnique({ where: { id } });
-    if (!warning) throw new NotFoundException('Warning no encontrado');
+    if (!warning) throw new NotFoundException({ statusCode: 404, message: 'Warning not found', code: 'WARNING_NOT_FOUND' });
     const updated = await this.prisma.catalogWarning.update({ where: { id }, data });
     await this.cache.del('catalog:warnings');
     await this.auditService.log({ adminId: admin.sub, adminEmail: admin.email, action: 'WARNING_UPDATED', resourceType: 'warning', resourceId: id, details: data });
@@ -95,7 +95,7 @@ export class AdminCatalogsService {
 
   async updateRomanceGenre(id: string, data: { slug?: string; label?: string; isActive?: boolean }, admin: JwtPayload) {
     const rg = await this.prisma.catalogRomanceGenre.findUnique({ where: { id } });
-    if (!rg) throw new NotFoundException('Romance genre no encontrado');
+    if (!rg) throw new NotFoundException({ statusCode: 404, message: 'Romance genre not found', code: 'ROMANCE_GENRE_NOT_FOUND' });
     const updated = await this.prisma.catalogRomanceGenre.update({ where: { id }, data });
     await this.cache.del('catalog:romance-genres');
     await this.auditService.log({ adminId: admin.sub, adminEmail: admin.email, action: 'ROMANCE_GENRE_UPDATED', resourceType: 'romance_genre', resourceId: id, details: data });

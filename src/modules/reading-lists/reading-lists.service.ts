@@ -51,14 +51,14 @@ export class ReadingListsService {
     });
 
     if (!list) {
-      throw new NotFoundException('Lista de lectura no encontrada');
+      throw new NotFoundException({ statusCode: 404, message: 'Reading list not found', code: 'READING_LIST_NOT_FOUND' });
     }
 
     if (
       list.visibility === ReadingListVisibility.PRIVATE &&
       list.userId !== viewerId
     ) {
-      throw new NotFoundException('Lista de lectura no encontrada');
+      throw new NotFoundException({ statusCode: 404, message: 'Reading list not found', code: 'READING_LIST_NOT_FOUND' });
     }
 
     return this.toReadingListResponse(list as never, true);
@@ -102,7 +102,7 @@ export class ReadingListsService {
       where: { id: existing.id },
     });
 
-    return { message: 'Lista eliminada correctamente' };
+    return { message: 'Reading list deleted successfully' };
   }
 
   async addItem(userId: string, listId: string, dto: AddToListDto) {
@@ -124,17 +124,15 @@ export class ReadingListsService {
     });
 
     if (!novel) {
-      throw new NotFoundException('Novela no encontrada');
+      throw new NotFoundException({ statusCode: 404, message: 'Novel not found', code: 'NOVEL_NOT_FOUND' });
     }
 
     if (list.visibility === ReadingListVisibility.PUBLIC && !novel.isPublic) {
-      throw new BadRequestException(
-        'No puedes agregar una novela privada a una lista publica',
-      );
+      throw new BadRequestException({ statusCode: 400, message: 'You cannot add a private novel to a public list', code: 'PRIVATE_NOVEL_IN_PUBLIC_LIST' });
     }
 
     if (!novel.isPublic && novel.authorId !== userId) {
-      throw new NotFoundException('Novela no encontrada');
+      throw new NotFoundException({ statusCode: 404, message: 'Novel not found', code: 'NOVEL_NOT_FOUND' });
     }
 
     const duplicate = await this.prisma.readingListItem.findUnique({
@@ -147,7 +145,7 @@ export class ReadingListsService {
     });
 
     if (duplicate) {
-      throw new ConflictException('La novela ya existe en esta lista');
+      throw new ConflictException({ statusCode: 409, message: 'Novel already exists in this list', code: 'NOVEL_ALREADY_IN_LIST' });
     }
 
     const item = await this.prisma.readingListItem.create({
@@ -174,14 +172,14 @@ export class ReadingListsService {
     });
 
     if (!item) {
-      throw new NotFoundException('Item no encontrado');
+      throw new NotFoundException({ statusCode: 404, message: 'Item not found', code: 'READING_LIST_ITEM_NOT_FOUND' });
     }
 
     await this.prisma.readingListItem.delete({
       where: { id: item.id },
     });
 
-    return { message: 'Novela eliminada de la lista' };
+    return { message: 'Novel removed from list' };
   }
 
   async updateItemNote(
@@ -203,7 +201,7 @@ export class ReadingListsService {
     });
 
     if (!item) {
-      throw new NotFoundException('Item no encontrado');
+      throw new NotFoundException({ statusCode: 404, message: 'Item not found', code: 'READING_LIST_ITEM_NOT_FOUND' });
     }
 
     const updated = await this.prisma.readingListItem.update({
@@ -223,11 +221,11 @@ export class ReadingListsService {
     });
 
     if (!list) {
-      throw new NotFoundException('Lista de lectura no encontrada');
+      throw new NotFoundException({ statusCode: 404, message: 'Reading list not found', code: 'READING_LIST_NOT_FOUND' });
     }
 
     if (list.userId !== userId) {
-      throw new ForbiddenException('No puedes gestionar esta lista');
+      throw new ForbiddenException({ statusCode: 403, message: 'You cannot manage this list', code: 'READING_LIST_MANAGE_FORBIDDEN' });
     }
 
     return list;

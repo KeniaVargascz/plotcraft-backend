@@ -50,7 +50,7 @@ export class AdminPostsService {
 
   async remove(id: string, admin: JwtPayload) {
     const post = await this.prisma.post.findUnique({ where: { id }, select: { id: true, authorId: true, type: true } });
-    if (!post) throw new NotFoundException('Post no encontrado');
+    if (!post) throw new NotFoundException({ statusCode: 404, message: 'Post not found', code: 'POST_NOT_FOUND' });
 
     await this.prisma.post.update({ where: { id }, data: { deletedAt: new Date() } });
 

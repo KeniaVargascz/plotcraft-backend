@@ -69,6 +69,10 @@ describe('AuthService', () => {
       del: jest.fn().mockResolvedValue(undefined),
       invalidatePattern: jest.fn().mockResolvedValue(undefined),
     } as any;
+    const featureFlagCache = {
+      getLastChangedTimestamp: jest.fn().mockResolvedValue(null),
+      invalidate: jest.fn().mockResolvedValue(undefined),
+    } as any;
     service = new AuthService(
       prisma,
       usersService,
@@ -77,6 +81,7 @@ describe('AuthService', () => {
       otpService,
       emailService,
       cacheService,
+      featureFlagCache,
     );
   });
 

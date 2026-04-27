@@ -81,9 +81,9 @@ export class AnalyticsService {
       },
     });
 
-    if (!novel) throw new NotFoundException('Novel not found');
+    if (!novel) throw new NotFoundException({ statusCode: 404, message: 'Novel not found', code: 'NOVEL_NOT_FOUND' });
     if (novel.authorId !== userId)
-      throw new ForbiddenException('Not your novel');
+      throw new ForbiddenException({ statusCode: 403, message: 'You do not own this novel', code: 'NOVEL_FORBIDDEN' });
 
     return novel;
   }

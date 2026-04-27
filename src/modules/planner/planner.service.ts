@@ -72,9 +72,9 @@ export class PlannerService {
       },
     });
 
-    if (!project) throw new NotFoundException('Proyecto no encontrado');
+    if (!project) throw new NotFoundException({ statusCode: 404, message: 'Project not found', code: 'PROJECT_NOT_FOUND' });
     if (project.authorId !== userId)
-      throw new ForbiddenException('No puedes acceder a este proyecto');
+      throw new ForbiddenException({ statusCode: 403, message: 'You cannot access this project', code: 'PROJECT_ACCESS_FORBIDDEN' });
 
     return this.toProjectResponse(project);
   }
@@ -108,7 +108,7 @@ export class PlannerService {
   async deleteProject(id: string, userId: string) {
     await this.findOwnedProject(id, userId);
     await this.prisma.writingProject.delete({ where: { id } });
-    return { message: 'Proyecto eliminado correctamente' };
+    return { message: 'Project deleted successfully' };
   }
 
   async archiveProject(id: string, userId: string) {
@@ -146,9 +146,9 @@ export class PlannerService {
       where: { slug: novelSlug },
     });
 
-    if (!novel) throw new NotFoundException('Novela no encontrada');
+    if (!novel) throw new NotFoundException({ statusCode: 404, message: 'Novel not found', code: 'NOVEL_NOT_FOUND' });
     if (novel.authorId !== userId)
-      throw new ForbiddenException('No puedes gestionar esta novela');
+      throw new ForbiddenException({ statusCode: 403, message: 'You cannot manage this novel', code: 'NOVEL_FORBIDDEN' });
 
     let project = await this.prisma.writingProject.findFirst({
       where: { novelId: novel.id, authorId: userId },
@@ -335,7 +335,7 @@ export class PlannerService {
   async deleteTask(projectId: string, taskId: string, userId: string) {
     await this.findOwnedTask(projectId, taskId, userId);
     await this.prisma.writingTask.delete({ where: { id: taskId } });
-    return { message: 'Tarea eliminada correctamente' };
+    return { message: 'Task deleted successfully' };
   }
 
   async moveTask(
@@ -381,16 +381,12 @@ export class PlannerService {
     });
 
     if (existing.length !== taskIds.length) {
-      throw new BadRequestException(
-        'Una o mas tareas no pertenecen a este proyecto',
-      );
+      throw new BadRequestException({ statusCode: 400, message: 'One or more tasks do not belong to this project', code: 'TASKS_NOT_IN_PROJECT' });
     }
 
     const wrongStatus = existing.find((t) => t.status !== dto.status);
     if (wrongStatus) {
-      throw new BadRequestException(
-        `La tarea ${wrongStatus.id} no tiene el estado ${dto.status}`,
-      );
+      throw new BadRequestException({ statusCode: 400, message: `Task ${wrongStatus.id} does not have the status ${dto.status}`, code: 'TASK_STATUS_MISMATCH' });
     }
 
     await this.prisma.$transaction(
@@ -402,7 +398,7 @@ export class PlannerService {
       ),
     );
 
-    return { message: 'Tareas reordenadas correctamente' };
+    return { message: 'Tasks reordered successfully' };
   }
 
   // ── Board ─────────────────────────────────────────────────────────
@@ -445,7 +441,7 @@ export class PlannerService {
     const diffDays = diffMs / (1000 * 60 * 60 * 24);
 
     if (diffDays > 90 || diffDays < 0) {
-      throw new BadRequestException('El rango maximo permitido es de 90 dias');
+      throw new BadRequestException({ statusCode: 400, message: 'The maximum allowed range is 90 days', code: 'CALENDAR_RANGE_EXCEEDED' });
     }
 
     const activeProjects = await this.prisma.writingProject.findMany({
@@ -587,9 +583,9 @@ export class PlannerService {
       where: { id },
     });
 
-    if (!project) throw new NotFoundException('Proyecto no encontrado');
+    if (!project) throw new NotFoundException({ statusCode: 404, message: 'Project not found', code: 'PROJECT_NOT_FOUND' });
     if (project.authorId !== userId)
-      throw new ForbiddenException('No puedes gestionar este proyecto');
+      throw new ForbiddenException({ statusCode: 403, message: 'You cannot manage this project', code: 'PROJECT_FORBIDDEN' });
 
     return project;
   }
@@ -606,7 +602,7 @@ export class PlannerService {
     });
 
     if (!task || task.projectId !== projectId)
-      throw new NotFoundException('Tarea no encontrada');
+      throw new NotFoundException({ statusCode: 404, message: 'Task not found', code: 'TASK_NOT_FOUND' });
 
     return task;
   }
@@ -617,9 +613,9 @@ export class PlannerService {
       select: { authorId: true },
     });
 
-    if (!novel) throw new NotFoundException('Novela no encontrada');
+    if (!novel) throw new NotFoundException({ statusCode: 404, message: 'Novel not found', code: 'NOVEL_NOT_FOUND' });
     if (novel.authorId !== userId)
-      throw new ForbiddenException('No puedes vincular esta novela');
+      throw new ForbiddenException({ statusCode: 403, message: 'You cannot link this novel', code: 'NOVEL_LINK_FORBIDDEN' });
   }
 
   private async assertChapterOwnership(chapterId: string, userId: string) {
@@ -628,9 +624,9 @@ export class PlannerService {
       include: { novel: { select: { authorId: true } } },
     });
 
-    if (!chapter) throw new NotFoundException('Capitulo no encontrado');
+    if (!chapter) throw new NotFoundException({ statusCode: 404, message: 'Chapter not found', code: 'CHAPTER_NOT_FOUND' });
     if (chapter.novel.authorId !== userId)
-      throw new ForbiddenException('No puedes vincular este capitulo');
+      throw new ForbiddenException({ statusCode: 403, message: 'You cannot link this chapter', code: 'CHAPTER_LINK_FORBIDDEN' });
   }
 
   private async assertCharacterOwnership(characterId: string, userId: string) {
@@ -639,9 +635,9 @@ export class PlannerService {
       select: { authorId: true },
     });
 
-    if (!character) throw new NotFoundException('Personaje no encontrado');
+    if (!character) throw new NotFoundException({ statusCode: 404, message: 'Character not found', code: 'CHARACTER_NOT_FOUND' });
     if (character.authorId !== userId)
-      throw new ForbiddenException('No puedes vincular este personaje');
+      throw new ForbiddenException({ statusCode: 403, message: 'You cannot link this character', code: 'CHARACTER_LINK_FORBIDDEN' });
   }
 
   private resolveCompletedAt(

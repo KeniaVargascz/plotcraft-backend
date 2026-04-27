@@ -11,13 +11,14 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Public } from '../../common/decorators/public.decorator';
 import { RequireFeature } from '../../common/decorators/require-feature.decorator';
+import { FeatureFlag } from '../../config/feature-flags.constants';
 import { AuthService } from '../auth/auth.service';
 import type { JwtPayload } from '../auth/strategies/jwt.strategy';
 import { FeedQueryDto } from '../feed/dto/feed-query.dto';
 import { FollowsService } from './follows.service';
 
 @ApiTags('follows')
-@RequireFeature('social.follows')
+@RequireFeature(FeatureFlag.SOCIAL_FOLLOWS)
 @Controller('follows')
 export class FollowsController {
   constructor(

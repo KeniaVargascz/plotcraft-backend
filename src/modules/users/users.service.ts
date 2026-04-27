@@ -24,7 +24,7 @@ export class UsersService {
     });
 
     if (!user) {
-      throw new NotFoundException('Usuario no encontrado');
+      throw new NotFoundException({ statusCode: 404, message: 'User not found', code: 'USER_NOT_FOUND' });
     }
 
     return user;
@@ -45,7 +45,7 @@ export class UsersService {
       });
 
       if (existingEmail && existingEmail.id !== id) {
-        throw new ConflictException('El email ya esta en uso');
+        throw new ConflictException({ statusCode: 409, message: 'Email is already in use', code: 'EMAIL_ALREADY_IN_USE' });
       }
 
       updateData.email = normalizedEmail;
@@ -58,7 +58,7 @@ export class UsersService {
       });
 
       if (existingUsername && existingUsername.id !== id) {
-        throw new ConflictException('El username ya esta en uso');
+        throw new ConflictException({ statusCode: 409, message: 'Username is already in use', code: 'USERNAME_ALREADY_IN_USE' });
       }
 
       updateData.username = normalizedUsername;
@@ -66,9 +66,7 @@ export class UsersService {
 
     if (dto.newPassword) {
       if (!dto.currentPassword) {
-        throw new ForbiddenException(
-          'Debes ingresar tu contrasena actual para cambiarla',
-        );
+        throw new ForbiddenException({ statusCode: 403, message: 'You must provide your current password to change it', code: 'CURRENT_PASSWORD_REQUIRED' });
       }
 
       const passwordMatches = await bcrypt.compare(
@@ -76,7 +74,7 @@ export class UsersService {
         user.passwordHash,
       );
       if (!passwordMatches) {
-        throw new ForbiddenException('La contrasena actual no es valida');
+        throw new ForbiddenException({ statusCode: 403, message: 'Current password is invalid', code: 'CURRENT_PASSWORD_INVALID' });
       }
 
       updateData.passwordHash = await bcrypt.hash(dto.newPassword, 12);
@@ -102,11 +100,11 @@ export class UsersService {
     );
 
     if (!passwordMatches) {
-      throw new ForbiddenException('La contrasena es incorrecta');
+      throw new ForbiddenException({ statusCode: 403, message: 'Password is incorrect', code: 'PASSWORD_INCORRECT' });
     }
 
     await this.prisma.user.delete({ where: { id } });
-    return { message: 'Cuenta eliminada correctamente' };
+    return { message: 'Account deleted successfully' };
   }
 
   toUserEntity(

@@ -2,12 +2,13 @@ import { Controller, Delete, Param, Post } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { RequireFeature } from '../../common/decorators/require-feature.decorator';
+import { FeatureFlag } from '../../config/feature-flags.constants';
 import type { JwtPayload } from '../auth/strategies/jwt.strategy';
 import { KudosService } from './kudos.service';
 
 @ApiTags('kudos')
 @ApiBearerAuth()
-@RequireFeature('reader.kudos')
+@RequireFeature(FeatureFlag.READER_KUDOS)
 @Controller('kudos')
 export class KudosController {
   constructor(private readonly kudosService: KudosService) {}

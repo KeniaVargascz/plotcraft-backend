@@ -118,7 +118,7 @@ export class EntriesService {
     });
 
     if (!entry) {
-      throw new NotFoundException('Entrada no encontrada');
+      throw new NotFoundException({ statusCode: 404, message: 'Entry not found', code: 'ENTRY_NOT_FOUND' });
     }
 
     return {
@@ -183,7 +183,7 @@ export class EntriesService {
     });
 
     if (!category) {
-      throw new NotFoundException('Categoria no encontrada');
+      throw new NotFoundException({ statusCode: 404, message: 'Category not found', code: 'CATEGORY_NOT_FOUND' });
     }
 
     return this.listEntries(worldSlug, { ...query, categoryId: category.id });
@@ -197,7 +197,7 @@ export class EntriesService {
     });
 
     if (!category) {
-      throw new NotFoundException('Categoria no encontrada en este mundo');
+      throw new NotFoundException({ statusCode: 404, message: 'Category not found in this world', code: 'CATEGORY_NOT_FOUND_IN_WORLD' });
     }
 
     const schema = (category.fieldSchema as unknown as FieldDefinition[]) || [];
@@ -253,7 +253,7 @@ export class EntriesService {
     });
 
     if (!entry) {
-      throw new NotFoundException('Entrada no encontrada');
+      throw new NotFoundException({ statusCode: 404, message: 'Entry not found', code: 'ENTRY_NOT_FOUND' });
     }
 
     if (dto.fields) {
@@ -312,11 +312,11 @@ export class EntriesService {
     });
 
     if (!entry) {
-      throw new NotFoundException('Entrada no encontrada');
+      throw new NotFoundException({ statusCode: 404, message: 'Entry not found', code: 'ENTRY_NOT_FOUND' });
     }
 
     await this.prisma.wbEntry.delete({ where: { id: entry.id } });
-    return { message: 'Entrada eliminada correctamente' };
+    return { message: 'Entry deleted successfully' };
   }
 
   async reorderEntries(
@@ -332,7 +332,7 @@ export class EntriesService {
     });
 
     if (!category) {
-      throw new NotFoundException('Categoria no encontrada');
+      throw new NotFoundException({ statusCode: 404, message: 'Category not found', code: 'CATEGORY_NOT_FOUND' });
     }
 
     await this.prisma.$transaction(
@@ -360,7 +360,7 @@ export class EntriesService {
     });
 
     if (!sourceEntry) {
-      throw new NotFoundException('Entrada de origen no encontrada');
+      throw new NotFoundException({ statusCode: 404, message: 'Source entry not found', code: 'SOURCE_ENTRY_NOT_FOUND' });
     }
 
     const targetEntry = await this.prisma.wbEntry.findFirst({
@@ -368,15 +368,11 @@ export class EntriesService {
     });
 
     if (!targetEntry) {
-      throw new NotFoundException(
-        'Entrada de destino no encontrada en este mundo',
-      );
+      throw new NotFoundException({ statusCode: 404, message: 'Target entry not found in this world', code: 'TARGET_ENTRY_NOT_FOUND_IN_WORLD' });
     }
 
     if (sourceEntry.id === targetEntry.id) {
-      throw new BadRequestException(
-        'Una entrada no puede vincularse consigo misma',
-      );
+      throw new BadRequestException({ statusCode: 400, message: 'An entry cannot link to itself', code: 'ENTRY_SELF_LINK' });
     }
 
     const link = await this.prisma.wbEntryLink.create({
@@ -440,7 +436,7 @@ export class EntriesService {
     });
 
     if (!entry) {
-      throw new NotFoundException('Entrada no encontrada');
+      throw new NotFoundException({ statusCode: 404, message: 'Entry not found', code: 'ENTRY_NOT_FOUND' });
     }
 
     const link = await this.prisma.wbEntryLink.findFirst({
@@ -448,7 +444,7 @@ export class EntriesService {
     });
 
     if (!link) {
-      throw new NotFoundException('Vinculo no encontrado');
+      throw new NotFoundException({ statusCode: 404, message: 'Link not found', code: 'LINK_NOT_FOUND' });
     }
 
     await this.prisma.wbEntryLink.delete({ where: { id: link.id } });
@@ -463,7 +459,7 @@ export class EntriesService {
       });
     }
 
-    return { message: 'Vinculo eliminado correctamente' };
+    return { message: 'Link deleted successfully' };
   }
 
   async listLinks(worldSlug: string, entrySlug: string) {
@@ -474,7 +470,7 @@ export class EntriesService {
     });
 
     if (!entry) {
-      throw new NotFoundException('Entrada no encontrada');
+      throw new NotFoundException({ statusCode: 404, message: 'Entry not found', code: 'ENTRY_NOT_FOUND' });
     }
 
     const [outgoing, incoming] = await Promise.all([
@@ -656,7 +652,7 @@ export class EntriesService {
   private async getWorldBySlug(slug: string) {
     const world = await this.prisma.world.findUnique({ where: { slug } });
     if (!world) {
-      throw new NotFoundException('Mundo no encontrado');
+      throw new NotFoundException({ statusCode: 404, message: 'World not found', code: 'WORLD_NOT_FOUND' });
     }
     return world;
   }
@@ -669,9 +665,7 @@ export class EntriesService {
     const baseSlug = createSlug(name);
 
     if (!baseSlug) {
-      throw new BadRequestException(
-        'No se pudo generar un slug valido para la entrada',
-      );
+      throw new BadRequestException({ statusCode: 400, message: 'Could not generate a valid slug for the entry', code: 'ENTRY_SLUG_GENERATION_FAILED' });
     }
 
     let candidate = baseSlug;

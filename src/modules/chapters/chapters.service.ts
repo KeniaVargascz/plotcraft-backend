@@ -68,7 +68,7 @@ export class ChaptersService {
   async listPublishedChapters(novelSlug: string, query: ChapterQueryDto) {
     const novel = await this.novelsService.findAccessibleNovel(novelSlug, null);
     if (!novel.isPublic) {
-      throw new NotFoundException('Novela no encontrada');
+      throw new NotFoundException({ statusCode: 404, message: 'Novel not found', code: 'NOVEL_NOT_FOUND' });
     }
 
     return this.listChapters(novel.id, query, false);
@@ -97,7 +97,7 @@ export class ChaptersService {
     });
 
     if (!chapter) {
-      throw new NotFoundException('Capitulo no encontrado');
+      throw new NotFoundException({ statusCode: 404, message: 'Chapter not found', code: 'CHAPTER_NOT_FOUND' });
     }
 
     return this.toChapterDetailResponse(chapter, true);
@@ -298,9 +298,7 @@ export class ChaptersService {
     const date = new Date(scheduledAt);
 
     if (Number.isNaN(date.getTime()) || date <= new Date()) {
-      throw new BadRequestException(
-        'La fecha programada debe estar en el futuro',
-      );
+      throw new BadRequestException({ statusCode: 400, message: 'Scheduled date must be in the future', code: 'SCHEDULE_DATE_PAST' });
     }
 
     const updated = await this.prisma.chapter.update({
@@ -329,29 +327,21 @@ export class ChaptersService {
     if (
       chapters.some((chapter) => chapter.status === ChapterStatus.PUBLISHED)
     ) {
-      throw new ForbiddenException(
-        'No puedes reordenar capitulos mientras existan capitulos publicados',
-      );
+      throw new ForbiddenException({ statusCode: 403, message: 'Cannot reorder chapters while published chapters exist', code: 'REORDER_PUBLISHED_FORBIDDEN' });
     }
 
     if (chapters.length !== dto.chapters.length) {
-      throw new BadRequestException(
-        'Debes incluir todos los capitulos en el reorden',
-      );
+      throw new BadRequestException({ statusCode: 400, message: 'You must include all chapters in the reorder', code: 'REORDER_INCOMPLETE' });
     }
 
     const requestedIds = new Set(dto.chapters.map((item) => item.id));
     if (requestedIds.size !== chapters.length) {
-      throw new BadRequestException(
-        'La lista de capitulos contiene ids duplicados',
-      );
+      throw new BadRequestException({ statusCode: 400, message: 'Chapter list contains duplicate IDs', code: 'REORDER_DUPLICATE_IDS' });
     }
 
     for (const chapter of chapters) {
       if (!requestedIds.has(chapter.id)) {
-        throw new BadRequestException(
-          'Debes incluir todos los capitulos en el reorden',
-        );
+        throw new BadRequestException({ statusCode: 400, message: 'You must include all chapters in the reorder', code: 'REORDER_INCOMPLETE' });
       }
     }
 
@@ -448,7 +438,7 @@ export class ChaptersService {
     });
 
     if (!chapter) {
-      throw new NotFoundException('Capitulo no encontrado');
+      throw new NotFoundException({ statusCode: 404, message: 'Chapter not found', code: 'CHAPTER_NOT_FOUND' });
     }
 
     return chapter;
@@ -487,7 +477,7 @@ export class ChaptersService {
 
   private assertChapterContent(content: string) {
     if (!stripMarkdown(content).trim()) {
-      throw new BadRequestException('El capitulo no puede quedar vacio');
+      throw new BadRequestException({ statusCode: 400, message: 'Chapter content cannot be empty', code: 'CHAPTER_CONTENT_EMPTY' });
     }
   }
 

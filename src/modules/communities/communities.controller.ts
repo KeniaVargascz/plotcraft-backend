@@ -14,6 +14,7 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Public } from '../../common/decorators/public.decorator';
 import { RequireFeature } from '../../common/decorators/require-feature.decorator';
+import { FeatureFlag } from '../../config/feature-flags.constants';
 import { AuthService } from '../auth/auth.service';
 import type { JwtPayload } from '../auth/strategies/jwt.strategy';
 import { CommunitiesService } from './communities.service';
@@ -23,7 +24,7 @@ import { CreateCommunityDto } from './dto/create-community.dto';
 import { UpdateCommunityDto } from './dto/update-community.dto';
 
 @ApiTags('communities')
-@RequireFeature('community.communities')
+@RequireFeature(FeatureFlag.COMMUNITY_COMMUNITIES)
 @Controller()
 export class CommunitiesController {
   constructor(

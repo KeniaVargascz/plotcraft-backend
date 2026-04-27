@@ -239,7 +239,7 @@ export class CharactersService {
     });
 
     if (!character) {
-      throw new NotFoundException('Personaje no encontrado');
+      throw new NotFoundException({ statusCode: 404, message: 'Character not found', code: 'CHARACTER_NOT_FOUND' });
     }
 
     return character;
@@ -259,11 +259,11 @@ export class CharactersService {
     });
 
     if (!character) {
-      throw new NotFoundException('Personaje no encontrado');
+      throw new NotFoundException({ statusCode: 404, message: 'Character not found', code: 'CHARACTER_NOT_FOUND' });
     }
 
     if (!character.isPublic && character.authorId !== viewerId) {
-      throw new NotFoundException('Personaje no encontrado');
+      throw new NotFoundException({ statusCode: 404, message: 'Character not found', code: 'CHARACTER_NOT_FOUND' });
     }
 
     return character;
@@ -571,7 +571,7 @@ export class CharactersService {
     });
 
     if (!world) {
-      throw new NotFoundException('Mundo no encontrado');
+      throw new NotFoundException({ statusCode: 404, message: 'World not found', code: 'WORLD_NOT_FOUND' });
     }
 
     return world.id;

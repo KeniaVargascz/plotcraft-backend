@@ -2,13 +2,14 @@ import { Controller, Get, Param, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { RequireFeature } from '../../common/decorators/require-feature.decorator';
+import { FeatureFlag } from '../../config/feature-flags.constants';
 import type { JwtPayload } from '../auth/strategies/jwt.strategy';
 import { AnalyticsQueryDto } from './dto/analytics-query.dto';
 import { AnalyticsService } from './analytics.service';
 
 @ApiTags('analytics')
 @ApiBearerAuth()
-@RequireFeature('author.analytics')
+@RequireFeature(FeatureFlag.AUTHOR_ANALYTICS)
 @Controller('analytics')
 export class AnalyticsController {
   constructor(private readonly analyticsService: AnalyticsService) {}

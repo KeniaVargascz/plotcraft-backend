@@ -30,7 +30,7 @@ export class CategoriesService {
     });
 
     if (!world) {
-      throw new NotFoundException('Mundo no encontrado');
+      throw new NotFoundException({ statusCode: 404, message: 'World not found', code: 'WORLD_NOT_FOUND' });
     }
 
     const categories = await this.prisma.wbCategory.findMany({
@@ -66,7 +66,7 @@ export class CategoriesService {
     });
 
     if (!world) {
-      throw new NotFoundException('Mundo no encontrado');
+      throw new NotFoundException({ statusCode: 404, message: 'World not found', code: 'WORLD_NOT_FOUND' });
     }
 
     const category = await this.prisma.wbCategory.findUnique({
@@ -75,7 +75,7 @@ export class CategoriesService {
     });
 
     if (!category) {
-      throw new NotFoundException('Categoria no encontrada');
+      throw new NotFoundException({ statusCode: 404, message: 'Category not found', code: 'CATEGORY_NOT_FOUND' });
     }
 
     return this.toCategoryResponse(category);
@@ -126,7 +126,7 @@ export class CategoriesService {
     });
 
     if (!category) {
-      throw new NotFoundException('Categoria no encontrada');
+      throw new NotFoundException({ statusCode: 404, message: 'Category not found', code: 'CATEGORY_NOT_FOUND' });
     }
 
     const existingSchema =
@@ -137,16 +137,12 @@ export class CategoriesService {
       const existingKeys = new Set(existingSchema.map((f) => f.key));
       for (const newField of dto.newFields) {
         if (existingKeys.has(newField.key)) {
-          throw new BadRequestException(
-            `El campo "${newField.key}" ya existe en el esquema`,
-          );
+          throw new BadRequestException({ statusCode: 400, message: `Field "${newField.key}" already exists in the schema`, code: 'FIELD_KEY_DUPLICATE' });
         }
       }
 
       if (existingSchema.length + dto.newFields.length > 20) {
-        throw new BadRequestException(
-          'El esquema no puede tener mas de 20 campos',
-        );
+        throw new BadRequestException({ statusCode: 400, message: 'Schema cannot have more than 20 fields', code: 'FIELD_SCHEMA_LIMIT_EXCEEDED' });
       }
 
       mergedSchema = [...existingSchema, ...dto.newFields] as FieldDefinition[];
@@ -181,12 +177,12 @@ export class CategoriesService {
     });
 
     if (!category) {
-      throw new NotFoundException('Categoria no encontrada');
+      throw new NotFoundException({ statusCode: 404, message: 'Category not found', code: 'CATEGORY_NOT_FOUND' });
     }
 
     await this.prisma.wbCategory.delete({ where: { id: category.id } });
 
-    return { message: 'Categoria eliminada correctamente' };
+    return { message: 'Category deleted successfully' };
   }
 
   async reorder(
@@ -226,7 +222,7 @@ export class CategoriesService {
   ) {
     const template = CATEGORY_TEMPLATES[dto.templateKey];
     if (!template) {
-      throw new BadRequestException('Plantilla no encontrada');
+      throw new BadRequestException({ statusCode: 400, message: 'Template not found', code: 'TEMPLATE_NOT_FOUND' });
     }
 
     const world = await this.worldsService.findOwnedWorld(userId, worldSlug);
@@ -288,9 +284,7 @@ export class CategoriesService {
     const baseSlug = createSlug(name);
 
     if (!baseSlug) {
-      throw new BadRequestException(
-        'No se pudo generar un slug valido para la categoria',
-      );
+      throw new BadRequestException({ statusCode: 400, message: 'Could not generate a valid slug for the category', code: 'CATEGORY_SLUG_GENERATION_FAILED' });
     }
 
     let candidate = baseSlug;

@@ -17,7 +17,7 @@ export class ForumReactionService {
     });
 
     if (!thread || thread.deletedAt) {
-      throw new NotFoundException('Thread not found');
+      throw new NotFoundException({ statusCode: 404, message: 'Thread not found', code: 'THREAD_NOT_FOUND' });
     }
 
     const reactionType = dto.reactionType ?? ForumReactionType.LIKE;
@@ -75,7 +75,7 @@ export class ForumReactionService {
     });
 
     if (!thread || thread.deletedAt) {
-      throw new NotFoundException('Thread not found');
+      throw new NotFoundException({ statusCode: 404, message: 'Thread not found', code: 'THREAD_NOT_FOUND' });
     }
 
     const reply = await this.prisma.forumReply.findFirst({
@@ -83,7 +83,7 @@ export class ForumReactionService {
     });
 
     if (!reply) {
-      throw new NotFoundException('Reply not found');
+      throw new NotFoundException({ statusCode: 404, message: 'Reply not found', code: 'REPLY_NOT_FOUND' });
     }
 
     const reactionType = dto.reactionType ?? ForumReactionType.LIKE;

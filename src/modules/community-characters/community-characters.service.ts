@@ -40,13 +40,13 @@ export class CommunityCharactersService {
       where: { slug },
     });
     if (!community) {
-      throw new NotFoundException('Comunidad no encontrada.');
+      throw new NotFoundException({ statusCode: 404, message: 'Community not found', code: 'COMMUNITY_NOT_FOUND' });
     }
     if (community.type !== CommunityType.FANDOM) {
-      throw new BadRequestException('Esta comunidad no es de tipo Fandom.');
+      throw new BadRequestException({ statusCode: 400, message: 'This community is not a Fandom type', code: 'COMMUNITY_NOT_FANDOM' });
     }
     if (community.status !== CommunityStatus.ACTIVE) {
-      throw new ForbiddenException('La comunidad no está activa.');
+      throw new ForbiddenException({ statusCode: 403, message: 'The community is not active', code: 'COMMUNITY_NOT_ACTIVE' });
     }
     return community;
   }
@@ -75,9 +75,7 @@ export class CommunityCharactersService {
   ): Promise<void> {
     const ok = await this.isOwnerOrMod(community, userId);
     if (!ok) {
-      throw new ForbiddenException(
-        'Solo el creador o moderadores pueden realizar esta acción.',
-      );
+      throw new ForbiddenException({ statusCode: 403, message: 'Only the creator or moderators can perform this action', code: 'OWNER_OR_MOD_REQUIRED' });
     }
   }
 
@@ -137,7 +135,7 @@ export class CommunityCharactersService {
 
     if (requestedStatus !== CommunityCharacterStatus.ACTIVE) {
       if (!viewer) {
-        throw new ForbiddenException('Acción no permitida.');
+        throw new ForbiddenException({ statusCode: 403, message: 'Action not allowed', code: 'ACTION_NOT_ALLOWED' });
       }
       await this.assertOwnerOrMod(community, viewer.id);
     }
@@ -182,17 +180,17 @@ export class CommunityCharactersService {
       include: { suggestedBy: { include: { profile: true } } },
     });
     if (!cc || cc.communityId !== community.id) {
-      throw new NotFoundException('Personaje no encontrado.');
+      throw new NotFoundException({ statusCode: 404, message: 'Character not found', code: 'CHARACTER_NOT_FOUND' });
     }
 
     if (cc.status !== CommunityCharacterStatus.ACTIVE) {
       if (!viewer) {
-        throw new ForbiddenException('Acción no permitida.');
+        throw new ForbiddenException({ statusCode: 403, message: 'Action not allowed', code: 'ACTION_NOT_ALLOWED' });
       }
       const isMod = await this.isOwnerOrMod(community, viewer.id);
       const isSuggester = cc.suggestedById === viewer.id;
       if (!isMod && !isSuggester) {
-        throw new ForbiddenException('Acción no permitida.');
+        throw new ForbiddenException({ statusCode: 403, message: 'Action not allowed', code: 'ACTION_NOT_ALLOWED' });
       }
     }
 
@@ -204,9 +202,7 @@ export class CommunityCharactersService {
 
     const isMember = await this.isActiveMember(community, userId);
     if (!isMember) {
-      throw new ForbiddenException(
-        'Solo los miembros de la comunidad pueden crear o sugerir personajes.',
-      );
+      throw new ForbiddenException({ statusCode: 403, message: 'Only community members can create or suggest characters', code: 'COMMUNITY_MEMBER_REQUIRED' });
     }
 
     const isMod = await this.isOwnerOrMod(community, userId);
@@ -240,7 +236,7 @@ export class CommunityCharactersService {
       where: { id: charId },
     });
     if (!cc || cc.communityId !== community.id) {
-      throw new NotFoundException('Personaje no encontrado.');
+      throw new NotFoundException({ statusCode: 404, message: 'Character not found', code: 'CHARACTER_NOT_FOUND' });
     }
 
     const isMod = await this.isOwnerOrMod(community, userId);
@@ -250,7 +246,7 @@ export class CommunityCharactersService {
       cc.suggestedById === userId;
 
     if (!isMod && !isSuggesterEditingOwn) {
-      throw new ForbiddenException('Acción no permitida.');
+      throw new ForbiddenException({ statusCode: 403, message: 'Action not allowed', code: 'ACTION_NOT_ALLOWED' });
     }
 
     const updated = await this.prisma.communityCharacter.update({
@@ -276,7 +272,7 @@ export class CommunityCharactersService {
       where: { id: charId },
     });
     if (!cc || cc.communityId !== community.id) {
-      throw new NotFoundException('Personaje no encontrado.');
+      throw new NotFoundException({ statusCode: 404, message: 'Character not found', code: 'CHARACTER_NOT_FOUND' });
     }
     await this.assertOwnerOrMod(community, userId);
 
@@ -292,12 +288,10 @@ export class CommunityCharactersService {
       where: { id: charId },
     });
     if (!cc || cc.communityId !== community.id) {
-      throw new NotFoundException('Personaje no encontrado.');
+      throw new NotFoundException({ statusCode: 404, message: 'Character not found', code: 'CHARACTER_NOT_FOUND' });
     }
     if (cc.status !== CommunityCharacterStatus.SUGGESTED) {
-      throw new UnprocessableEntityException(
-        'Este personaje no está pendiente de revisión.',
-      );
+      throw new UnprocessableEntityException({ statusCode: 422, message: 'This character is not pending review', code: 'CHARACTER_NOT_PENDING' });
     }
 
     const updated = await this.prisma.communityCharacter.update({
@@ -332,21 +326,17 @@ export class CommunityCharactersService {
     await this.assertOwnerOrMod(community, userId);
 
     if (!dto.note || !dto.note.trim()) {
-      throw new UnprocessableEntityException(
-        'Debes indicar el motivo del rechazo.',
-      );
+      throw new UnprocessableEntityException({ statusCode: 422, message: 'You must provide a reason for the rejection', code: 'REJECTION_NOTE_REQUIRED' });
     }
 
     const cc = await this.prisma.communityCharacter.findUnique({
       where: { id: charId },
     });
     if (!cc || cc.communityId !== community.id) {
-      throw new NotFoundException('Personaje no encontrado.');
+      throw new NotFoundException({ statusCode: 404, message: 'Character not found', code: 'CHARACTER_NOT_FOUND' });
     }
     if (cc.status !== CommunityCharacterStatus.SUGGESTED) {
-      throw new UnprocessableEntityException(
-        'Este personaje no está pendiente de revisión.',
-      );
+      throw new UnprocessableEntityException({ statusCode: 422, message: 'This character is not pending review', code: 'CHARACTER_NOT_PENDING' });
     }
 
     const updated = await this.prisma.communityCharacter.update({

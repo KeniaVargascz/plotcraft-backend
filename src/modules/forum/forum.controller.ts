@@ -13,6 +13,7 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Public } from '../../common/decorators/public.decorator';
 import { RequireFeature } from '../../common/decorators/require-feature.decorator';
+import { FeatureFlag } from '../../config/feature-flags.constants';
 import { AuthService } from '../auth/auth.service';
 import type { JwtPayload } from '../auth/strategies/jwt.strategy';
 import { CreateReplyDto } from './dto/create-reply.dto';
@@ -28,7 +29,7 @@ import { ForumReactionService } from './services/forum-reaction.service';
 import { ForumPollService } from './services/forum-poll.service';
 
 @ApiTags('forum')
-@RequireFeature('community.forum')
+@RequireFeature(FeatureFlag.COMMUNITY_FORUM)
 @Controller('forum')
 export class ForumController {
   constructor(

@@ -20,7 +20,7 @@ export class KudosService {
     const novel = await this.novelsService.findAccessibleNovel(slug, userId);
 
     if (novel.authorId === userId) {
-      throw new ForbiddenException('No puedes dar kudo a tu propia novela');
+      throw new ForbiddenException({ statusCode: 403, message: 'You cannot give kudos to your own novel', code: 'KUDO_OWN_NOVEL_FORBIDDEN' });
     }
 
     const existing = await this.prisma.novelKudo.findUnique({
@@ -28,7 +28,7 @@ export class KudosService {
     });
 
     if (existing) {
-      throw new ConflictException('Ya has dado kudo a esta novela');
+      throw new ConflictException({ statusCode: 409, message: 'You have already given kudos to this novel', code: 'KUDO_ALREADY_GIVEN' });
     }
 
     await this.prisma.$transaction([
@@ -56,7 +56,7 @@ export class KudosService {
     });
 
     if (!existing) {
-      throw new NotFoundException('No has dado kudo a esta novela');
+      throw new NotFoundException({ statusCode: 404, message: 'You have not given kudos to this novel', code: 'KUDO_NOT_FOUND' });
     }
 
     await this.prisma.$transaction([

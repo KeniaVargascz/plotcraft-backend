@@ -29,7 +29,7 @@ export class CommunityForumsService {
       where: { slug: communitySlug },
     });
     if (!community) {
-      throw new NotFoundException('Comunidad no encontrada.');
+      throw new NotFoundException({ statusCode: 404, message: 'Community not found', code: 'COMMUNITY_NOT_FOUND' });
     }
     const member = await this.prisma.communityMember.findUnique({
       where: {
@@ -46,9 +46,7 @@ export class CommunityForumsService {
         (member.role !== CommunityMemberRole.ADMIN &&
           member.role !== CommunityMemberRole.MODERATOR))
     ) {
-      throw new ForbiddenException(
-        'Solo el creador o moderadores pueden realizar esta acción.',
-      );
+      throw new ForbiddenException({ statusCode: 403, message: 'Only the creator or moderators can perform this action', code: 'OWNER_OR_MOD_REQUIRED' });
     }
     return community;
   }
@@ -58,7 +56,7 @@ export class CommunityForumsService {
       where: { slug },
     });
     if (!community || community.status !== CommunityStatus.ACTIVE) {
-      throw new NotFoundException('Comunidad no encontrada.');
+      throw new NotFoundException({ statusCode: 404, message: 'Community not found', code: 'COMMUNITY_NOT_FOUND' });
     }
     return community;
   }
@@ -141,7 +139,7 @@ export class CommunityForumsService {
       },
     });
     if (!forum) {
-      throw new NotFoundException('Foro no encontrado.');
+      throw new NotFoundException({ statusCode: 404, message: 'Forum not found', code: 'FORUM_NOT_FOUND' });
     }
     return { community, forum };
   }
@@ -187,7 +185,7 @@ export class CommunityForumsService {
         communityId_slug: { communityId: community.id, slug: forumSlug },
       },
     });
-    if (!forum) throw new NotFoundException('Foro no encontrado.');
+    if (!forum) throw new NotFoundException({ statusCode: 404, message: 'Forum not found', code: 'FORUM_NOT_FOUND' });
 
     const updated = await this.prisma.communityForum.update({
       where: { id: forum.id },
@@ -210,18 +208,16 @@ export class CommunityForumsService {
     const community = await this.prisma.community.findUnique({
       where: { slug: communitySlug },
     });
-    if (!community) throw new NotFoundException('Comunidad no encontrada.');
+    if (!community) throw new NotFoundException({ statusCode: 404, message: 'Community not found', code: 'COMMUNITY_NOT_FOUND' });
     if (community.ownerId !== userId) {
-      throw new ForbiddenException(
-        'Solo el creador de la comunidad puede eliminar foros.',
-      );
+      throw new ForbiddenException({ statusCode: 403, message: 'Only the community creator can delete forums', code: 'FORUM_DELETE_OWNER_ONLY' });
     }
     const forum = await this.prisma.communityForum.findUnique({
       where: {
         communityId_slug: { communityId: community.id, slug: forumSlug },
       },
     });
-    if (!forum) throw new NotFoundException('Foro no encontrado.');
+    if (!forum) throw new NotFoundException({ statusCode: 404, message: 'Forum not found', code: 'FORUM_NOT_FOUND' });
 
     await this.prisma.communityForum.delete({ where: { id: forum.id } });
     return null;
@@ -243,9 +239,7 @@ export class CommunityForumsService {
         },
       });
       if (!member || member.status !== CommunityMemberStatus.ACTIVE) {
-        throw new ForbiddenException(
-          'Este foro es privado. Únete a la comunidad primero.',
-        );
+        throw new ForbiddenException({ statusCode: 403, message: 'This forum is private. Join the community first.', code: 'FORUM_PRIVATE_JOIN_COMMUNITY' });
       }
     }
 
@@ -253,7 +247,7 @@ export class CommunityForumsService {
       where: { forumId_userId: { forumId: forum.id, userId } },
     });
     if (existing) {
-      throw new ConflictException('Ya eres miembro de este foro.');
+      throw new ConflictException({ statusCode: 409, message: 'You are already a member of this forum', code: 'ALREADY_FORUM_MEMBER' });
     }
 
     const updated = await this.prisma.$transaction(async (tx) => {
@@ -276,7 +270,7 @@ export class CommunityForumsService {
       where: { forumId_userId: { forumId: forum.id, userId } },
     });
     if (!existing) {
-      throw new NotFoundException('No eres miembro de este foro.');
+      throw new NotFoundException({ statusCode: 404, message: 'You are not a member of this forum', code: 'NOT_FORUM_MEMBER' });
     }
 
     const updated = await this.prisma.$transaction(async (tx) => {
@@ -320,7 +314,7 @@ export class CommunityForumsService {
     }
 
     if (!viewerId) {
-      throw new ForbiddenException('Este foro es privado.');
+      throw new ForbiddenException({ statusCode: 403, message: 'This forum is private', code: 'FORUM_PRIVATE' });
     }
 
     const [member, communityMember] = await Promise.all([
@@ -342,7 +336,7 @@ export class CommunityForumsService {
       (!communityMember ||
         communityMember.status !== CommunityMemberStatus.ACTIVE)
     ) {
-      throw new ForbiddenException('No tienes acceso a este foro.');
+      throw new ForbiddenException({ statusCode: 403, message: 'You do not have access to this forum', code: 'FORUM_ACCESS_DENIED' });
     }
 
     return { community, forum };
@@ -381,13 +375,11 @@ export class CommunityForumsService {
 
     if (forum.isPublic) {
       if (!forumMember && !isCommunityActive) {
-        throw new ForbiddenException('Únete al foro para publicar.');
+        throw new ForbiddenException({ statusCode: 403, message: 'Join the forum to post', code: 'FORUM_JOIN_TO_POST' });
       }
     } else {
       if (!forumMember) {
-        throw new ForbiddenException(
-          'Debes ser miembro de este foro para publicar.',
-        );
+        throw new ForbiddenException({ statusCode: 403, message: 'You must be a member of this forum to post', code: 'FORUM_MEMBER_REQUIRED' });
       }
     }
 

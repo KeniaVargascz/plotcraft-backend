@@ -34,7 +34,7 @@ export class CommentsService {
   async createComment(postId: string, userId: string, dto: CreateCommentDto) {
     const post = await this.prisma.post.findUnique({ where: { id: postId } });
     if (!post) {
-      throw new NotFoundException('Publicacion no encontrada');
+      throw new NotFoundException({ statusCode: 404, message: 'Post not found', code: 'POST_NOT_FOUND' });
     }
 
     if (post.authorId !== userId) {
@@ -42,7 +42,7 @@ export class CommentsService {
         where: { userId: post.authorId },
       });
       if (privacy && !privacy.allowPostComments) {
-        throw new ForbiddenException('El autor ha limitado los comentarios.');
+        throw new ForbiddenException({ statusCode: 403, message: 'The author has restricted comments', code: 'COMMENTS_RESTRICTED' });
       }
     }
 
@@ -123,11 +123,11 @@ export class CommentsService {
     });
 
     if (!comment) {
-      throw new NotFoundException('Comentario no encontrado');
+      throw new NotFoundException({ statusCode: 404, message: 'Comment not found', code: 'COMMENT_NOT_FOUND' });
     }
 
     if (comment.authorId !== userId) {
-      throw new ForbiddenException('No puedes editar este comentario');
+      throw new ForbiddenException({ statusCode: 403, message: 'You cannot edit this comment', code: 'COMMENT_EDIT_FORBIDDEN' });
     }
 
     await this.prisma.comment.update({
@@ -146,11 +146,11 @@ export class CommentsService {
     });
 
     if (!comment) {
-      throw new NotFoundException('Comentario no encontrado');
+      throw new NotFoundException({ statusCode: 404, message: 'Comment not found', code: 'COMMENT_NOT_FOUND' });
     }
 
     if (comment.authorId !== userId) {
-      throw new ForbiddenException('No puedes eliminar este comentario');
+      throw new ForbiddenException({ statusCode: 403, message: 'You cannot delete this comment', code: 'COMMENT_DELETE_FORBIDDEN' });
     }
 
     await this.prisma.comment.update({
@@ -176,7 +176,7 @@ export class CommentsService {
     });
 
     if (!comment) {
-      throw new NotFoundException('Comentario no encontrado');
+      throw new NotFoundException({ statusCode: 404, message: 'Comment not found', code: 'COMMENT_NOT_FOUND' });
     }
 
     return this.toCommentResponse(comment);
@@ -201,7 +201,7 @@ export class CommentsService {
   private async ensurePost(postId: string) {
     const post = await this.prisma.post.findUnique({ where: { id: postId } });
     if (!post) {
-      throw new NotFoundException('Publicacion no encontrada');
+      throw new NotFoundException({ statusCode: 404, message: 'Post not found', code: 'POST_NOT_FOUND' });
     }
   }
 }

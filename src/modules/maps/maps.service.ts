@@ -27,7 +27,7 @@ export class MapsService {
     });
 
     if (!world) {
-      throw new NotFoundException('Mundo no encontrado');
+      throw new NotFoundException({ statusCode: 404, message: 'World not found', code: 'WORLD_NOT_FOUND' });
     }
 
     const map = await this.prisma.worldMap.upsert({
@@ -111,9 +111,7 @@ export class MapsService {
     const world = await this.worldsService.findOwnedWorld(userId, worldSlug);
 
     if (dto.locationId && dto.wbEntryId) {
-      throw new BadRequestException(
-        'No se puede vincular un marcador a una ubicacion y una entrada de worldbuilding al mismo tiempo',
-      );
+      throw new BadRequestException({ statusCode: 400, message: 'A marker cannot be linked to both a location and a worldbuilding entry at the same time', code: 'MARKER_DUAL_LINK' });
     }
 
     if (dto.locationId) {
@@ -122,7 +120,7 @@ export class MapsService {
       });
 
       if (!location) {
-        throw new BadRequestException('Ubicacion no encontrada en este mundo');
+        throw new BadRequestException({ statusCode: 400, message: 'Location not found in this world', code: 'LOCATION_NOT_FOUND_IN_WORLD' });
       }
     }
 
@@ -132,9 +130,7 @@ export class MapsService {
       });
 
       if (!entry) {
-        throw new BadRequestException(
-          'Entrada de worldbuilding no encontrada en este mundo',
-        );
+        throw new BadRequestException({ statusCode: 400, message: 'Worldbuilding entry not found in this world', code: 'WB_ENTRY_NOT_FOUND_IN_WORLD' });
       }
     }
 
@@ -172,7 +168,7 @@ export class MapsService {
     });
 
     if (!map) {
-      throw new NotFoundException('Mapa no encontrado');
+      throw new NotFoundException({ statusCode: 404, message: 'Map not found', code: 'MAP_NOT_FOUND' });
     }
 
     const marker = await this.prisma.mapMarker.findFirst({
@@ -180,13 +176,11 @@ export class MapsService {
     });
 
     if (!marker) {
-      throw new NotFoundException('Marcador no encontrado');
+      throw new NotFoundException({ statusCode: 404, message: 'Marker not found', code: 'MARKER_NOT_FOUND' });
     }
 
     if (dto.locationId && dto.wbEntryId) {
-      throw new BadRequestException(
-        'No se puede vincular un marcador a una ubicacion y una entrada de worldbuilding al mismo tiempo',
-      );
+      throw new BadRequestException({ statusCode: 400, message: 'A marker cannot be linked to both a location and a worldbuilding entry at the same time', code: 'MARKER_DUAL_LINK' });
     }
 
     if (dto.locationId) {
@@ -195,7 +189,7 @@ export class MapsService {
       });
 
       if (!location) {
-        throw new BadRequestException('Ubicacion no encontrada en este mundo');
+        throw new BadRequestException({ statusCode: 400, message: 'Location not found in this world', code: 'LOCATION_NOT_FOUND_IN_WORLD' });
       }
     }
 
@@ -205,9 +199,7 @@ export class MapsService {
       });
 
       if (!entry) {
-        throw new BadRequestException(
-          'Entrada de worldbuilding no encontrada en este mundo',
-        );
+        throw new BadRequestException({ statusCode: 400, message: 'Worldbuilding entry not found in this world', code: 'WB_ENTRY_NOT_FOUND_IN_WORLD' });
       }
     }
 
@@ -244,7 +236,7 @@ export class MapsService {
     });
 
     if (!map) {
-      throw new NotFoundException('Mapa no encontrado');
+      throw new NotFoundException({ statusCode: 404, message: 'Map not found', code: 'MAP_NOT_FOUND' });
     }
 
     const marker = await this.prisma.mapMarker.findFirst({
@@ -252,12 +244,12 @@ export class MapsService {
     });
 
     if (!marker) {
-      throw new NotFoundException('Marcador no encontrado');
+      throw new NotFoundException({ statusCode: 404, message: 'Marker not found', code: 'MARKER_NOT_FOUND' });
     }
 
     await this.prisma.mapMarker.delete({ where: { id: marker.id } });
 
-    return { message: 'Marcador eliminado correctamente' };
+    return { message: 'Marker deleted successfully' };
   }
 
   async createRegion(worldSlug: string, userId: string, dto: CreateRegionDto) {
@@ -292,7 +284,7 @@ export class MapsService {
     });
 
     if (!map) {
-      throw new NotFoundException('Mapa no encontrado');
+      throw new NotFoundException({ statusCode: 404, message: 'Map not found', code: 'MAP_NOT_FOUND' });
     }
 
     const region = await this.prisma.mapRegion.findFirst({
@@ -300,7 +292,7 @@ export class MapsService {
     });
 
     if (!region) {
-      throw new NotFoundException('Region no encontrada');
+      throw new NotFoundException({ statusCode: 404, message: 'Region not found', code: 'REGION_NOT_FOUND' });
     }
 
     const updated = await this.prisma.mapRegion.update({
@@ -331,7 +323,7 @@ export class MapsService {
     });
 
     if (!map) {
-      throw new NotFoundException('Mapa no encontrado');
+      throw new NotFoundException({ statusCode: 404, message: 'Map not found', code: 'MAP_NOT_FOUND' });
     }
 
     const region = await this.prisma.mapRegion.findFirst({
@@ -339,12 +331,12 @@ export class MapsService {
     });
 
     if (!region) {
-      throw new NotFoundException('Region no encontrada');
+      throw new NotFoundException({ statusCode: 404, message: 'Region not found', code: 'REGION_NOT_FOUND' });
     }
 
     await this.prisma.mapRegion.delete({ where: { id: region.id } });
 
-    return { message: 'Region eliminada correctamente' };
+    return { message: 'Region deleted successfully' };
   }
 
   private async findOrCreateMap(worldId: string) {

@@ -98,11 +98,11 @@ export class NovelInteractionsService {
     });
 
     if (!novel) {
-      throw new NotFoundException('Novela no encontrada');
+      throw new NotFoundException({ statusCode: 404, message: 'Novel not found', code: 'NOVEL_NOT_FOUND' });
     }
 
     if (!novel.isPublic && novel.authorId !== viewerId) {
-      throw new NotFoundException('Novela no encontrada');
+      throw new NotFoundException({ statusCode: 404, message: 'Novel not found', code: 'NOVEL_NOT_FOUND' });
     }
 
     return novel;

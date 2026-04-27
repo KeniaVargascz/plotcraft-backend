@@ -28,7 +28,7 @@ export class ProfilesService {
     });
 
     if (!profile) {
-      throw new NotFoundException('Perfil no encontrado');
+      throw new NotFoundException({ statusCode: 404, message: 'Profile not found', code: 'PROFILE_NOT_FOUND' });
     }
 
     return {
@@ -61,7 +61,7 @@ export class ProfilesService {
     });
 
     if (!profile) {
-      throw new NotFoundException('Perfil no encontrado');
+      throw new NotFoundException({ statusCode: 404, message: 'Profile not found', code: 'PROFILE_NOT_FOUND' });
     }
 
     return this.prisma.profile.update({

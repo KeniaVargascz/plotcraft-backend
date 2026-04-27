@@ -54,23 +54,17 @@ export class NovelsService {
         where: { id: dto.linkedCommunityId },
       });
       if (!community) {
-        throw new NotFoundException('Comunidad no encontrada.');
+        throw new NotFoundException({ statusCode: 404, message: 'Community not found', code: 'COMMUNITY_NOT_FOUND' });
       }
       if (community.type !== CommunityType.FANDOM) {
-        throw new UnprocessableEntityException(
-          'Un fanfiction solo puede relacionarse a un Fandom',
-        );
+        throw new UnprocessableEntityException({ statusCode: 422, message: 'A fanfiction can only be linked to a Fandom', code: 'FANFIC_REQUIRES_FANDOM' });
       }
       if (community.status !== CommunityStatus.ACTIVE) {
-        throw new UnprocessableEntityException(
-          'La comunidad Fandom debe estar activa.',
-        );
+        throw new UnprocessableEntityException({ statusCode: 422, message: 'The Fandom community must be active', code: 'FANDOM_NOT_ACTIVE' });
       }
       linkedCommunityId = community.id;
     } else if (dto.linkedCommunityId) {
-      throw new UnprocessableEntityException(
-        'Las novelas originales no pueden estar ligadas a una comunidad fandom.',
-      );
+      throw new UnprocessableEntityException({ statusCode: 422, message: 'Original novels cannot be linked to a fandom community', code: 'ORIGINAL_NOVEL_NO_FANDOM' });
     }
 
     // FANFIC novels are auto-tagged with the "fanfiction" genre so they show up
@@ -137,9 +131,7 @@ export class NovelsService {
     };
 
     if (payload.isPublic) {
-      throw new BadRequestException(
-        'Una novela nueva no puede publicarse sin capitulos publicados',
-      );
+      throw new BadRequestException({ statusCode: 400, message: 'A new novel cannot be published without published chapters', code: 'NOVEL_NO_PUBLISHED_CHAPTERS' });
     }
 
     const novel = await this.prisma.novel.create({
@@ -195,12 +187,12 @@ export class NovelsService {
     });
 
     if (!baseNovel) {
-      throw new NotFoundException('Novela no encontrada');
+      throw new NotFoundException({ statusCode: 404, message: 'Novel not found', code: 'NOVEL_NOT_FOUND' });
     }
 
     const isAuthor = viewerId === baseNovel.authorId;
     if (!baseNovel.isPublic && !isAuthor) {
-      throw new NotFoundException('Novela no encontrada');
+      throw new NotFoundException({ statusCode: 404, message: 'Novel not found', code: 'NOVEL_NOT_FOUND' });
     }
 
     if (baseNovel.isPublic && !isAuthor) {
@@ -401,11 +393,11 @@ export class NovelsService {
     });
 
     if (!novel) {
-      throw new NotFoundException('Novela no encontrada');
+      throw new NotFoundException({ statusCode: 404, message: 'Novel not found', code: 'NOVEL_NOT_FOUND' });
     }
 
     if (novel.authorId !== userId) {
-      throw new ForbiddenException('No puedes gestionar esta novela');
+      throw new ForbiddenException({ statusCode: 403, message: 'You cannot manage this novel', code: 'NOVEL_FORBIDDEN' });
     }
 
     return novel;
@@ -417,11 +409,11 @@ export class NovelsService {
     });
 
     if (!novel) {
-      throw new NotFoundException('Novela no encontrada');
+      throw new NotFoundException({ statusCode: 404, message: 'Novel not found', code: 'NOVEL_NOT_FOUND' });
     }
 
     if (!novel.isPublic && novel.authorId !== viewerId) {
-      throw new NotFoundException('Novela no encontrada');
+      throw new NotFoundException({ statusCode: 404, message: 'Novel not found', code: 'NOVEL_NOT_FOUND' });
     }
 
     return novel;
@@ -433,11 +425,11 @@ export class NovelsService {
     });
 
     if (!novel) {
-      throw new NotFoundException('Novela no encontrada');
+      throw new NotFoundException({ statusCode: 404, message: 'Novel not found', code: 'NOVEL_NOT_FOUND' });
     }
 
     if (!novel.isPublic && novel.authorId !== viewerId) {
-      throw new NotFoundException('Novela no encontrada');
+      throw new NotFoundException({ statusCode: 404, message: 'Novel not found', code: 'NOVEL_NOT_FOUND' });
     }
 
     return novel;

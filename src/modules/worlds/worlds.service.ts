@@ -83,14 +83,14 @@ export class WorldsService {
     });
 
     if (!world) {
-      throw new NotFoundException('Mundo no encontrado');
+      throw new NotFoundException({ statusCode: 404, message: 'World not found', code: 'WORLD_NOT_FOUND' });
     }
 
     if (
       world.visibility === WorldVisibility.PRIVATE &&
       world.authorId !== viewerId
     ) {
-      throw new NotFoundException('Mundo no encontrado');
+      throw new NotFoundException({ statusCode: 404, message: 'World not found', code: 'WORLD_NOT_FOUND' });
     }
 
     const response = this.toWorldResponse(world, viewerId, true);
@@ -166,7 +166,7 @@ export class WorldsService {
   async remove(userId: string, slug: string) {
     const world = await this.findOwnedWorld(userId, slug);
     await this.prisma.world.delete({ where: { id: world.id } });
-    return { message: 'Mundo eliminado correctamente' };
+    return { message: 'World deleted successfully' };
   }
 
   async createLocation(userId: string, slug: string, dto: CreateLocationDto) {
@@ -195,7 +195,7 @@ export class WorldsService {
     });
 
     if (!location) {
-      throw new NotFoundException('Ubicacion no encontrada');
+      throw new NotFoundException({ statusCode: 404, message: 'Location not found', code: 'LOCATION_NOT_FOUND' });
     }
 
     return this.prisma.worldLocation.update({
@@ -218,11 +218,11 @@ export class WorldsService {
     });
 
     if (!location) {
-      throw new NotFoundException('Ubicacion no encontrada');
+      throw new NotFoundException({ statusCode: 404, message: 'Location not found', code: 'LOCATION_NOT_FOUND' });
     }
 
     await this.prisma.worldLocation.delete({ where: { id: location.id } });
-    return { message: 'Ubicacion eliminada correctamente' };
+    return { message: 'Location deleted successfully' };
   }
 
   async linkNovel(userId: string, slug: string, novelSlug: string) {
@@ -230,9 +230,7 @@ export class WorldsService {
     const novel = await this.novelsService.findOwnedNovel(novelSlug, userId);
 
     if (novel.novelType === NovelType.FANFIC && !novel.isAlternateUniverse) {
-      throw new UnprocessableEntityException(
-        'Solo los fanfics marcados como AU pueden tener mundos vinculados.',
-      );
+      throw new UnprocessableEntityException({ statusCode: 422, message: 'Only fanfics marked as AU can have linked worlds', code: 'FANFIC_NOT_AU' });
     }
 
     await this.prisma.novelWorld.upsert({
@@ -357,11 +355,11 @@ export class WorldsService {
     const world = await this.prisma.world.findUnique({ where: { slug } });
 
     if (!world) {
-      throw new NotFoundException('Mundo no encontrado');
+      throw new NotFoundException({ statusCode: 404, message: 'World not found', code: 'WORLD_NOT_FOUND' });
     }
 
     if (world.authorId !== userId) {
-      throw new ForbiddenException('No puedes gestionar este mundo');
+      throw new ForbiddenException({ statusCode: 403, message: 'You cannot manage this world', code: 'WORLD_FORBIDDEN' });
     }
 
     return world;
@@ -371,14 +369,14 @@ export class WorldsService {
     const world = await this.prisma.world.findUnique({ where: { slug } });
 
     if (!world) {
-      throw new NotFoundException('Mundo no encontrado');
+      throw new NotFoundException({ statusCode: 404, message: 'World not found', code: 'WORLD_NOT_FOUND' });
     }
 
     if (
       world.visibility === WorldVisibility.PRIVATE &&
       world.authorId !== viewerId
     ) {
-      throw new NotFoundException('Mundo no encontrado');
+      throw new NotFoundException({ statusCode: 404, message: 'World not found', code: 'WORLD_NOT_FOUND' });
     }
 
     return world;

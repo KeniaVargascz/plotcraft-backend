@@ -130,14 +130,14 @@ export class AdminUsersService {
       },
     });
 
-    if (!user) throw new NotFoundException('Usuario no encontrado');
+    if (!user) throw new NotFoundException({ statusCode: 404, message: 'User not found', code: 'USER_NOT_FOUND' });
     return user;
   }
 
   async updateStatus(id: string, dto: UpdateUserStatusDto, admin: JwtPayload) {
     const user = await this.prisma.user.findUnique({ where: { id }, select: { id: true, email: true, isAdmin: true } });
-    if (!user) throw new NotFoundException('Usuario no encontrado');
-    if (user.isAdmin) throw new BadRequestException('No puedes cambiar el status de un administrador');
+    if (!user) throw new NotFoundException({ statusCode: 404, message: 'User not found', code: 'USER_NOT_FOUND' });
+    if (user.isAdmin) throw new BadRequestException({ statusCode: 400, message: 'Cannot change the status of an administrator', code: 'CANNOT_MODIFY_ADMIN_STATUS' });
 
     const updated = await this.prisma.user.update({
       where: { id },
@@ -161,10 +161,10 @@ export class AdminUsersService {
   }
 
   async toggleAdmin(id: string, admin: JwtPayload) {
-    if (id === admin.sub) throw new BadRequestException('No puedes modificar tu propio rol de admin');
+    if (id === admin.sub) throw new BadRequestException({ statusCode: 400, message: 'Cannot modify your own admin role', code: 'CANNOT_MODIFY_OWN_ADMIN_ROLE' });
 
     const user = await this.prisma.user.findUnique({ where: { id }, select: { id: true, email: true, isAdmin: true } });
-    if (!user) throw new NotFoundException('Usuario no encontrado');
+    if (!user) throw new NotFoundException({ statusCode: 404, message: 'User not found', code: 'USER_NOT_FOUND' });
 
     const updated = await this.prisma.user.update({
       where: { id },

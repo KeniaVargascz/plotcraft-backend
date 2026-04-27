@@ -26,34 +26,24 @@ export class NovelCharacterLinkService {
     const hasChar = !!dto.characterId;
     const hasCC = !!dto.communityCharacterId;
     if (!hasChar && !hasCC) {
-      throw new BadRequestException(
-        'Debes indicar characterId o communityCharacterId.',
-      );
+      throw new BadRequestException({ statusCode: 400, message: 'You must provide characterId or communityCharacterId', code: 'CHARACTER_ID_REQUIRED' });
     }
     if (hasChar && hasCC) {
-      throw new BadRequestException(
-        'No puedes indicar characterId y communityCharacterId a la vez.',
-      );
+      throw new BadRequestException({ statusCode: 400, message: 'Cannot provide both characterId and communityCharacterId', code: 'CHARACTER_ID_CONFLICT' });
     }
 
     if (hasCC) {
       if (novel.novelType !== NovelType.FANFIC) {
-        throw new UnprocessableEntityException(
-          'Solo los fanfics pueden vincular personajes del catálogo de una comunidad.',
-        );
+        throw new UnprocessableEntityException({ statusCode: 422, message: 'Only fanfics can link community catalog characters', code: 'COMMUNITY_CHAR_FANFIC_ONLY' });
       }
       const cc = await this.prisma.communityCharacter.findUnique({
         where: { id: dto.communityCharacterId! },
       });
       if (!cc || cc.communityId !== novel.linkedCommunityId) {
-        throw new UnprocessableEntityException(
-          'Este personaje no pertenece al fandom de esta novela.',
-        );
+        throw new UnprocessableEntityException({ statusCode: 422, message: 'This character does not belong to the novel fandom', code: 'COMMUNITY_CHAR_WRONG_FANDOM' });
       }
       if (cc.status !== 'ACTIVE') {
-        throw new UnprocessableEntityException(
-          'Solo puedes vincular personajes aprobados del catálogo.',
-        );
+        throw new UnprocessableEntityException({ statusCode: 422, message: 'Only approved catalog characters can be linked', code: 'COMMUNITY_CHAR_NOT_APPROVED' });
       }
 
       const existing = await this.prisma.novelCharacter.findUnique({
@@ -83,12 +73,10 @@ export class NovelCharacterLinkService {
       where: { id: dto.characterId! },
     });
     if (!character) {
-      throw new NotFoundException('Personaje no encontrado.');
+      throw new NotFoundException({ statusCode: 404, message: 'Character not found', code: 'CHARACTER_NOT_FOUND' });
     }
     if (character.authorId !== userId) {
-      throw new ForbiddenException(
-        'Solo puedes vincular personajes propios a tus novelas.',
-      );
+      throw new ForbiddenException({ statusCode: 403, message: 'You can only link your own characters to your novels', code: 'CHARACTER_LINK_FORBIDDEN' });
     }
 
     const existing = await this.prisma.novelCharacter.findUnique({
@@ -122,7 +110,7 @@ export class NovelCharacterLinkService {
       where: { id: novelCharacterId },
     });
     if (!nc || nc.novelId !== novel.id) {
-      throw new NotFoundException('Vínculo no encontrado.');
+      throw new NotFoundException({ statusCode: 404, message: 'Link not found', code: 'NOVEL_CHARACTER_LINK_NOT_FOUND' });
     }
     await this.prisma.novelCharacter.delete({ where: { id: nc.id } });
     return { unlinked: true };
@@ -239,11 +227,11 @@ export class NovelCharacterLinkService {
     });
 
     if (!novel) {
-      throw new NotFoundException('Novela no encontrada');
+      throw new NotFoundException({ statusCode: 404, message: 'Novel not found', code: 'NOVEL_NOT_FOUND' });
     }
 
     if (novel.authorId !== userId) {
-      throw new ForbiddenException('No puedes gestionar esta novela');
+      throw new ForbiddenException({ statusCode: 403, message: 'You cannot manage this novel', code: 'NOVEL_FORBIDDEN' });
     }
 
     return novel;
@@ -255,11 +243,11 @@ export class NovelCharacterLinkService {
     });
 
     if (!novel) {
-      throw new NotFoundException('Novela no encontrada');
+      throw new NotFoundException({ statusCode: 404, message: 'Novel not found', code: 'NOVEL_NOT_FOUND' });
     }
 
     if (!novel.isPublic && novel.authorId !== viewerId) {
-      throw new NotFoundException('Novela no encontrada');
+      throw new NotFoundException({ statusCode: 404, message: 'Novel not found', code: 'NOVEL_NOT_FOUND' });
     }
 
     return novel;

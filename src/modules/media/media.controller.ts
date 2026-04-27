@@ -68,19 +68,15 @@ export class MediaController {
     @Req() req: Request,
   ) {
     if (!file?.buffer) {
-      throw new BadRequestException('No se recibio ningun archivo.');
+      throw new BadRequestException({ statusCode: 400, message: 'No file received', code: 'FILE_NOT_RECEIVED' });
     }
 
     if (!ALLOWED_MIME_TYPES.has(file.mimetype)) {
-      throw new BadRequestException(
-        `Tipo de archivo no permitido: ${file.mimetype}. Solo se aceptan imagenes (JPEG, PNG, WebP, GIF, SVG).`,
-      );
+      throw new BadRequestException({ statusCode: 400, message: `File type not allowed: ${file.mimetype}. Only images are accepted (JPEG, PNG, WebP, GIF, SVG).`, code: 'FILE_TYPE_NOT_ALLOWED' });
     }
 
     if (!validateMagicBytes(file.buffer, file.mimetype)) {
-      throw new BadRequestException(
-        'El contenido del archivo no coincide con el tipo declarado.',
-      );
+      throw new BadRequestException({ statusCode: 400, message: 'File content does not match the declared type', code: 'FILE_CONTENT_MISMATCH' });
     }
 
     // Use Cloudinary if configured, otherwise fall back to local filesystem

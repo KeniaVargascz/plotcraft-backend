@@ -25,7 +25,11 @@ export class FeatureFlagGuard implements CanActivate {
 
     const isEnabled = await this.featureFlagCache.isEnabled(featureKey);
     if (!isEnabled) {
-      throw new NotFoundException('Este recurso no esta disponible');
+      throw new NotFoundException({
+        statusCode: 404,
+        message: 'Feature not available',
+        code: 'FEATURE_DISABLED',
+      });
     }
 
     return true;

@@ -13,6 +13,7 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Public } from '../../common/decorators/public.decorator';
 import { RequireFeature } from '../../common/decorators/require-feature.decorator';
+import { FeatureFlag } from '../../config/feature-flags.constants';
 import { AuthService } from '../auth/auth.service';
 import type { JwtPayload } from '../auth/strategies/jwt.strategy';
 import { CharacterQueryDto } from './dto/character-query.dto';
@@ -24,7 +25,7 @@ import { CharacterRelationshipService } from './services/character-relationship.
 import { CharacterNovelLinkService } from './services/character-novel-link.service';
 
 @ApiTags('characters')
-@RequireFeature('explore.characters_catalog')
+@RequireFeature(FeatureFlag.EXPLORE_CHARACTERS_CATALOG)
 @Controller('characters')
 export class CharactersController {
   constructor(

@@ -15,14 +15,14 @@ export class NovelCommentsService {
       select: { id: true, authorId: true, isPublic: true },
     });
 
-    if (!novel) throw new NotFoundException('Novela no encontrada');
+    if (!novel) throw new NotFoundException({ statusCode: 404, message: 'Novel not found', code: 'NOVEL_NOT_FOUND' });
 
     if (novel.authorId !== userId) {
       const privacy = await this.prisma.privacySettings.findUnique({
         where: { userId: novel.authorId },
       });
       if (privacy && !privacy.allowNovelComments) {
-        throw new ForbiddenException('El autor ha limitado los comentarios.');
+        throw new ForbiddenException({ statusCode: 403, message: 'The author has restricted comments', code: 'COMMENTS_RESTRICTED' });
       }
     }
 
@@ -45,7 +45,7 @@ export class NovelCommentsService {
       where: { slug: novelSlug },
       select: { id: true, authorId: true },
     });
-    if (!novel) throw new NotFoundException('Novela no encontrada');
+    if (!novel) throw new NotFoundException({ statusCode: 404, message: 'Novel not found', code: 'NOVEL_NOT_FOUND' });
 
     const privacy = await this.prisma.privacySettings.findUnique({
       where: { userId: novel.authorId },
@@ -89,15 +89,15 @@ export class NovelCommentsService {
       where: { slug: novelSlug },
       select: { id: true, authorId: true },
     });
-    if (!novel) throw new NotFoundException('Novela no encontrada');
+    if (!novel) throw new NotFoundException({ statusCode: 404, message: 'Novel not found', code: 'NOVEL_NOT_FOUND' });
 
     const comment = await this.prisma.novelComment.findFirst({
       where: { id: commentId, novelId: novel.id, deletedAt: null },
     });
-    if (!comment) throw new NotFoundException('Comentario no encontrado');
+    if (!comment) throw new NotFoundException({ statusCode: 404, message: 'Comment not found', code: 'COMMENT_NOT_FOUND' });
 
     if (novel.authorId !== userId) {
-      throw new ForbiddenException('No puedes eliminar este comentario');
+      throw new ForbiddenException({ statusCode: 403, message: 'You cannot delete this comment', code: 'COMMENT_DELETE_FORBIDDEN' });
     }
 
     await this.prisma.novelComment.update({

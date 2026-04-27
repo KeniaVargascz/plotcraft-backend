@@ -15,7 +15,7 @@ export class VotesService {
     });
 
     if (!chapter) {
-      throw new NotFoundException('Capitulo no encontrado');
+      throw new NotFoundException({ statusCode: 404, message: 'Chapter not found', code: 'CHAPTER_NOT_FOUND' });
     }
 
     const existing = await this.prisma.chapterVote.findUnique({
@@ -23,7 +23,7 @@ export class VotesService {
     });
 
     if (existing) {
-      throw new ConflictException('Ya has votado por este capitulo');
+      throw new ConflictException({ statusCode: 409, message: 'You have already voted for this chapter', code: 'CHAPTER_VOTE_ALREADY_EXISTS' });
     }
 
     await this.prisma.$transaction([
@@ -51,7 +51,7 @@ export class VotesService {
     });
 
     if (!existing) {
-      throw new NotFoundException('No has votado por este capitulo');
+      throw new NotFoundException({ statusCode: 404, message: 'You have not voted for this chapter', code: 'CHAPTER_VOTE_NOT_FOUND' });
     }
 
     const chapter = await this.prisma.chapter.findUniqueOrThrow({

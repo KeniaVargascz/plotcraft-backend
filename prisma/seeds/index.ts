@@ -26,12 +26,14 @@ import { seed22TestUserFanfic } from './22-test-user-fanfic.seed';
 import { seed23VisualBoards } from './23-visual-boards.seed';
 import { seed24CharacterMarkdownTemplates } from './24-character-markdown-templates.seed';
 import { seed25PaginationTestData } from './25-pagination-test-data.seed';
+import { seed26FeatureFlags } from './26-feature-flags.seed';
 
 export async function main() {
   const prisma = new PrismaClient();
 
   try {
     console.log('🌱 Starting PlotCraft seed...\n');
+    await seed26FeatureFlags(prisma);
     await seed00Languages(prisma);
     await seed00Genres(prisma);
     await seed01Users(prisma);

@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   HttpException,
   HttpStatus,
   Inject,
@@ -12,6 +13,7 @@ import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { Prisma } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
+import { createHash } from 'crypto';
 import { PrismaService } from '../../prisma/prisma.service';
 import { USERS_SERVICE, IUsersService } from '../users/users.interface';
 import { OtpService } from '../otp/otp.service';
@@ -32,6 +34,7 @@ import {
   CacheService,
   CACHE_SERVICE,
 } from '../../common/services/cache.service';
+import { FeatureFlagCacheService } from '../../common/services/feature-flag-cache.service';
 
 type SessionUser = Prisma.UserGetPayload<{ include: { profile: true } }>;
 
@@ -49,7 +52,15 @@ export class AuthService {
     private readonly otpService: OtpService,
     private readonly emailService: EmailService,
     @Inject(CACHE_SERVICE) private readonly cache: CacheService,
-  ) {}
+    private readonly featureFlagCache: FeatureFlagCacheService,
+  ) {
+    const refreshSecret = this.configService.getOrThrow<string>('JWT_REFRESH_SECRET');
+    if (refreshSecret.length < 32) {
+      throw new Error(
+        'JWT_REFRESH_SECRET must be at least 32 characters (256 bits minimum)',
+      );
+    }
+  }
 
   async login(dto: LoginDto) {
     const value = dto.identifier.trim();
@@ -70,14 +81,14 @@ export class AuthService {
       await bcrypt.compare(dto.password, '$2b$12$invalidhashpaddingtomakeconstanttimeresponse..');
       throw new UnauthorizedException({
         code: 'INVALID_CREDENTIALS',
-        message: 'Credenciales incorrectas',
+        message: 'Invalid credentials',
       });
     }
 
     if (!user.isActive) {
       throw new UnauthorizedException({
         code: 'ACCOUNT_DISABLED',
-        message: 'Tu cuenta esta desactivada. Contacta al soporte.',
+        message: 'Your account is disabled. Contact support.',
       });
     }
 
@@ -89,7 +100,7 @@ export class AuthService {
     ) {
       throw new UnauthorizedException({
         code: 'ACCOUNT_LOCKED',
-        message: 'Credenciales incorrectas',
+        message: 'Invalid credentials',
       });
     }
 
@@ -111,7 +122,7 @@ export class AuthService {
       });
       throw new UnauthorizedException({
         code: 'INVALID_CREDENTIALS',
-        message: 'Credenciales incorrectas',
+        message: 'Invalid credentials',
       });
     }
 
@@ -133,10 +144,41 @@ export class AuthService {
     const payload = await this.verifyRefreshToken(dto.refreshToken);
     const user = await this.usersService.findByIdOrFail(payload.sub);
 
-    // Fetch only non-expired tokens for this user (limit to reduce bcrypt calls)
+    if (!user.isActive) {
+      throw new ForbiddenException({
+        statusCode: 403,
+        message: 'Account disabled',
+        code: 'ACCOUNT_DISABLED',
+      });
+    }
+
+    if (
+      user.failedLoginAttempts >= APP_CONFIG.auth.maxFailedAttempts &&
+      user.lockedUntil &&
+      user.lockedUntil > new Date()
+    ) {
+      throw new ForbiddenException({
+        statusCode: 403,
+        message: 'Account locked',
+        code: 'ACCOUNT_LOCKED',
+      });
+    }
+
+    const flagsChanged =
+      await this.featureFlagCache.getLastChangedTimestamp();
+    if (flagsChanged && payload.iat && flagsChanged > payload.iat) {
+      throw new ForbiddenException({
+        statusCode: 403,
+        message: 'Session expired due to configuration change',
+        code: 'FLAGS_CHANGED',
+      });
+    }
+
+    // Fetch only non-expired, non-revoked tokens (limit to reduce bcrypt calls)
     const activeTokens = await this.prisma.refreshToken.findMany({
       where: {
         userId: user.id,
+        revoked: false,
         expiresAt: { gt: new Date() },
       },
       orderBy: { createdAt: 'desc' },
@@ -151,9 +193,12 @@ export class AuthService {
     if (!matchedToken) {
       // Check if this token matches a revoked one (token reuse = possible theft)
       const revokedTokens = await this.prisma.refreshToken.findMany({
-        where: { userId: user.id, revoked: true },
+        where: {
+          userId: user.id,
+          revoked: true,
+          revokedAt: { gt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) },
+        },
         orderBy: { revokedAt: 'desc' },
-        take: 5,
       });
       const reusedToken = await this.findMatchingRefreshToken(
         dto.refreshToken,
@@ -169,14 +214,19 @@ export class AuthService {
           `Token reuse detected for user ${user.id}, family ${reusedToken.family} revoked`,
         );
       }
-      throw new UnauthorizedException('Refresh token invalido');
+      throw new UnauthorizedException({ statusCode: 401, message: 'Invalid refresh token', code: 'INVALID_REFRESH_TOKEN' });
     }
 
-    // Rotate: revoke current token, issue new one in the same family
-    await this.prisma.refreshToken.update({
-      where: { id: matchedToken.id },
+    // Atomic rotate: revoke current token only if still active (prevents race condition)
+    const revoked = await this.prisma.refreshToken.updateMany({
+      where: { id: matchedToken.id, revoked: false },
       data: { revoked: true, revokedAt: new Date() },
     });
+
+    // If another concurrent request already revoked it, reject this one
+    if (revoked.count === 0) {
+      throw new UnauthorizedException({ statusCode: 401, message: 'Invalid refresh token', code: 'INVALID_REFRESH_TOKEN' });
+    }
 
     return {
       user: this.usersService.toUserEntity(user),
@@ -195,7 +245,7 @@ export class AuthService {
       activeTokens,
     );
     if (!matchedToken) {
-      throw new UnauthorizedException('Refresh token invalido');
+      throw new UnauthorizedException({ statusCode: 401, message: 'Invalid refresh token', code: 'INVALID_REFRESH_TOKEN' });
     }
 
     // Revoke entire family on logout for maximum security
@@ -216,7 +266,7 @@ export class AuthService {
       }
     }
 
-    return { message: 'Sesion cerrada correctamente' };
+    return { message: 'Session closed successfully' };
   }
 
   async me(userId: string) {
@@ -294,7 +344,7 @@ export class AuthService {
     });
 
     if (!user || user.status !== 'PENDING_VERIFICATION') {
-      throw new BadRequestException('Solicitud de verificacion invalida');
+      throw new BadRequestException({ statusCode: 400, message: 'Invalid verification request', code: 'INVALID_VERIFICATION_REQUEST' });
     }
 
     const result = await this.otpService.verify(
@@ -306,14 +356,14 @@ export class AuthService {
     if (!result.valid) {
       switch (result.reason) {
         case 'expired':
-          throw new HttpException({ code: 'OTP_EXPIRED' }, HttpStatus.GONE);
+          throw new HttpException({ message: 'OTP code expired', code: 'OTP_EXPIRED' }, HttpStatus.GONE);
         case 'too_many_attempts':
           throw new HttpException(
-            { code: 'TOO_MANY_ATTEMPTS' },
+            { message: 'Too many attempts', code: 'TOO_MANY_ATTEMPTS' },
             HttpStatus.TOO_MANY_REQUESTS,
           );
         default:
-          throw new BadRequestException({ code: 'OTP_INVALID' });
+          throw new BadRequestException({ message: 'Invalid OTP code', code: 'OTP_INVALID' });
       }
     }
 
@@ -366,11 +416,15 @@ export class AuthService {
     }
 
     const plainCode = await this.otpService.create(user.id, 'REGISTER_VERIFY');
-    await this.emailService.sendOtpVerification({
+
+    // Fire-and-forget: prevents timing-based user enumeration
+    this.emailService.sendOtpVerification({
       to: user.email,
       username: user.username,
       code: plainCode,
       expiresInMinutes: OTP_EXPIRY_MINUTES,
+    }).catch((err) => {
+      this.logger.warn(`OTP email failed for userId=${user.id}: ${err}`);
     });
   }
 
@@ -404,18 +458,21 @@ export class AuthService {
 
     const plainCode = await this.otpService.create(user.id, 'PASSWORD_RESET');
 
-    const result = await this.emailService.sendPasswordResetOtp({
+    // Fire-and-forget: prevents timing-based user enumeration
+    this.emailService.sendPasswordResetOtp({
       to: user.email,
       username: user.username,
       code: plainCode,
       expiresInMinutes: OTP_EXPIRY_MINUTES,
+    }).then((result) => {
+      if (!result.success) {
+        this.logger.warn(
+          `Password reset email not sent for userId=${user.id}: ${result.error}`,
+        );
+      }
+    }).catch((err) => {
+      this.logger.warn(`Password reset email failed for userId=${user.id}: ${err}`);
     });
-
-    if (!result.success) {
-      this.logger.warn(
-        `Email de recuperacion no enviado para userId=${user.id}: ${result.error}`,
-      );
-    }
   }
 
   async resetPassword(dto: ResetPasswordDto): Promise<void> {
@@ -424,7 +481,7 @@ export class AuthService {
     });
 
     if (!user) {
-      throw new BadRequestException('Solicitud de restablecimiento invalida');
+      throw new BadRequestException({ statusCode: 400, message: 'Invalid reset request', code: 'INVALID_RESET_REQUEST' });
     }
 
     const result = await this.otpService.verify(
@@ -436,14 +493,14 @@ export class AuthService {
     if (!result.valid) {
       switch (result.reason) {
         case 'expired':
-          throw new HttpException({ code: 'OTP_EXPIRED' }, HttpStatus.GONE);
+          throw new HttpException({ message: 'OTP code expired', code: 'OTP_EXPIRED' }, HttpStatus.GONE);
         case 'too_many_attempts':
           throw new HttpException(
-            { code: 'TOO_MANY_ATTEMPTS' },
+            { message: 'Too many attempts', code: 'TOO_MANY_ATTEMPTS' },
             HttpStatus.TOO_MANY_REQUESTS,
           );
         default:
-          throw new BadRequestException({ code: 'OTP_INVALID' });
+          throw new BadRequestException({ message: 'Invalid OTP code', code: 'OTP_INVALID' });
       }
     }
 
@@ -451,22 +508,35 @@ export class AuthService {
 
     await this.prisma.user.update({
       where: { id: user.id },
-      data: { passwordHash },
+      data: {
+        passwordHash,
+        failedLoginAttempts: 0,
+        lockedUntil: null,
+      },
     });
 
-    await this.prisma.refreshToken.updateMany({
-      where: { userId: user.id, revoked: false },
-      data: { revoked: true },
-    });
+    await this.invalidateAllSessions(user.id);
 
-    // Blacklist all active access tokens for this user via cache pattern
-    await this.cache.invalidatePattern(
-      `${ACCESS_TOKEN_BLACKLIST_PREFIX}*`,
+    this.logger.warn(
+      `Password reset for user ${user.id} — all sessions invalidated`,
     );
-    // Since we can't enumerate active JTIs, we store a user-level blacklist
-    // that the JwtStrategy checks. TTL = max access token lifetime.
+  }
+
+  async logoutAllDevices(userId: string): Promise<void> {
+    await this.invalidateAllSessions(userId);
+    this.logger.warn(`User ${userId} logged out from all devices`);
+  }
+
+  private async invalidateAllSessions(userId: string): Promise<void> {
+    await this.prisma.refreshToken.updateMany({
+      where: { userId, revoked: false },
+      data: { revoked: true, revokedAt: new Date() },
+    });
+
+    // User-level blacklist invalidates all access tokens for this user.
+    // JwtStrategy checks this key before allowing any request.
     await this.cache.set(
-      `blacklist:user:${user.id}`,
+      `blacklist:user:${userId}`,
       true,
       60 * 60 * 1000, // 60 min (access token max lifetime)
     );
@@ -516,7 +586,10 @@ export class AuthService {
       ) as never,
     });
 
-    const tokenHash = await bcrypt.hash(refreshToken, 10);
+    // SHA-256 pre-hash: bcrypt truncates at 72 bytes, JWTs share the same first 72 bytes
+    // for the same user. SHA-256 produces a unique 64-char hex digest that fits within bcrypt's limit.
+    const tokenDigest = createHash('sha256').update(refreshToken).digest('hex');
+    const tokenHash = await bcrypt.hash(tokenDigest, 10);
     await this.prisma.refreshToken.create({
       data: {
         tokenHash,
@@ -537,7 +610,7 @@ export class AuthService {
         secret: this.configService.getOrThrow<string>('JWT_REFRESH_SECRET'),
       });
     } catch {
-      throw new UnauthorizedException('Refresh token invalido');
+      throw new UnauthorizedException({ statusCode: 401, message: 'Invalid refresh token', code: 'INVALID_REFRESH_TOKEN' });
     }
   }
 
@@ -551,12 +624,15 @@ export class AuthService {
       revoked: boolean;
     }>,
   ) {
+    // SHA-256 pre-hash to match the hashing used in createSession
+    const tokenDigest = createHash('sha256').update(rawToken).digest('hex');
+
     for (const token of tokens) {
       if (token.revoked || token.expiresAt < new Date()) {
         continue;
       }
 
-      const matches = await bcrypt.compare(rawToken, token.tokenHash);
+      const matches = await bcrypt.compare(tokenDigest, token.tokenHash);
       if (matches) {
         return token;
       }

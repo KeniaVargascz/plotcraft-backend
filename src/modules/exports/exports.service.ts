@@ -47,13 +47,11 @@ export class ExportsService {
     });
 
     if (!novel) {
-      throw new NotFoundException('Novela no encontrada');
+      throw new NotFoundException({ statusCode: 404, message: 'Novel not found', code: 'NOVEL_NOT_FOUND' });
     }
 
     if (novel.authorId !== userId) {
-      throw new ForbiddenException(
-        'No tienes permiso para exportar esta novela',
-      );
+      throw new ForbiddenException({ statusCode: 403, message: 'You do not have permission to export this novel', code: 'NOVEL_EXPORT_FORBIDDEN' });
     }
 
     const chapter = await this.prisma.chapter.findUnique({
@@ -63,7 +61,7 @@ export class ExportsService {
     });
 
     if (!chapter) {
-      throw new NotFoundException('Capítulo no encontrado');
+      throw new NotFoundException({ statusCode: 404, message: 'Chapter not found', code: 'CHAPTER_NOT_FOUND' });
     }
 
     const lines: string[] = [
@@ -121,13 +119,11 @@ export class ExportsService {
     });
 
     if (!world) {
-      throw new NotFoundException('Mundo no encontrado');
+      throw new NotFoundException({ statusCode: 404, message: 'World not found', code: 'WORLD_NOT_FOUND' });
     }
 
     if (world.authorId !== userId) {
-      throw new ForbiddenException(
-        'No tienes permiso para exportar este mundo',
-      );
+      throw new ForbiddenException({ statusCode: 403, message: 'You do not have permission to export this world', code: 'WORLD_EXPORT_FORBIDDEN' });
     }
 
     return formatWorldJson(
@@ -163,7 +159,7 @@ export class ExportsService {
     });
 
     if (!author) {
-      throw new NotFoundException('Usuario no encontrado');
+      throw new NotFoundException({ statusCode: 404, message: 'User not found', code: 'USER_NOT_FOUND' });
     }
 
     const character = await this.prisma.character.findUnique({
@@ -185,13 +181,11 @@ export class ExportsService {
     });
 
     if (!character) {
-      throw new NotFoundException('Personaje no encontrado');
+      throw new NotFoundException({ statusCode: 404, message: 'Character not found', code: 'CHARACTER_NOT_FOUND' });
     }
 
     if (character.authorId !== userId) {
-      throw new ForbiddenException(
-        'No tienes permiso para exportar este personaje',
-      );
+      throw new ForbiddenException({ statusCode: 403, message: 'You do not have permission to export this character', code: 'CHARACTER_EXPORT_FORBIDDEN' });
     }
 
     const relationships = character.relationshipsAsSource.map((r) => ({
@@ -233,13 +227,11 @@ export class ExportsService {
     });
 
     if (!novel) {
-      throw new NotFoundException('Novela no encontrada');
+      throw new NotFoundException({ statusCode: 404, message: 'Novel not found', code: 'NOVEL_NOT_FOUND' });
     }
 
     if (novel.authorId !== userId) {
-      throw new ForbiddenException(
-        'No tienes permiso para exportar esta novela',
-      );
+      throw new ForbiddenException({ statusCode: 403, message: 'You do not have permission to export this novel', code: 'NOVEL_EXPORT_FORBIDDEN' });
     }
 
     const authorName =
