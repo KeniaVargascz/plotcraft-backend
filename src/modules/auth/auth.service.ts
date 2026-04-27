@@ -533,11 +533,11 @@ export class AuthService {
       data: { revoked: true, revokedAt: new Date() },
     });
 
-    // User-level blacklist invalidates all access tokens for this user.
-    // JwtStrategy checks this key before allowing any request.
+    // User-level blacklist: store the timestamp so only tokens issued BEFORE
+    // this moment are rejected. Tokens issued after (new logins) pass through.
     await this.cache.set(
       `blacklist:user:${userId}`,
-      true,
+      Math.floor(Date.now() / 1000),
       60 * 60 * 1000, // 60 min (access token max lifetime)
     );
   }

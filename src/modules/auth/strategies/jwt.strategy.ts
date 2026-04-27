@@ -63,15 +63,17 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       }
     }
 
-    // 2. Check user-level blacklist (password reset)
-    const userBlacklisted = await this.cache.get(
+    // 2. Check user-level blacklist (password reset / logout-all)
+    // Value is the Unix timestamp (seconds) when the blacklist was set.
+    // Only tokens issued BEFORE that timestamp are rejected.
+    const userBlacklistedAt = await this.cache.get<number>(
       `blacklist:user:${payload.sub}`,
     );
-    if (userBlacklisted) {
+    if (userBlacklistedAt && payload.iat && payload.iat < userBlacklistedAt) {
       throw new UnauthorizedException({
         statusCode: 401,
-        message: 'Token revoked due to password change',
-        code: 'TOKEN_REVOKED_PASSWORD_CHANGE',
+        message: 'Session invalidated',
+        code: 'SESSION_INVALIDATED',
       });
     }
 
