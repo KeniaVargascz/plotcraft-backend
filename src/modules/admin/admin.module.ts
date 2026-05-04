@@ -1,6 +1,9 @@
 import { Module } from '@nestjs/common';
+import { JwtModule } from '@nestjs/jwt';
 import { PrismaModule } from '../../prisma/prisma.module';
 import { AuthModule } from '../auth/auth.module';
+import { OtpModule } from '../otp/otp.module';
+import { EmailModule } from '../email/email.module';
 import { AdminAuthController } from './controllers/admin-auth.controller';
 import { AdminFeaturesController } from './controllers/admin-features.controller';
 import { AdminDashboardController } from './controllers/admin-dashboard.controller';
@@ -26,8 +29,13 @@ import { AdminCatalogsService } from './services/admin-catalogs.service';
 import { AdminPostsService } from './services/admin-posts.service';
 import { AdminAnalyticsService } from './services/admin-analytics.service';
 import { AdminSettingsService } from './services/admin-settings.service';
+import { AdminCleanupController } from './controllers/admin-cleanup.controller';
+import { AdminCleanupService } from './services/admin-cleanup.service';
+import { AdminUserCleanupService } from './services/admin-user-cleanup.service';
+import { AdminTfaService } from './services/admin-tfa.service';
+import { AdminPasswordService } from './services/admin-password.service';
 @Module({
-  imports: [PrismaModule, AuthModule],
+  imports: [PrismaModule, AuthModule, JwtModule.register({}), OtpModule, EmailModule],
   controllers: [
     AdminAuthController,
     AdminFeaturesController,
@@ -42,6 +50,7 @@ import { AdminSettingsService } from './services/admin-settings.service';
     AdminAnalyticsController,
     AdminSettingsController,
     PublicFeaturesController,
+    AdminCleanupController,
   ],
   providers: [
     AdminAuthService,
@@ -56,6 +65,10 @@ import { AdminSettingsService } from './services/admin-settings.service';
     AdminPostsService,
     AdminAnalyticsService,
     AdminSettingsService,
+    AdminCleanupService,
+    AdminUserCleanupService,
+    AdminTfaService,
+    AdminPasswordService,
   ],
   exports: [AdminFeaturesService],
 })

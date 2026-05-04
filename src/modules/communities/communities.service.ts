@@ -18,6 +18,7 @@ import { generateUniqueSlug } from '../../common/utils/unique-slug.util';
 import { CommunityQueryDto } from './dto/community-query.dto';
 import { CreateCommunityDto } from './dto/create-community.dto';
 import { UpdateCommunityDto } from './dto/update-community.dto';
+import { Role } from '../../common/constants/roles';
 
 const MIN_NOVEL_AGE_DAYS = 30;
 const DEFAULT_MIN_FOLLOWERS_FOR_PRIVATE = 10;
@@ -194,7 +195,7 @@ export class CommunitiesService {
 
     if (!isPrivate) {
       const admins = await this.prisma.user.findMany({
-        where: { isAdmin: true },
+        where: { role: { gte: Role.ADMIN } },
         select: { id: true },
       });
       if (admins.length) {

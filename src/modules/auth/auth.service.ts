@@ -126,13 +126,16 @@ export class AuthService {
       });
     }
 
-    // Reset lockout on successful login
+    // Update last login timestamp and reset lockout if needed
+    const loginUpdate: Record<string, unknown> = { lastLoginAt: new Date() };
     if (user.failedLoginAttempts > 0) {
-      await this.prisma.user.update({
-        where: { id: user.id },
-        data: { failedLoginAttempts: 0, lockedUntil: null },
-      });
+      loginUpdate.failedLoginAttempts = 0;
+      loginUpdate.lockedUntil = null;
     }
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: loginUpdate,
+    });
 
     return {
       user: this.usersService.toUserEntity(user),
@@ -565,7 +568,8 @@ export class AuthService {
       sub: user.id,
       username: user.username,
       email: user.email,
-      isAdmin: user.isAdmin,
+      role: user.role,
+      isAdmin: user.isAdmin, // deprecated — kept for backwards compat
       jti: crypto.randomUUID(),
     };
 

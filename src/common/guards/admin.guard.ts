@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import type { JwtPayload } from '../../modules/auth/strategies/jwt.strategy';
 import { UserStatusCacheService } from '../services/user-status-cache.service';
+import { Role, hasRole } from '../constants/roles';
 
 @Injectable()
 export class AdminGuard implements CanActivate {
@@ -15,7 +16,7 @@ export class AdminGuard implements CanActivate {
     const request = context.switchToHttp().getRequest<{ user?: JwtPayload }>();
     const user = request.user;
 
-    if (!user?.isAdmin) {
+    if (!hasRole(user?.role ?? 0, Role.MASTER)) {
       throw new ForbiddenException({
         statusCode: 403,
         message: 'Access restricted to administrators',
@@ -23,9 +24,9 @@ export class AdminGuard implements CanActivate {
       });
     }
 
-    // Verify admin status from DB via cache — never trust JWT claim alone
-    const status = await this.userStatusCache.getAdminStatus(user.sub);
-    if (!status.isAdmin) {
+    // Verify role from DB via cache — never trust JWT claim alone
+    const status = await this.userStatusCache.getAdminStatus(user!.sub);
+    if (!hasRole(status.role, Role.MASTER)) {
       throw new ForbiddenException({
         statusCode: 403,
         message: 'Access restricted to administrators',

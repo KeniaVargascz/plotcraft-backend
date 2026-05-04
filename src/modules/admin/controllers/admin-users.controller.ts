@@ -20,7 +20,7 @@ export class AdminUsersController {
     @Query('limit') limit?: string,
     @Query('search') search?: string,
     @Query('status') status?: string,
-    @Query('isAdmin') isAdmin?: string,
+    @Query('role') role?: string,
     @Query('sort') sort?: string,
     @Query('order') order?: string,
   ) {
@@ -29,7 +29,7 @@ export class AdminUsersController {
       limit: Math.min(Number(limit) || 20, 100),
       search,
       status,
-      isAdmin: isAdmin === 'true' ? true : isAdmin === 'false' ? false : undefined,
+      role: role !== undefined ? Number(role) : undefined,
       sort: sort || 'createdAt',
       order: (order as 'asc' | 'desc') || 'desc',
     });
@@ -51,12 +51,13 @@ export class AdminUsersController {
     return this.usersService.updateStatus(id, dto, admin);
   }
 
-  @Patch(':id/admin')
-  @ApiOperation({ summary: 'Toggle admin role' })
-  toggleAdmin(
+  @Patch(':id/role')
+  @ApiOperation({ summary: 'Update user role' })
+  updateRole(
     @Param('id') id: string,
+    @Body('role') role: number,
     @CurrentUser() admin: JwtPayload,
   ) {
-    return this.usersService.toggleAdmin(id, admin);
+    return this.usersService.updateRole(id, role, admin);
   }
 }

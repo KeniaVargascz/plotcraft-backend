@@ -1,11 +1,13 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CacheService, CACHE_SERVICE } from './cache.service';
+import { Role } from '../constants/roles';
 
 interface UserStatus {
   exists: boolean;
   isActive: boolean;
   isAdmin: boolean;
+  role: number;
   failedLoginAttempts: number;
   lockedUntil: string | null;
 }
@@ -29,6 +31,7 @@ export class UserStatusCacheService {
       select: {
         isActive: true,
         isAdmin: true,
+        role: true,
         failedLoginAttempts: true,
         lockedUntil: true,
       },
@@ -39,18 +42,19 @@ export class UserStatusCacheService {
           exists: true,
           isActive: user.isActive,
           isAdmin: user.isAdmin,
+          role: user.role,
           failedLoginAttempts: user.failedLoginAttempts,
           lockedUntil: user.lockedUntil?.toISOString() ?? null,
         }
-      : { exists: false, isActive: false, isAdmin: false, failedLoginAttempts: 0, lockedUntil: null };
+      : { exists: false, isActive: false, isAdmin: false, role: Role.USER, failedLoginAttempts: 0, lockedUntil: null };
 
     await this.cache.set(cacheKey, status, USER_STATUS_TTL_MS);
     return status;
   }
 
-  async getAdminStatus(userId: string): Promise<{ isAdmin: boolean }> {
+  async getAdminStatus(userId: string): Promise<{ isAdmin: boolean; role: number }> {
     const status = await this.getStatus(userId);
-    return { isAdmin: status.isAdmin };
+    return { isAdmin: status.isAdmin, role: status.role };
   }
 
   async invalidate(userId: string): Promise<void> {

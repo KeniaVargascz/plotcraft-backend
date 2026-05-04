@@ -4,13 +4,14 @@ import { PrismaService } from '../../../prisma/prisma.service';
 import { AdminAuditService } from './admin-audit.service';
 import { UpdateUserStatusDto } from '../dto/update-user-status.dto';
 import type { JwtPayload } from '../../auth/strategies/jwt.strategy';
+import { Role, hasRole, type RoleId } from '../../../common/constants/roles';
 
 interface UsersQuery {
   page: number;
   limit: number;
   search?: string;
   status?: string;
-  isAdmin?: boolean;
+  role?: number;
   sort: string;
   order: 'asc' | 'desc';
 }
@@ -35,8 +36,8 @@ export class AdminUsersService {
     if (query.status) {
       where.status = query.status as any;
     }
-    if (query.isAdmin !== undefined) {
-      where.isAdmin = query.isAdmin;
+    if (query.role !== undefined) {
+      where.role = query.role;
     }
 
     const orderBy: Prisma.UserOrderByWithRelationInput = {
@@ -57,8 +58,10 @@ export class AdminUsersService {
           status: true,
           isActive: true,
           isAdmin: true,
+          role: true,
           createdAt: true,
           updatedAt: true,
+          lastLoginAt: true,
           profile: {
             select: {
               displayName: true,
@@ -101,10 +104,12 @@ export class AdminUsersService {
         status: true,
         isActive: true,
         isAdmin: true,
+        role: true,
         createdAt: true,
         updatedAt: true,
         failedLoginAttempts: true,
         lockedUntil: true,
+        lastLoginAt: true,
         profile: {
           select: {
             displayName: true,
@@ -135,9 +140,9 @@ export class AdminUsersService {
   }
 
   async updateStatus(id: string, dto: UpdateUserStatusDto, admin: JwtPayload) {
-    const user = await this.prisma.user.findUnique({ where: { id }, select: { id: true, email: true, isAdmin: true } });
+    const user = await this.prisma.user.findUnique({ where: { id }, select: { id: true, email: true, isAdmin: true, role: true } });
     if (!user) throw new NotFoundException({ statusCode: 404, message: 'User not found', code: 'USER_NOT_FOUND' });
-    if (user.isAdmin) throw new BadRequestException({ statusCode: 400, message: 'Cannot change the status of an administrator', code: 'CANNOT_MODIFY_ADMIN_STATUS' });
+    if (hasRole(user.role, Role.MASTER)) throw new BadRequestException({ statusCode: 400, message: 'Cannot change the status of an administrator', code: 'CANNOT_MODIFY_ADMIN_STATUS' });
 
     const updated = await this.prisma.user.update({
       where: { id },
@@ -160,25 +165,31 @@ export class AdminUsersService {
     return updated;
   }
 
-  async toggleAdmin(id: string, admin: JwtPayload) {
-    if (id === admin.sub) throw new BadRequestException({ statusCode: 400, message: 'Cannot modify your own admin role', code: 'CANNOT_MODIFY_OWN_ADMIN_ROLE' });
+  async updateRole(id: string, newRole: number, admin: JwtPayload) {
+    if (id === admin.sub) throw new BadRequestException({ statusCode: 400, message: 'Cannot modify your own role', code: 'CANNOT_MODIFY_OWN_ROLE' });
 
-    const user = await this.prisma.user.findUnique({ where: { id }, select: { id: true, email: true, isAdmin: true } });
+    const validRoles: number[] = Object.values(Role);
+    if (!validRoles.includes(newRole)) {
+      throw new BadRequestException({ statusCode: 400, message: `Invalid role. Must be one of: ${validRoles.join(', ')}`, code: 'INVALID_ROLE' });
+    }
+
+    const user = await this.prisma.user.findUnique({ where: { id }, select: { id: true, email: true, role: true } });
     if (!user) throw new NotFoundException({ statusCode: 404, message: 'User not found', code: 'USER_NOT_FOUND' });
 
     const updated = await this.prisma.user.update({
       where: { id },
-      data: { isAdmin: !user.isAdmin },
-      select: { id: true, email: true, isAdmin: true },
+      data: { role: newRole, isAdmin: newRole >= Role.ADMIN },
+      select: { id: true, email: true, isAdmin: true, role: true },
     });
 
+    const action = newRole > user.role ? 'USER_ROLE_PROMOTED' : 'USER_ROLE_DEMOTED';
     await this.auditService.log({
       adminId: admin.sub,
       adminEmail: admin.email,
-      action: updated.isAdmin ? 'USER_PROMOTED_ADMIN' : 'USER_DEMOTED_ADMIN',
+      action,
       resourceType: 'user',
       resourceId: id,
-      details: { userEmail: user.email },
+      details: { userEmail: user.email, previousRole: user.role, newRole },
     });
 
     return updated;

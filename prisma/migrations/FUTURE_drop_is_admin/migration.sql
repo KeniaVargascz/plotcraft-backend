@@ -1,0 +1,10 @@
+-- FUTURE MIGRATION: Remove isAdmin boolean after role migration is fully verified
+-- DO NOT apply until all frontend/admin code references role instead of isAdmin
+--
+-- Prerequisites:
+-- 1. All backend guards use hasRole(user.role, Role.XXX) ✓
+-- 2. All frontend checks use user.role >= 50 ✓
+-- 3. Admin panel uses role field ✓
+-- 4. No active JWTs contain only isAdmin without role (wait 1h after deploy)
+--
+-- ALTER TABLE "users" DROP COLUMN IF EXISTS "is_admin";

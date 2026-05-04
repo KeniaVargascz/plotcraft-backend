@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
 import { SentryModule } from '@sentry/nestjs/setup';
@@ -44,6 +44,7 @@ import { CommunityCharactersModule } from './modules/community-characters/commun
 import { MediaModule } from './modules/media/media.module';
 import { VisualBoardsModule } from './modules/visual-boards/visual-boards.module';
 import { AdminModule } from './modules/admin/admin.module';
+import { SmsModule } from './modules/sms/sms.module';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
 import { CacheHeadersInterceptor } from './common/interceptors/cache-headers.interceptor';
@@ -54,6 +55,7 @@ import { PrismaModule } from './prisma/prisma.module';
 import { CacheModule } from './common/cache.module';
 import { QueueModule } from './common/queue/queue.module';
 import { RepositoryModule } from './common/repository/repository.module';
+import { MaintenanceMiddleware } from './common/middleware/maintenance.middleware';
 
 @Module({
   imports: [
@@ -112,6 +114,7 @@ import { RepositoryModule } from './common/repository/repository.module';
     MediaModule,
     VisualBoardsModule,
     AdminModule,
+    SmsModule,
   ],
   providers: [
     { provide: APP_PIPE, useClass: ValidationPipe },
@@ -122,4 +125,8 @@ import { RepositoryModule } from './common/repository/repository.module';
     { provide: APP_GUARD, useClass: FeatureFlagGuard },
   ],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(MaintenanceMiddleware).forRoutes('*');
+  }
+}

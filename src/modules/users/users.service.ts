@@ -115,8 +115,11 @@ export class UsersService {
       email: user.email,
       username: user.username,
       isActive: user.isActive,
+      isAdmin: user.isAdmin,
+      role: user.role,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
+      lastLoginAt: user.lastLoginAt ?? null,
       profile: user.profile ?? null,
     };
   }

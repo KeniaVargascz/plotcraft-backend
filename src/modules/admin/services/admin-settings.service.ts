@@ -1,5 +1,6 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
+import { CacheService, CACHE_SERVICE } from '../../../common/services/cache.service';
 import { AdminAuditService } from './admin-audit.service';
 import type { JwtPayload } from '../../auth/strategies/jwt.strategy';
 
@@ -8,6 +9,7 @@ export class AdminSettingsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly auditService: AdminAuditService,
+    @Inject(CACHE_SERVICE) private readonly cache: CacheService,
   ) {}
 
   async getAll() {
@@ -30,6 +32,11 @@ export class AdminSettingsService {
         create: { key, value },
       });
       updates.push({ key, old: existing?.value ?? null, new: value });
+    }
+
+    // Invalidate maintenance mode cache immediately
+    if ('maintenanceMode' in data) {
+      await this.cache.del('app:maintenanceMode');
     }
 
     await this.auditService.log({

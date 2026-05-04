@@ -13,6 +13,7 @@ import {
 } from './otp.constants';
 
 const OTP_ATTEMPTS_PREFIX = 'otp:attempts:';
+const OTP_LAST_ATTEMPT_PREFIX = 'otp:lastAttempt:';
 const OTP_ATTEMPTS_TTL_MS = OTP_EXPIRY_MINUTES * 60 * 1000;
 
 @Injectable()
@@ -58,10 +59,20 @@ export class OtpService {
   > {
     // Track attempts per user+type — survives OTP resend cycles
     const cacheKey = `${OTP_ATTEMPTS_PREFIX}${userId}:${type}`;
+    const lastAttemptKey = `${OTP_LAST_ATTEMPT_PREFIX}${userId}:${type}`;
     const currentAttempts = (await this.cache.get<number>(cacheKey)) ?? 0;
 
     if (currentAttempts >= OTP_MAX_ATTEMPTS) {
       return { valid: false, reason: 'too_many_attempts' };
+    }
+
+    // Exponential backoff: 0s, 2s, 4s, 8s, 16s
+    if (currentAttempts > 0) {
+      const lastAttempt = (await this.cache.get<number>(lastAttemptKey)) ?? 0;
+      const backoffMs = Math.pow(2, currentAttempts) * 1000;
+      if (Date.now() - lastAttempt < backoffMs) {
+        return { valid: false, reason: 'too_many_attempts' };
+      }
     }
 
     const otpRecord = await this.prisma.otpCode.findFirst({
@@ -84,6 +95,7 @@ export class OtpService {
 
     if (!isMatch) {
       await this.cache.set(cacheKey, attempts, OTP_ATTEMPTS_TTL_MS);
+      await this.cache.set(lastAttemptKey, Date.now(), OTP_ATTEMPTS_TTL_MS);
 
       if (attempts >= OTP_MAX_ATTEMPTS) {
         // Burn all active OTPs for this user+type

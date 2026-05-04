@@ -18,8 +18,13 @@ model User {
   status        UserStatus       @default(ACTIVE)
   isActive              Boolean            @default(true) @map("is_active")
   isAdmin               Boolean            @default(false) @map("is_admin")
+  role                  Int                @default(10)
   failedLoginAttempts   Int                @default(0) @map("failed_login_attempts")
   lockedUntil           DateTime?          @map("locked_until")
+  lastLoginAt           DateTime?          @map("last_login_at")
+  phone                 String?            @db.VarChar(20)
+  tfaSecret             String?            @map("tfa_secret")
+  tfaEnabled            Boolean            @default(false) @map("tfa_enabled")
   createdAt             DateTime           @default(now()) @map("created_at")
   updatedAt             DateTime           @updatedAt @map("updated_at")
   profile           Profile?
@@ -78,7 +83,10 @@ model User {
   @@index([email])
   @@index([username])
   @@index([lockedUntil])
+  @@index([lastLoginAt])
+  @@index([role])
   @@map("users")
+  dataBackups    UserDataBackup[]
 }
 
 model Profile {
@@ -1882,6 +1890,7 @@ enum UserStatus {
 enum OtpType {
   REGISTER_VERIFY
   PASSWORD_RESET
+  ADMIN_PASSWORD_RESET
 }
 
 model OtpCode {
@@ -1925,4 +1934,21 @@ model AdminAuditLog {
   @@index([createdAt])
   @@index([resourceType])
   @@map("admin_audit_logs")
+}
+
+model UserDataBackup {
+  id         String    @id @default(uuid()) @db.Uuid
+  userId     String    @map("user_id") @db.Uuid
+  data       Json
+  dataSize   Int       @map("data_size")
+  version    Int       @default(1)
+  createdAt  DateTime  @default(now()) @map("created_at")
+  expiresAt  DateTime  @map("expires_at")
+  restoredAt DateTime? @map("restored_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("user_data_backups")
 }

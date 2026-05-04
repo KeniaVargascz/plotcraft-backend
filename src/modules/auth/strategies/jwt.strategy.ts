@@ -14,12 +14,14 @@ import {
 import { FeatureFlagCacheService } from '../../../common/services/feature-flag-cache.service';
 import { UserStatusCacheService } from '../../../common/services/user-status-cache.service';
 import { APP_CONFIG } from '../../../config/constants';
+import { Role, hasRole } from '../../../common/constants/roles';
 
 export type JwtPayload = {
   sub: string;
   username: string;
   email: string;
-  isAdmin: boolean;
+  role: number;
+  isAdmin: boolean; // deprecated — use role >= Role.ADMIN
   jti: string;
   iat?: number;
   exp?: number;
@@ -109,14 +111,17 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     }
 
     // 4. Check if feature flags changed after token was issued
-    const flagsChanged =
-      await this.featureFlagCache.getLastChangedTimestamp();
-    if (flagsChanged && payload.iat && flagsChanged > payload.iat) {
-      throw new ForbiddenException({
-        statusCode: 403,
-        message: 'Session expired due to configuration change',
-        code: 'FLAGS_CHANGED',
-      });
+    // Skip for MASTER users — they are the ones changing flags
+    if (!hasRole(payload.role ?? 0, Role.MASTER)) {
+      const flagsChanged =
+        await this.featureFlagCache.getLastChangedTimestamp();
+      if (flagsChanged && payload.iat && flagsChanged > payload.iat) {
+        throw new ForbiddenException({
+          statusCode: 403,
+          message: 'Session expired due to configuration change',
+          code: 'FLAGS_CHANGED',
+        });
+      }
     }
 
     return payload;

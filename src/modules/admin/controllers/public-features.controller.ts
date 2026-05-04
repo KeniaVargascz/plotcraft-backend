@@ -33,4 +33,15 @@ export class PublicFeaturesController {
     const enabled = map['banner.enabled'] === 'true';
     return { enabled, html: enabled ? (map['banner.html'] ?? '') : '' };
   }
+
+  @Get('maintenance')
+  @Public()
+  @CacheTtl(0)
+  @ApiOperation({ summary: 'Maintenance mode status (público)' })
+  async getMaintenance() {
+    const setting = await this.prisma.appSetting.findUnique({
+      where: { key: 'maintenanceMode' },
+    });
+    return { enabled: setting?.value === 'true' };
+  }
 }
