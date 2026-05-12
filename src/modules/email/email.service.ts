@@ -6,6 +6,7 @@ import {
 import { EMAIL_PROVIDER_TOKEN } from './constants/email-tokens';
 import { buildOtpTemplate } from './templates/otp-verification.template';
 import { buildPasswordResetTemplate } from './templates/password-reset.template';
+import { buildLoginOtpTemplate } from './templates/login-otp.template';
 import { buildWelcomeTemplate } from './templates/welcome.template';
 
 @Injectable()
@@ -47,6 +48,22 @@ export class EmailService {
       html,
       text,
       tags: { type: 'otp', flow: 'password-reset' },
+    });
+  }
+
+  async sendLoginOtp(params: {
+    to: string;
+    username: string;
+    code: string;
+    expiresInMinutes: number;
+  }): Promise<EmailResult> {
+    const { html, text } = buildLoginOtpTemplate(params);
+    return this.provider.send({
+      to: params.to,
+      subject: 'Tu codigo de inicio de sesion en PlotCraft',
+      html,
+      text,
+      tags: { type: 'otp', flow: 'admin-login' },
     });
   }
 

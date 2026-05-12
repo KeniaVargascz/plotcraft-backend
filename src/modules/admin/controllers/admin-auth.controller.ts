@@ -40,8 +40,8 @@ export class AdminAuthController {
   @HttpCode(200)
   @Post('send-otp')
   @Throttle({ short: { limit: 3, ttl: 60000 } })
-  @ApiOperation({ summary: 'Send login OTP via SMS or WhatsApp' })
-  sendLoginOtp(@Body() body: { tfaToken: string; channel?: 'sms' | 'whatsapp' }) {
+  @ApiOperation({ summary: 'Send login OTP via SMS, WhatsApp, or email' })
+  sendLoginOtp(@Body() body: { tfaToken: string; channel?: 'sms' | 'whatsapp' | 'email' }) {
     return this.adminAuthService.sendLoginOtp(body.tfaToken, body.channel);
   }
 

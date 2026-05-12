@@ -7,6 +7,7 @@ import { AdminLoginDto } from '../dto/admin-login.dto';
 import { AdminAuditService } from './admin-audit.service';
 import { OtpService } from '../../otp/otp.service';
 import { SmsService } from '../../sms/sms.service';
+import { EmailService } from '../../email/email.service';
 import { Role, hasRole } from '../../../common/constants/roles';
 
 @Injectable()
@@ -19,6 +20,7 @@ export class AdminAuthService {
     private readonly auditService: AdminAuditService,
     private readonly otpService: OtpService,
     private readonly smsService: SmsService,
+    private readonly emailService: EmailService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
   ) {}
@@ -102,16 +104,40 @@ export class AdminAuthService {
   }
 
   /**
-   * Step 3: Send OTP to the admin's phone via SMS or WhatsApp.
+   * Step 3: Send OTP via SMS, WhatsApp, or email.
+   * Email is always available as fallback when Twilio fails.
    */
-  async sendLoginOtp(tfaToken: string, channel: 'sms' | 'whatsapp' = 'sms') {
+  async sendLoginOtp(tfaToken: string, channel: 'sms' | 'whatsapp' | 'email' = 'sms') {
     const payload = await this.verifyTfaToken(tfaToken);
 
     const user = await this.prisma.user.findUniqueOrThrow({
       where: { id: payload.sub },
-      select: { phone: true },
+      select: { phone: true, email: true, username: true },
     });
 
+    const plainCode = await this.otpService.create(payload.sub, 'ADMIN_LOGIN');
+
+    if (channel === 'email') {
+      const emailResult = await this.emailService.sendLoginOtp({
+        to: user.email,
+        username: user.username,
+        code: plainCode,
+        expiresInMinutes: 5,
+      });
+
+      if (!emailResult.success) {
+        this.logger.error(`Admin login OTP email failed for ${payload.sub}`);
+        throw new BadRequestException({
+          statusCode: 400,
+          message: 'No se pudo enviar el codigo por email.',
+          code: 'OTP_SEND_FAILED',
+        });
+      }
+
+      return { sent: true, channel: 'email' };
+    }
+
+    // SMS / WhatsApp
     if (!user.phone) {
       throw new BadRequestException({
         statusCode: 400,
@@ -120,15 +146,16 @@ export class AdminAuthService {
       });
     }
 
-    const plainCode = await this.otpService.create(payload.sub, 'ADMIN_LOGIN');
+    const result = await this.smsService.sendOtp(user.phone, plainCode, channel);
 
-    this.smsService.sendOtp(user.phone, plainCode, channel).then((result) => {
-      if (!result.success) {
-        this.logger.warn(`Admin login OTP ${channel} failed for ${payload.sub}: ${result.error}`);
-      }
-    }).catch((err) => {
-      this.logger.error(`Admin login OTP ${channel} error for ${payload.sub}: ${err}`);
-    });
+    if (!result.success) {
+      this.logger.warn(`Admin login OTP ${channel} failed for ${payload.sub}: ${result.error}`);
+      throw new BadRequestException({
+        statusCode: 400,
+        message: `No se pudo enviar el codigo por ${channel === 'whatsapp' ? 'WhatsApp' : 'SMS'}. Intenta con otro metodo.`,
+        code: 'OTP_SEND_FAILED',
+      });
+    }
 
     return { sent: true, channel };
   }
