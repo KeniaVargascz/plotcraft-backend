@@ -22,27 +22,36 @@ export class AdminAuthController {
   @HttpCode(200)
   @Post('login')
   @Throttle({ short: { limit: 5, ttl: 60000 } })
-  @ApiOperation({ summary: 'Admin login (returns tfaRequired if 2FA enabled)' })
+  @ApiOperation({ summary: 'Admin login — returns tfaToken + phoneRequired flag' })
   login(@Body() dto: AdminLoginDto) {
     return this.adminAuthService.login(dto);
   }
 
   @Public()
   @HttpCode(200)
-  @Post('tfa/verify')
+  @Post('register-phone')
   @Throttle({ short: { limit: 5, ttl: 60000 } })
-  @ApiOperation({ summary: 'Verify 2FA code and complete admin login' })
-  verifyTfa(@Body() body: { tfaToken: string; code: string }) {
-    return this.adminAuthService.verifyTfa(body.tfaToken, body.code);
+  @ApiOperation({ summary: 'Register phone for OTP delivery (if not already set)' })
+  registerPhone(@Body() body: { tfaToken: string; phone: string }) {
+    return this.adminAuthService.registerPhone(body.tfaToken, body.phone);
   }
 
   @Public()
   @HttpCode(200)
-  @Post('tfa/setup-and-enable')
+  @Post('send-otp')
+  @Throttle({ short: { limit: 3, ttl: 60000 } })
+  @ApiOperation({ summary: 'Send login OTP via SMS or WhatsApp' })
+  sendLoginOtp(@Body() body: { tfaToken: string; channel?: 'sms' | 'whatsapp' }) {
+    return this.adminAuthService.sendLoginOtp(body.tfaToken, body.channel);
+  }
+
+  @Public()
+  @HttpCode(200)
+  @Post('verify-otp')
   @Throttle({ short: { limit: 5, ttl: 60000 } })
-  @ApiOperation({ summary: 'Enable 2FA + register phone during mandatory setup' })
-  setupAndEnable(@Body() body: { tfaToken: string; code: string; phone: string }) {
-    return this.adminAuthService.setupAndEnable(body.tfaToken, body.code, body.phone);
+  @ApiOperation({ summary: 'Verify login OTP and complete admin login' })
+  verifyLoginOtp(@Body() body: { tfaToken: string; code: string }) {
+    return this.adminAuthService.verifyLoginOtp(body.tfaToken, body.code);
   }
 
   @Get('me')
@@ -51,7 +60,7 @@ export class AdminAuthController {
     return this.adminAuthService.getAdminProfile(user.sub);
   }
 
-  // 2FA setup endpoints (require auth)
+  // 2FA setup endpoints (require auth) — kept for settings panel
   @Post('tfa/setup')
   @ApiOperation({ summary: 'Generate 2FA QR code and secret' })
   tfaSetup(@CurrentUser() user: JwtPayload) {

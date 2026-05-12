@@ -9,20 +9,30 @@ interface SmsResult {
 @Injectable()
 export class SmsService {
   private readonly logger = new Logger(SmsService.name);
-  private readonly accountSid: string | undefined;
-  private readonly authToken: string | undefined;
   private readonly fromNumber: string | undefined;
   private client: any = null;
 
   constructor(private readonly config: ConfigService) {
-    this.accountSid = this.config.get<string>('TWILIO_ACCOUNT_SID');
-    this.authToken = this.config.get<string>('TWILIO_AUTH_TOKEN');
+    const accountSid = this.config.get<string>('TWILIO_ACCOUNT_SID');
+    const authToken = this.config.get<string>('TWILIO_AUTH_TOKEN');
+    const apiKeySid = this.config.get<string>('TWILIO_API_KEY_SID');
+    const apiKeySecret = this.config.get<string>('TWILIO_API_KEY_SECRET');
     this.fromNumber = this.config.get<string>('TWILIO_PHONE_NUMBER');
 
-    if (this.accountSid && this.authToken) {
+    const hasApiKey = apiKeySid && apiKeySecret && accountSid;
+    const hasAccountAuth = accountSid && authToken;
+
+    if (hasApiKey || hasAccountAuth) {
       import('twilio').then((mod) => {
-        this.client = mod.default(this.accountSid, this.authToken);
-        this.logger.log('Twilio SMS client initialized');
+        if (hasApiKey) {
+          // API Key authentication (preferred)
+          this.client = mod.default(apiKeySid, apiKeySecret, { accountSid });
+          this.logger.log('Twilio client initialized (API Key auth)');
+        } else {
+          // Account SID + Auth Token
+          this.client = mod.default(accountSid, authToken);
+          this.logger.log('Twilio client initialized (Account auth)');
+        }
       }).catch(() => {
         this.logger.warn('Twilio SDK not available — SMS disabled');
       });
@@ -77,6 +87,6 @@ export class SmsService {
   }
 
   isConfigured(): boolean {
-    return !!(this.accountSid && this.authToken && this.fromNumber);
+    return !!this.client && !!this.fromNumber;
   }
 }

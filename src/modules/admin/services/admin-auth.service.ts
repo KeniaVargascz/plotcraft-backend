@@ -1,168 +1,212 @@
-import { BadRequestException, Injectable, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { AuthService } from '../../auth/auth.service';
 import { AdminLoginDto } from '../dto/admin-login.dto';
 import { AdminAuditService } from './admin-audit.service';
-import { AdminTfaService } from './admin-tfa.service';
+import { OtpService } from '../../otp/otp.service';
+import { SmsService } from '../../sms/sms.service';
 import { Role, hasRole } from '../../../common/constants/roles';
 
 @Injectable()
 export class AdminAuthService {
+  private readonly logger = new Logger(AdminAuthService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly authService: AuthService,
     private readonly auditService: AdminAuditService,
-    private readonly tfaService: AdminTfaService,
+    private readonly otpService: OtpService,
+    private readonly smsService: SmsService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
   ) {}
 
+  /**
+   * Step 1: Email/password login.
+   * Returns a temporary token + whether the user needs to register a phone.
+   */
   async login(dto: AdminLoginDto) {
-    // Step 1: Validate credentials
     const result = await this.authService.login({
       identifier: dto.email,
       password: dto.password,
     });
 
-    // Step 2: Verify admin status BEFORE creating any tokens
     const user = await this.prisma.user.findUnique({
       where: { id: result.user.id },
-      select: { isAdmin: true, role: true, tfaEnabled: true },
+      select: { isAdmin: true, role: true, phone: true },
     });
 
     if (!user || !hasRole(user.role, Role.MASTER)) {
       throw new UnauthorizedException({
-        code: 'NOT_ADMIN',
+        statusCode: 401,
         message: 'Access restricted to administrators.',
+        code: 'NOT_ADMIN',
       });
     }
 
-    // Step 3: Only after confirming admin, create temporary 2FA token
     const tfaToken = await this.jwtService.signAsync(
       { sub: result.user.id, email: result.user.email, purpose: 'tfa' },
       {
         secret: this.configService.getOrThrow<string>('JWT_SECRET'),
-        expiresIn: '5m',
+        expiresIn: '10m',
       },
     );
 
-    if (user.tfaEnabled) {
-      // 2FA configured — require code verification
-      return { tfaRequired: true, tfaToken };
+    if (user.phone) {
+      // Has phone — ready to receive OTP
+      return { phoneRequired: false, tfaToken };
     }
 
-    // 2FA NOT configured — require setup before full access
-    const setupData = await this.tfaService.generateSetup(result.user.id);
-    return {
-      tfaSetupRequired: true,
-      tfaToken,
-      qrDataUrl: setupData.qrDataUrl,
-    };
+    // No phone — frontend must collect it first
+    return { phoneRequired: true, tfaToken };
   }
 
-  async verifyTfa(tfaToken: string, code: string) {
-    let payload: { sub: string; email: string; purpose: string };
-    try {
-      payload = await this.jwtService.verifyAsync(tfaToken, {
-        secret: this.configService.getOrThrow<string>('JWT_SECRET'),
-      });
-    } catch {
-      throw new UnauthorizedException({
-        statusCode: 401,
-        message: 'Invalid or expired 2FA token',
-        code: 'TFA_TOKEN_INVALID',
-      });
-    }
+  /**
+   * Step 2 (optional): Register phone number for a user who doesn't have one.
+   * SECURITY: Only allowed if user has NO phone. Cannot overwrite existing phone.
+   */
+  async registerPhone(tfaToken: string, phone: string) {
+    const payload = await this.verifyTfaToken(tfaToken);
 
-    if (payload.purpose !== 'tfa') {
-      throw new UnauthorizedException({
-        statusCode: 401,
-        message: 'Invalid token purpose',
-        code: 'TFA_TOKEN_INVALID',
-      });
-    }
+    this.validatePhone(phone);
 
-    // Verify admin has 2FA enabled — prevents bypass via calling /tfa/verify
-    // instead of /tfa/setup-and-enable when 2FA is not configured
-    const adminUser = await this.prisma.user.findUniqueOrThrow({
+    const user = await this.prisma.user.findUniqueOrThrow({
       where: { id: payload.sub },
-      select: { tfaEnabled: true },
+      select: { phone: true },
     });
 
-    if (!adminUser.tfaEnabled) {
-      throw new UnauthorizedException({
-        statusCode: 401,
-        message: '2FA setup required before login',
-        code: 'TFA_SETUP_REQUIRED',
-      });
-    }
-
-    // Verify the TOTP code
-    await this.tfaService.verifyLogin(payload.sub, code);
-
-    const result = await this.createSessionForUser(payload.sub);
-
-    await this.auditService.log({
-      adminId: payload.sub,
-      adminEmail: payload.email,
-      action: 'LOGIN_TFA',
-      resourceType: 'auth',
-    });
-
-    return result;
-  }
-
-  async setupAndEnable(tfaToken: string, code: string, phone: string) {
-    let payload: { sub: string; email: string; purpose: string };
-    try {
-      payload = await this.jwtService.verifyAsync(tfaToken, {
-        secret: this.configService.getOrThrow<string>('JWT_SECRET'),
-      });
-    } catch {
-      throw new UnauthorizedException({
-        statusCode: 401,
-        message: 'Invalid or expired 2FA token',
-        code: 'TFA_TOKEN_INVALID',
-      });
-    }
-
-    if (payload.purpose !== 'tfa') {
-      throw new UnauthorizedException({
-        statusCode: 401,
-        message: 'Invalid token purpose',
-        code: 'TFA_TOKEN_INVALID',
-      });
-    }
-
-    const phoneRegex = /^\+[1-9]\d{7,14}$/; // E.164 format
-    if (!phone || !phoneRegex.test(phone)) {
+    if (user.phone) {
       throw new BadRequestException({
         statusCode: 400,
-        message: 'Valid phone number in E.164 format required (e.g. +521234567890)',
-        code: 'PHONE_REQUIRED',
+        message: 'Phone number already registered. Use settings to change it.',
+        code: 'PHONE_ALREADY_REGISTERED',
       });
     }
 
-    // Enable 2FA and save phone in one step
-    await this.tfaService.enableTfa(payload.sub, code);
     await this.prisma.user.update({
       where: { id: payload.sub },
       data: { phone },
     });
 
-    const result = await this.createSessionForUser(payload.sub);
-
     await this.auditService.log({
       adminId: payload.sub,
       adminEmail: payload.email,
-      action: 'TFA_SETUP_COMPLETE',
+      action: 'ADMIN_PHONE_REGISTERED',
       resourceType: 'auth',
       details: { phone },
     });
 
-    return result;
+    return { registered: true };
+  }
+
+  /**
+   * Step 3: Send OTP to the admin's phone via SMS or WhatsApp.
+   */
+  async sendLoginOtp(tfaToken: string, channel: 'sms' | 'whatsapp' = 'sms') {
+    const payload = await this.verifyTfaToken(tfaToken);
+
+    const user = await this.prisma.user.findUniqueOrThrow({
+      where: { id: payload.sub },
+      select: { phone: true },
+    });
+
+    if (!user.phone) {
+      throw new BadRequestException({
+        statusCode: 400,
+        message: 'Phone number not registered',
+        code: 'PHONE_NOT_REGISTERED',
+      });
+    }
+
+    const plainCode = await this.otpService.create(payload.sub, 'ADMIN_LOGIN');
+
+    this.smsService.sendOtp(user.phone, plainCode, channel).then((result) => {
+      if (!result.success) {
+        this.logger.warn(`Admin login OTP ${channel} failed for ${payload.sub}: ${result.error}`);
+      }
+    }).catch((err) => {
+      this.logger.error(`Admin login OTP ${channel} error for ${payload.sub}: ${err}`);
+    });
+
+    return { sent: true, channel };
+  }
+
+  /**
+   * Step 4: Verify the OTP code and complete login.
+   */
+  async verifyLoginOtp(tfaToken: string, code: string) {
+    const payload = await this.verifyTfaToken(tfaToken);
+
+    const result = await this.otpService.verify(payload.sub, code, 'ADMIN_LOGIN');
+
+    if (!result.valid) {
+      const reason = (result as { reason: string }).reason;
+      if (reason === 'expired') {
+        throw new BadRequestException({
+          statusCode: 400,
+          message: 'El codigo ha expirado. Solicita uno nuevo.',
+          code: 'OTP_EXPIRED',
+        });
+      }
+      if (reason === 'too_many_attempts') {
+        throw new BadRequestException({
+          statusCode: 400,
+          message: 'Demasiados intentos. Espera unos minutos.',
+          code: 'TOO_MANY_ATTEMPTS',
+        });
+      }
+      throw new BadRequestException({
+        statusCode: 400,
+        message: 'Codigo invalido',
+        code: 'OTP_INVALID',
+      });
+    }
+
+    const session = await this.createSessionForUser(payload.sub);
+
+    await this.auditService.log({
+      adminId: payload.sub,
+      adminEmail: payload.email,
+      action: 'LOGIN_OTP',
+      resourceType: 'auth',
+    });
+
+    return session;
+  }
+
+  // --- Helper methods ---
+
+  private async verifyTfaToken(tfaToken: string): Promise<{ sub: string; email: string; purpose: string }> {
+    try {
+      const payload = await this.jwtService.verifyAsync<{ sub: string; email: string; purpose: string }>(tfaToken, {
+        secret: this.configService.getOrThrow<string>('JWT_SECRET'),
+      });
+
+      if (payload.purpose !== 'tfa') {
+        throw new Error('wrong purpose');
+      }
+
+      return payload;
+    } catch {
+      throw new UnauthorizedException({
+        statusCode: 401,
+        message: 'La sesion expiro. Inicia sesion de nuevo.',
+        code: 'TFA_TOKEN_INVALID',
+      });
+    }
+  }
+
+  private validatePhone(phone: string) {
+    const phoneRegex = /^\+[1-9]\d{7,14}$/;
+    if (!phone || !phoneRegex.test(phone)) {
+      throw new BadRequestException({
+        statusCode: 400,
+        message: 'Numero de telefono invalido. Formato E.164 requerido (ej. +521234567890)',
+        code: 'INVALID_PHONE',
+      });
+    }
   }
 
   private async createSessionForUser(userId: string) {
@@ -171,7 +215,6 @@ export class AdminAuthService {
       include: { profile: true },
     });
 
-    // Build the same response structure as AuthService.login
     const tokenPayload = {
       sub: user.id,
       username: user.username,

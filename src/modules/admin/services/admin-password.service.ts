@@ -96,30 +96,41 @@ export class AdminPasswordService {
       select: { id: true, email: true, isAdmin: true, role: true, isActive: true, phone: true, username: true },
     });
 
-    // Constant-time response regardless of user existence
+    // Constant-time: simulate the same work as the real path (bcrypt + DB I/O)
+    // to prevent user enumeration via response timing differences.
     if (!user || !hasRole(user.role, Role.MASTER) || !user.isActive) {
-      await new Promise((r) => setTimeout(r, 40 + Math.random() * 30));
-      return { message: 'If the account exists, an OTP has been sent' };
-    }
-
-    if (!user.phone) {
-      this.logger.warn(`Admin ${user.id} has no phone configured — cannot send OTP`);
-      return { message: 'If the account exists, an OTP has been sent' };
+      await bcrypt.hash('dummy-timing-pad', 10);
+      await new Promise((r) => setTimeout(r, 500 + Math.random() * 200));
+      return { message: 'If the account exists, an OTP has been sent', via: 'unknown' as const };
     }
 
     const plainCode = await this.otpService.create(user.id, 'ADMIN_PASSWORD_RESET');
-    const channel = dto.channel ?? 'sms';
 
-    // Fire-and-forget
-    this.smsService.sendOtp(user.phone, plainCode, channel).then((result) => {
-      if (!result.success) {
-        this.logger.warn(`Admin OTP ${channel} failed for userId=${user.id}: ${result.error}`);
-      }
-    }).catch((err) => {
-      this.logger.warn(`Admin OTP ${channel} error for userId=${user.id}: ${err}`);
-    });
+    // Determine delivery channel and send (fire-and-forget — does not block response)
+    let via: 'email' | 'phone' = 'phone';
 
-    return { message: 'If the account exists, an OTP has been sent' };
+    if (!user.phone) {
+      via = 'email';
+      this.emailService.sendPasswordResetOtp({
+        to: user.email,
+        username: user.username,
+        code: plainCode,
+        expiresInMinutes: 5,
+      }).catch((err) => {
+        this.logger.warn(`Admin OTP email failed for userId=${user.id}: ${err}`);
+      });
+    } else {
+      const channel = dto.channel ?? 'sms';
+      this.smsService.sendOtp(user.phone, plainCode, channel).then((result) => {
+        if (!result.success) {
+          this.logger.warn(`Admin OTP ${channel} failed for userId=${user.id}: ${result.error}`);
+        }
+      }).catch((err) => {
+        this.logger.warn(`Admin OTP ${channel} error for userId=${user.id}: ${err}`);
+      });
+    }
+
+    return { message: 'If the account exists, an OTP has been sent', via };
   }
 
   /**
@@ -144,7 +155,7 @@ export class AdminPasswordService {
 
     const result = await this.otpService.verify(user.id, dto.code, 'ADMIN_PASSWORD_RESET');
     if (!result.valid) {
-      const reason = !result.valid ? result.reason : 'unknown';
+      const reason = result.reason;
       if (reason === 'expired') {
         throw new BadRequestException({ statusCode: 400, message: 'OTP code expired', code: 'OTP_EXPIRED' });
       }

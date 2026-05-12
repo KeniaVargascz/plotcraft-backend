@@ -171,8 +171,8 @@ export class AdminTfaService {
       digits: TOTP_DIGITS,
     });
 
-    // Strict: only current 30-second window
-    const delta = totp.validate({ token: code, window: 0 });
+    // Accept current and previous 30-second window
+    const delta = totp.validate({ token: code, window: 1 });
     return delta !== null;
   }
 }
