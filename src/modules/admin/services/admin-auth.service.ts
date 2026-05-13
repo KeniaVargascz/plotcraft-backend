@@ -58,12 +58,34 @@ export class AdminAuthService {
       },
     );
 
-    if (user.phone) {
-      return { phoneRequired: false, tfaEnabled: user.tfaEnabled, tfaToken };
-    }
+    const allowedChannels = await this.getAllowedChannels();
 
-    // No phone — frontend must collect it first
-    return { phoneRequired: true, tfaEnabled: user.tfaEnabled, tfaToken };
+    return {
+      phoneRequired: !user.phone,
+      tfaEnabled: user.tfaEnabled,
+      allowedChannels,
+      tfaToken,
+    };
+  }
+
+  /** Read which 2FA channels are enabled from AppSetting (DB-only, not admin-panel managed). */
+  private async getAllowedChannels(): Promise<string[]> {
+    const settings = await this.prisma.appSetting.findMany({
+      where: { key: { startsWith: 'auth.channel.' } },
+      select: { key: true, value: true },
+    });
+    const map = Object.fromEntries(settings.map((s) => [s.key, s.value]));
+
+    const channels: string[] = [];
+    if (map['auth.channel.sms'] !== 'false') channels.push('sms');
+    if (map['auth.channel.whatsapp'] !== 'false') channels.push('whatsapp');
+    if (map['auth.channel.email'] !== 'false') channels.push('email');
+    if (map['auth.channel.totp'] !== 'false') channels.push('totp');
+
+    // Safety: if all channels are disabled (misconfiguration), enable email as fallback
+    if (channels.length === 0) channels.push('email');
+
+    return channels;
   }
 
   /**
@@ -110,6 +132,16 @@ export class AdminAuthService {
    */
   async sendLoginOtp(tfaToken: string, channel: 'sms' | 'whatsapp' | 'email' | 'totp' = 'sms') {
     const payload = await this.verifyTfaToken(tfaToken);
+
+    // Verify channel is allowed by DB settings
+    const allowed = await this.getAllowedChannels();
+    if (!allowed.includes(channel)) {
+      throw new BadRequestException({
+        statusCode: 400,
+        message: `El canal ${channel} no esta habilitado.`,
+        code: 'CHANNEL_DISABLED',
+      });
+    }
 
     // TOTP doesn't need to "send" anything — the code is in the authenticator app
     if (channel === 'totp') {
