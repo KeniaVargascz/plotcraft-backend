@@ -1,5 +1,6 @@
 import { Controller, Delete, Get, Param, Patch, Query, UseGuards, Body } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { AdminGuard } from '../../../common/guards/admin.guard';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import { AdminNovelsService } from '../services/admin-novels.service';
@@ -38,6 +39,7 @@ export class AdminNovelsController {
     return this.novelsService.findOne(id);
   }
 
+  @Throttle({ short: { limit: 5, ttl: 60000 } })
   @Patch(':id')
   @ApiOperation({ summary: 'Moderar novela (cambiar status, visibility)' })
   moderate(
@@ -48,6 +50,7 @@ export class AdminNovelsController {
     return this.novelsService.moderate(id, body, admin);
   }
 
+  @Throttle({ short: { limit: 5, ttl: 60000 } })
   @Delete(':id')
   @ApiOperation({ summary: 'Eliminar novela' })
   remove(@Param('id') id: string, @CurrentUser() admin: JwtPayload) {

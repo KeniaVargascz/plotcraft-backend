@@ -31,7 +31,23 @@ export class PublicFeaturesController {
     });
     const map = Object.fromEntries(settings.map((s) => [s.key, s.value]));
     const enabled = map['banner.enabled'] === 'true';
-    return { enabled, html: enabled ? (map['banner.html'] ?? '') : '' };
+    const rawHtml = enabled ? (map['banner.html'] ?? '') : '';
+    return { enabled, html: this.sanitizeHtml(rawHtml) };
+  }
+
+  /** Strip all tags except safe inline formatting. Removes scripts, events, iframes. */
+  private sanitizeHtml(html: string): string {
+    if (!html) return '';
+    return html
+      .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+      .replace(/<iframe\b[^>]*>.*?<\/iframe>/gi, '')
+      .replace(/<object\b[^>]*>.*?<\/object>/gi, '')
+      .replace(/<embed\b[^>]*\/?>/gi, '')
+      .replace(/<link\b[^>]*\/?>/gi, '')
+      .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '')
+      .replace(/\son\w+\s*=\s*["'][^"']*["']/gi, '')
+      .replace(/\son\w+\s*=\s*[^\s>]*/gi, '')
+      .replace(/javascript\s*:/gi, 'blocked:');
   }
 
   @Get('maintenance')

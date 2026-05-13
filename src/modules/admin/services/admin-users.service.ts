@@ -173,8 +173,18 @@ export class AdminUsersService {
       throw new BadRequestException({ statusCode: 400, message: `Invalid role. Must be one of: ${validRoles.join(', ')}`, code: 'INVALID_ROLE' });
     }
 
+    // Prevent privilege escalation: cannot assign role >= own role
+    if (newRole >= admin.role) {
+      throw new BadRequestException({ statusCode: 400, message: 'Cannot assign a role equal or higher than your own', code: 'PRIVILEGE_ESCALATION' });
+    }
+
     const user = await this.prisma.user.findUnique({ where: { id }, select: { id: true, email: true, role: true } });
     if (!user) throw new NotFoundException({ statusCode: 404, message: 'User not found', code: 'USER_NOT_FOUND' });
+
+    // Cannot modify users with equal or higher privileges
+    if (user.role >= admin.role) {
+      throw new BadRequestException({ statusCode: 400, message: 'Cannot modify a user with equal or higher privileges', code: 'INSUFFICIENT_PRIVILEGES' });
+    }
 
     const updated = await this.prisma.user.update({
       where: { id },

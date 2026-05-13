@@ -16,6 +16,15 @@ export class AdminGuard implements CanActivate {
     const request = context.switchToHttp().getRequest<{ user?: JwtPayload }>();
     const user = request.user;
 
+    // Reject tokens not issued for admin audience (prevents user tokens on admin endpoints)
+    if ((user as any)?.aud !== 'admin') {
+      throw new ForbiddenException({
+        statusCode: 403,
+        message: 'Access restricted to administrators',
+        code: 'FORBIDDEN',
+      });
+    }
+
     if (!hasRole(user?.role ?? 0, Role.MASTER)) {
       throw new ForbiddenException({
         statusCode: 403,

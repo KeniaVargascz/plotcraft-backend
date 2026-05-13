@@ -248,6 +248,7 @@ export class AdminAuthService {
       email: user.email,
       role: user.role,
       isAdmin: user.isAdmin,
+      aud: 'admin',
       jti: crypto.randomUUID(),
     };
 

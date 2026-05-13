@@ -1,5 +1,6 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { AdminGuard } from '../../../common/guards/admin.guard';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import { AdminCatalogsService } from '../services/admin-catalogs.service';
@@ -22,12 +23,14 @@ export class AdminCatalogsController {
     return this.catalogsService.createGenre(body, admin);
   }
 
+  @Throttle({ short: { limit: 5, ttl: 60000 } })
   @Patch('genres/:id')
   @ApiOperation({ summary: 'Editar género' })
   updateGenre(@Param('id') id: string, @Body() body: { slug?: string; label?: string; isActive?: boolean }, @CurrentUser() admin: JwtPayload) {
     return this.catalogsService.updateGenre(id, body, admin);
   }
 
+  @Throttle({ short: { limit: 5, ttl: 60000 } })
   @Delete('genres/:id')
   @ApiOperation({ summary: 'Eliminar género' })
   deleteGenre(@Param('id') id: string, @CurrentUser() admin: JwtPayload) {
@@ -45,6 +48,7 @@ export class AdminCatalogsController {
     return this.catalogsService.createLanguage(body, admin);
   }
 
+  @Throttle({ short: { limit: 5, ttl: 60000 } })
   @Patch('languages/:id')
   @ApiOperation({ summary: 'Editar idioma' })
   updateLanguage(@Param('id') id: string, @Body() body: { name?: string; code?: string; isActive?: boolean }, @CurrentUser() admin: JwtPayload) {
@@ -62,6 +66,7 @@ export class AdminCatalogsController {
     return this.catalogsService.createWarning(body, admin);
   }
 
+  @Throttle({ short: { limit: 5, ttl: 60000 } })
   @Patch('warnings/:id')
   @ApiOperation({ summary: 'Editar warning' })
   updateWarning(@Param('id') id: string, @Body() body: { slug?: string; label?: string; isActive?: boolean }, @CurrentUser() admin: JwtPayload) {
@@ -79,6 +84,7 @@ export class AdminCatalogsController {
     return this.catalogsService.createRomanceGenre(body, admin);
   }
 
+  @Throttle({ short: { limit: 5, ttl: 60000 } })
   @Patch('romance-genres/:id')
   @ApiOperation({ summary: 'Editar romance genre' })
   updateRomanceGenre(@Param('id') id: string, @Body() body: { slug?: string; label?: string; isActive?: boolean }, @CurrentUser() admin: JwtPayload) {

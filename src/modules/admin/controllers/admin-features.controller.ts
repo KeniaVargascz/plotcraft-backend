@@ -1,5 +1,6 @@
 import { Body, Controller, Get, Param, Patch, UseGuards } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { AdminGuard } from '../../../common/guards/admin.guard';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import { AdminFeaturesService } from '../services/admin-features.service';
@@ -24,6 +25,7 @@ export class AdminFeaturesController {
     return this.featuresService.findActive();
   }
 
+  @Throttle({ short: { limit: 5, ttl: 60000 } })
   @Patch(':key')
   @ApiOperation({ summary: 'Actualizar un feature flag' })
   update(
@@ -34,6 +36,7 @@ export class AdminFeaturesController {
     return this.featuresService.update(key, dto, user);
   }
 
+  @Throttle({ short: { limit: 5, ttl: 60000 } })
   @Patch('group/:group/toggle')
   @ApiOperation({ summary: 'Toggle todos los flags de un grupo' })
   toggleGroup(

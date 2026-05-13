@@ -1,6 +1,7 @@
 import { Controller, Get, Param, Patch, Query, UseGuards } from '@nestjs/common';
 import { Body } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { AdminGuard } from '../../../common/guards/admin.guard';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import { AdminUsersService } from '../services/admin-users.service';
@@ -41,6 +42,7 @@ export class AdminUsersController {
     return this.usersService.findOne(id);
   }
 
+  @Throttle({ short: { limit: 5, ttl: 60000 } })
   @Patch(':id/status')
   @ApiOperation({ summary: 'Cambiar status de usuario (suspend, ban, activate)' })
   updateStatus(
@@ -51,6 +53,7 @@ export class AdminUsersController {
     return this.usersService.updateStatus(id, dto, admin);
   }
 
+  @Throttle({ short: { limit: 5, ttl: 60000 } })
   @Patch(':id/role')
   @ApiOperation({ summary: 'Update user role' })
   updateRole(

@@ -1,5 +1,6 @@
 import { Body, Controller, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { AdminGuard } from '../../../common/guards/admin.guard';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import { AdminCommunitiesService } from '../services/admin-communities.service';
@@ -35,12 +36,14 @@ export class AdminCommunitiesController {
     return this.communitiesService.pendingCount();
   }
 
+  @Throttle({ short: { limit: 5, ttl: 60000 } })
   @Post(':id/approve')
   @ApiOperation({ summary: 'Aprobar comunidad' })
   approve(@Param('id') id: string, @CurrentUser() admin: JwtPayload) {
     return this.communitiesService.approve(id, admin);
   }
 
+  @Throttle({ short: { limit: 5, ttl: 60000 } })
   @Post(':id/reject')
   @ApiOperation({ summary: 'Rechazar comunidad' })
   reject(
@@ -51,12 +54,14 @@ export class AdminCommunitiesController {
     return this.communitiesService.reject(id, body.reason, admin);
   }
 
+  @Throttle({ short: { limit: 5, ttl: 60000 } })
   @Patch(':id/suspend')
   @ApiOperation({ summary: 'Suspender comunidad activa' })
   suspend(@Param('id') id: string, @CurrentUser() admin: JwtPayload) {
     return this.communitiesService.suspend(id, admin);
   }
 
+  @Throttle({ short: { limit: 5, ttl: 60000 } })
   @Patch(':id/activate')
   @ApiOperation({ summary: 'Reactivar comunidad suspendida' })
   activate(@Param('id') id: string, @CurrentUser() admin: JwtPayload) {

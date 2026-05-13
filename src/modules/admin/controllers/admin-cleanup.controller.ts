@@ -1,5 +1,6 @@
 import { Controller, Delete, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { AdminGuard } from '../../../common/guards/admin.guard';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import { AdminCleanupService } from '../services/admin-cleanup.service';
@@ -21,6 +22,7 @@ export class AdminCleanupController {
     return this.cleanupService.previewExpiredTokens();
   }
 
+  @Throttle({ short: { limit: 5, ttl: 60000 } })
   @Delete('tokens')
   @ApiOperation({ summary: 'Purge expired and old revoked refresh tokens' })
   purgeTokens(@CurrentUser() admin: JwtPayload) {
@@ -33,6 +35,7 @@ export class AdminCleanupController {
     return this.cleanupService.previewExpiredOtps();
   }
 
+  @Throttle({ short: { limit: 5, ttl: 60000 } })
   @Delete('otps')
   @ApiOperation({ summary: 'Purge expired and used OTP codes' })
   purgeOtps(@CurrentUser() admin: JwtPayload) {
@@ -45,6 +48,7 @@ export class AdminCleanupController {
     return this.cleanupService.previewOldNotifications();
   }
 
+  @Throttle({ short: { limit: 5, ttl: 60000 } })
   @Delete('notifications')
   @ApiOperation({ summary: 'Purge read >30d and unread >90d notifications' })
   purgeNotifications(@CurrentUser() admin: JwtPayload) {
@@ -57,6 +61,7 @@ export class AdminCleanupController {
     return this.cleanupService.previewOldReadingHistory();
   }
 
+  @Throttle({ short: { limit: 5, ttl: 60000 } })
   @Delete('reading-history')
   @ApiOperation({ summary: 'Purge reading history older than 1 year' })
   purgeReadingHistory(@CurrentUser() admin: JwtPayload) {
@@ -71,6 +76,7 @@ export class AdminCleanupController {
     );
   }
 
+  @Throttle({ short: { limit: 5, ttl: 60000 } })
   @Delete('inactive-users/all')
   @ApiOperation({ summary: 'Cleanup ALL inactive users (backup + deactivate)' })
   cleanupAllInactive(@Query('days') days: string | undefined, @CurrentUser() admin: JwtPayload) {
@@ -80,6 +86,7 @@ export class AdminCleanupController {
     );
   }
 
+  @Throttle({ short: { limit: 5, ttl: 60000 } })
   @Delete('inactive-users/:id')
   @ApiOperation({ summary: 'Cleanup inactive user data (backup + deactivate)' })
   cleanupUser(@Param('id') id: string, @CurrentUser() admin: JwtPayload) {

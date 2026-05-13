@@ -1,5 +1,6 @@
 import { Controller, Delete, Get, Param, Query, UseGuards } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { AdminGuard } from '../../../common/guards/admin.guard';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import { AdminPostsService } from '../services/admin-posts.service';
@@ -28,6 +29,7 @@ export class AdminPostsController {
   }
 
   @Delete(':id')
+  @Throttle({ short: { limit: 5, ttl: 60000 } })
   @ApiOperation({ summary: 'Eliminar post (soft delete)' })
   remove(@Param('id') id: string, @CurrentUser() admin: JwtPayload) {
     return this.postsService.remove(id, admin);

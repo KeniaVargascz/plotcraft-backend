@@ -1,5 +1,6 @@
 import { Controller, Delete, Get, Param, Patch, Query, UseGuards } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { AdminGuard } from '../../../common/guards/admin.guard';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import { AdminForumService } from '../services/admin-forum.service';
@@ -27,24 +28,28 @@ export class AdminForumController {
     });
   }
 
+  @Throttle({ short: { limit: 5, ttl: 60000 } })
   @Patch('threads/:id/pin')
   @ApiOperation({ summary: 'Pin/unpin hilo' })
   togglePin(@Param('id') id: string, @CurrentUser() admin: JwtPayload) {
     return this.forumService.togglePin(id, admin);
   }
 
+  @Throttle({ short: { limit: 5, ttl: 60000 } })
   @Patch('threads/:id/close')
   @ApiOperation({ summary: 'Cerrar hilo' })
   close(@Param('id') id: string, @CurrentUser() admin: JwtPayload) {
     return this.forumService.close(id, admin);
   }
 
+  @Throttle({ short: { limit: 5, ttl: 60000 } })
   @Delete('threads/:id')
   @ApiOperation({ summary: 'Eliminar hilo' })
   removeThread(@Param('id') id: string, @CurrentUser() admin: JwtPayload) {
     return this.forumService.removeThread(id, admin);
   }
 
+  @Throttle({ short: { limit: 5, ttl: 60000 } })
   @Delete('replies/:id')
   @ApiOperation({ summary: 'Eliminar respuesta' })
   removeReply(@Param('id') id: string, @CurrentUser() admin: JwtPayload) {
