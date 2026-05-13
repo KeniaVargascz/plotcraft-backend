@@ -40,8 +40,8 @@ export class AdminAuthController {
   @HttpCode(200)
   @Post('send-otp')
   @Throttle({ short: { limit: 3, ttl: 60000 } })
-  @ApiOperation({ summary: 'Send login OTP via SMS, WhatsApp, or email' })
-  sendLoginOtp(@Body() body: { tfaToken: string; channel?: 'sms' | 'whatsapp' | 'email' }) {
+  @ApiOperation({ summary: 'Send login OTP via SMS, WhatsApp, email, or prepare TOTP' })
+  sendLoginOtp(@Body() body: { tfaToken: string; channel?: 'sms' | 'whatsapp' | 'email' | 'totp' }) {
     return this.adminAuthService.sendLoginOtp(body.tfaToken, body.channel);
   }
 
@@ -49,9 +49,9 @@ export class AdminAuthController {
   @HttpCode(200)
   @Post('verify-otp')
   @Throttle({ short: { limit: 5, ttl: 60000 } })
-  @ApiOperation({ summary: 'Verify login OTP and complete admin login' })
-  verifyLoginOtp(@Body() body: { tfaToken: string; code: string }) {
-    return this.adminAuthService.verifyLoginOtp(body.tfaToken, body.code);
+  @ApiOperation({ summary: 'Verify login OTP/TOTP and complete admin login' })
+  verifyLoginOtp(@Body() body: { tfaToken: string; code: string; channel?: string }) {
+    return this.adminAuthService.verifyLoginOtp(body.tfaToken, body.code, body.channel);
   }
 
   @Get('me')

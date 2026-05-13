@@ -8,6 +8,7 @@ import { AdminAuditService } from './admin-audit.service';
 import { OtpService } from '../../otp/otp.service';
 import { SmsService } from '../../sms/sms.service';
 import { EmailService } from '../../email/email.service';
+import { AdminTfaService } from './admin-tfa.service';
 import { Role, hasRole } from '../../../common/constants/roles';
 
 @Injectable()
@@ -21,6 +22,7 @@ export class AdminAuthService {
     private readonly otpService: OtpService,
     private readonly smsService: SmsService,
     private readonly emailService: EmailService,
+    private readonly tfaService: AdminTfaService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
   ) {}
@@ -37,7 +39,7 @@ export class AdminAuthService {
 
     const user = await this.prisma.user.findUnique({
       where: { id: result.user.id },
-      select: { isAdmin: true, role: true, phone: true },
+      select: { isAdmin: true, role: true, phone: true, tfaEnabled: true },
     });
 
     if (!user || !hasRole(user.role, Role.MASTER)) {
@@ -57,12 +59,11 @@ export class AdminAuthService {
     );
 
     if (user.phone) {
-      // Has phone — ready to receive OTP
-      return { phoneRequired: false, tfaToken };
+      return { phoneRequired: false, tfaEnabled: user.tfaEnabled, tfaToken };
     }
 
     // No phone — frontend must collect it first
-    return { phoneRequired: true, tfaToken };
+    return { phoneRequired: true, tfaEnabled: user.tfaEnabled, tfaToken };
   }
 
   /**
@@ -107,8 +108,24 @@ export class AdminAuthService {
    * Step 3: Send OTP via SMS, WhatsApp, or email.
    * Email is always available as fallback when Twilio fails.
    */
-  async sendLoginOtp(tfaToken: string, channel: 'sms' | 'whatsapp' | 'email' = 'sms') {
+  async sendLoginOtp(tfaToken: string, channel: 'sms' | 'whatsapp' | 'email' | 'totp' = 'sms') {
     const payload = await this.verifyTfaToken(tfaToken);
+
+    // TOTP doesn't need to "send" anything — the code is in the authenticator app
+    if (channel === 'totp') {
+      const user = await this.prisma.user.findUniqueOrThrow({
+        where: { id: payload.sub },
+        select: { tfaEnabled: true },
+      });
+      if (!user.tfaEnabled) {
+        throw new BadRequestException({
+          statusCode: 400,
+          message: 'Authenticator no esta configurado. Activalo en Configuracion.',
+          code: 'TOTP_NOT_ENABLED',
+        });
+      }
+      return { sent: true, channel: 'totp' };
+    }
 
     const user = await this.prisma.user.findUniqueOrThrow({
       where: { id: payload.sub },
@@ -163,32 +180,46 @@ export class AdminAuthService {
   /**
    * Step 4: Verify the OTP code and complete login.
    */
-  async verifyLoginOtp(tfaToken: string, code: string) {
+  async verifyLoginOtp(tfaToken: string, code: string, channel?: string) {
     const payload = await this.verifyTfaToken(tfaToken);
 
-    const result = await this.otpService.verify(payload.sub, code, 'ADMIN_LOGIN');
+    if (channel === 'totp') {
+      // Verify via TOTP (Google Authenticator)
+      try {
+        await this.tfaService.verifyLogin(payload.sub, code);
+      } catch {
+        throw new BadRequestException({
+          statusCode: 400,
+          message: 'Codigo de authenticator invalido',
+          code: 'TOTP_INVALID',
+        });
+      }
+    } else {
+      // Verify via OTP (SMS/WhatsApp/Email)
+      const result = await this.otpService.verify(payload.sub, code, 'ADMIN_LOGIN');
 
-    if (!result.valid) {
-      const reason = (result as { reason: string }).reason;
-      if (reason === 'expired') {
+      if (!result.valid) {
+        const reason = (result as { reason: string }).reason;
+        if (reason === 'expired') {
+          throw new BadRequestException({
+            statusCode: 400,
+            message: 'El codigo ha expirado. Solicita uno nuevo.',
+            code: 'OTP_EXPIRED',
+          });
+        }
+        if (reason === 'too_many_attempts') {
+          throw new BadRequestException({
+            statusCode: 400,
+            message: 'Demasiados intentos. Espera unos minutos.',
+            code: 'TOO_MANY_ATTEMPTS',
+          });
+        }
         throw new BadRequestException({
           statusCode: 400,
-          message: 'El codigo ha expirado. Solicita uno nuevo.',
-          code: 'OTP_EXPIRED',
+          message: 'Codigo invalido',
+          code: 'OTP_INVALID',
         });
       }
-      if (reason === 'too_many_attempts') {
-        throw new BadRequestException({
-          statusCode: 400,
-          message: 'Demasiados intentos. Espera unos minutos.',
-          code: 'TOO_MANY_ATTEMPTS',
-        });
-      }
-      throw new BadRequestException({
-        statusCode: 400,
-        message: 'Codigo invalido',
-        code: 'OTP_INVALID',
-      });
     }
 
     const session = await this.createSessionForUser(payload.sub);
