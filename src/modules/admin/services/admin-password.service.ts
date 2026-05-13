@@ -37,9 +37,67 @@ export class AdminPasswordService {
    * Change password (admin is logged in)
    * Requires: current password + new password + 2FA code
    */
+  /**
+   * Send verification code for password change (SMS/WhatsApp/Email/TOTP).
+   */
+  async sendChangePasswordCode(
+    admin: JwtPayload,
+    channel: 'sms' | 'whatsapp' | 'email' | 'totp' = 'email',
+  ) {
+    const user = await this.prisma.user.findUniqueOrThrow({
+      where: { id: admin.sub },
+      select: { id: true, email: true, phone: true, username: true, tfaEnabled: true },
+    });
+
+    if (channel === 'totp') {
+      if (!user.tfaEnabled) {
+        throw new BadRequestException({
+          statusCode: 400,
+          message: 'Authenticator no esta configurado.',
+          code: 'TOTP_NOT_ENABLED',
+        });
+      }
+      return { sent: true, channel: 'totp' };
+    }
+
+    const plainCode = await this.otpService.create(user.id, 'ADMIN_PASSWORD_RESET');
+
+    if (channel === 'email') {
+      await this.emailService.sendPasswordResetOtp({
+        to: user.email,
+        username: user.username,
+        code: plainCode,
+        expiresInMinutes: 5,
+      });
+      return { sent: true, channel: 'email' };
+    }
+
+    if (!user.phone) {
+      throw new BadRequestException({
+        statusCode: 400,
+        message: 'No hay numero de telefono registrado.',
+        code: 'PHONE_NOT_REGISTERED',
+      });
+    }
+
+    const result = await this.smsService.sendOtp(user.phone, plainCode, channel);
+    if (!result.success) {
+      throw new BadRequestException({
+        statusCode: 400,
+        message: `No se pudo enviar el codigo por ${channel === 'whatsapp' ? 'WhatsApp' : 'SMS'}.`,
+        code: 'OTP_SEND_FAILED',
+      });
+    }
+
+    return { sent: true, channel };
+  }
+
+  /**
+   * Change password with verification code (OTP or TOTP).
+   */
   async changePassword(
     admin: JwtPayload,
-    dto: { currentPassword: string; newPassword: string; tfaCode: string },
+    dto: { currentPassword: string; newPassword: string; code: string; channel?: string },
   ) {
     const user = await this.prisma.user.findUniqueOrThrow({
       where: { id: admin.sub },
@@ -56,9 +114,26 @@ export class AdminPasswordService {
       });
     }
 
-    // Verify 2FA
-    if (user.tfaEnabled) {
-      await this.tfaService.verifyLogin(user.id, dto.tfaCode);
+    // Verify code (TOTP or OTP)
+    if (dto.channel === 'totp') {
+      try {
+        await this.tfaService.verifyLogin(user.id, dto.code);
+      } catch {
+        throw new BadRequestException({
+          statusCode: 400,
+          message: 'Codigo de authenticator invalido',
+          code: 'TOTP_INVALID',
+        });
+      }
+    } else {
+      const result = await this.otpService.verify(user.id, dto.code, 'ADMIN_PASSWORD_RESET');
+      if (!result.valid) {
+        throw new BadRequestException({
+          statusCode: 400,
+          message: 'Codigo invalido o expirado',
+          code: 'OTP_INVALID',
+        });
+      }
     }
 
     // Update password

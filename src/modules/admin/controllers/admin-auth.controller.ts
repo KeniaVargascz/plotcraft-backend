@@ -83,11 +83,23 @@ export class AdminAuthController {
 
   // Password management
   @HttpCode(200)
+  @Post('change-password/send-code')
+  @Throttle({ short: { limit: 3, ttl: 60000 } })
+  @ApiOperation({ summary: 'Send verification code for password change' })
+  sendChangePasswordCode(
+    @CurrentUser() user: JwtPayload,
+    @Body() body: { channel?: 'sms' | 'whatsapp' | 'email' | 'totp' },
+  ) {
+    return this.passwordService.sendChangePasswordCode(user, body.channel);
+  }
+
+  @HttpCode(200)
   @Post('change-password')
-  @ApiOperation({ summary: 'Change admin password (requires current + 2FA)' })
+  @Throttle({ short: { limit: 5, ttl: 60000 } })
+  @ApiOperation({ summary: 'Change admin password (requires current + verification code)' })
   changePassword(
     @CurrentUser() user: JwtPayload,
-    @Body() body: { currentPassword: string; newPassword: string; tfaCode: string },
+    @Body() body: { currentPassword: string; newPassword: string; code: string; channel?: string },
   ) {
     return this.passwordService.changePassword(user, body);
   }
