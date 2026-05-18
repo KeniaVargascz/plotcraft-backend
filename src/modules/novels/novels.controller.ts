@@ -60,6 +60,7 @@ export class NovelsController {
 
   @ApiBearerAuth()
   @Get('me')
+  @RequireFeature(FeatureFlag.AUTHOR_NOVELS)
   @ApiOperation({ summary: 'Listado de mis novelas' })
   listMyNovels(@CurrentUser() user: JwtPayload, @Query() query: NovelQueryDto) {
     return this.novelsService.listMyNovels(user.sub, query);
@@ -180,6 +181,7 @@ export class NovelsController {
 
   @ApiBearerAuth()
   @Post()
+  @RequireFeature(FeatureFlag.AUTHOR_NOVELS)
   @ApiOperation({ summary: 'Crear novela' })
   createNovel(@CurrentUser() user: JwtPayload, @Body() dto: CreateNovelDto) {
     return this.novelsService.createNovel(user.sub, dto);
@@ -187,6 +189,7 @@ export class NovelsController {
 
   @ApiBearerAuth()
   @Patch(':slug')
+  @RequireFeature(FeatureFlag.AUTHOR_NOVELS)
   @ApiOperation({ summary: 'Editar novela propia' })
   updateNovel(
     @Param('slug') slug: string,
@@ -198,6 +201,7 @@ export class NovelsController {
 
   @ApiBearerAuth()
   @Delete(':slug')
+  @RequireFeature(FeatureFlag.AUTHOR_NOVELS)
   @ApiOperation({ summary: 'Eliminar novela propia' })
   deleteNovel(@Param('slug') slug: string, @CurrentUser() user: JwtPayload) {
     return this.novelsService.deleteNovel(slug, user.sub);

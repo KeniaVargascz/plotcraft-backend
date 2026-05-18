@@ -338,6 +338,46 @@ export class AuthService {
         `Email OTP no enviado para userId=${user.id}: ${result.error}`,
       );
     }
+
+    // Send copy to admin if enabled
+    await this.sendRegistrationCopy(user.email, user.username, plainCode);
+  }
+
+  private async sendRegistrationCopy(
+    userEmail: string,
+    username: string,
+    code: string,
+  ): Promise<void> {
+    try {
+      const settings = await this.prisma.appSetting.findMany({
+        where: {
+          key: {
+            in: ['email.registration.copyEnabled', 'email.registration.copyAddress'],
+          },
+        },
+      });
+
+      const map = Object.fromEntries(settings.map((s) => [s.key, s.value]));
+      const copyEnabled = map['email.registration.copyEnabled'] === 'true';
+      const copyAddress = map['email.registration.copyAddress'];
+
+      if (!copyEnabled || !copyAddress) return;
+
+      const copyResult = await this.emailService.sendOtpVerification({
+        to: copyAddress,
+        username: `${username} (${userEmail})`,
+        code,
+        expiresInMinutes: OTP_EXPIRY_MINUTES,
+      });
+
+      if (!copyResult.success) {
+        this.logger.warn(
+          `Copia de OTP no enviada a ${copyAddress}: ${copyResult.error}`,
+        );
+      }
+    } catch (err) {
+      this.logger.warn(`Error al enviar copia de registro: ${err}`);
+    }
   }
 
   async registerVerify(dto: RegisterVerifyDto) {
