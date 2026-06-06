@@ -29,7 +29,6 @@ import { VisualBoardQueryDto } from './dto/visual-board-query.dto';
 import { VisualBoardsService } from './visual-boards.service';
 
 @ApiTags('visual-boards')
-@RequireFeature(FeatureFlag.AUTHOR_VISUAL_BOARDS)
 @Controller('visual-boards')
 export class VisualBoardsController {
   constructor(
@@ -39,6 +38,7 @@ export class VisualBoardsController {
 
   @ApiBearerAuth()
   @Get()
+  @RequireFeature(FeatureFlag.AUTHOR_VISUAL_BOARDS)
   @ApiOperation({ summary: 'Lista tableros propios' })
   listMine(
     @CurrentUser() user: JwtPayload,
@@ -71,6 +71,7 @@ export class VisualBoardsController {
 
   @ApiBearerAuth()
   @Post()
+  @RequireFeature(FeatureFlag.AUTHOR_VISUAL_BOARDS)
   @ApiOperation({ summary: 'Crear tablero' })
   create(@CurrentUser() user: JwtPayload, @Body() dto: CreateBoardDto) {
     return this.visualBoardsService.create(user.sub, dto);
@@ -78,6 +79,7 @@ export class VisualBoardsController {
 
   @ApiBearerAuth()
   @Patch(':id')
+  @RequireFeature(FeatureFlag.AUTHOR_VISUAL_BOARDS)
   @ApiOperation({ summary: 'Editar tablero propio' })
   update(
     @Param('id') id: string,
@@ -89,6 +91,7 @@ export class VisualBoardsController {
 
   @ApiBearerAuth()
   @Delete(':id')
+  @RequireFeature(FeatureFlag.AUTHOR_VISUAL_BOARDS)
   @HttpCode(204)
   @ApiOperation({ summary: 'Eliminar tablero propio' })
   async remove(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
@@ -97,6 +100,7 @@ export class VisualBoardsController {
 
   @ApiBearerAuth()
   @Post(':id/sections')
+  @RequireFeature(FeatureFlag.AUTHOR_VISUAL_BOARDS)
   @ApiOperation({ summary: 'Crear seccion' })
   createSection(
     @Param('id') id: string,
@@ -108,6 +112,7 @@ export class VisualBoardsController {
 
   @ApiBearerAuth()
   @Patch(':id/sections/:sectionId')
+  @RequireFeature(FeatureFlag.AUTHOR_VISUAL_BOARDS)
   @ApiOperation({ summary: 'Editar seccion' })
   updateSection(
     @Param('id') id: string,
@@ -120,6 +125,7 @@ export class VisualBoardsController {
 
   @ApiBearerAuth()
   @Delete(':id/sections/:sectionId')
+  @RequireFeature(FeatureFlag.AUTHOR_VISUAL_BOARDS)
   @HttpCode(204)
   @ApiOperation({ summary: 'Eliminar seccion' })
   async removeSection(
@@ -132,6 +138,7 @@ export class VisualBoardsController {
 
   @ApiBearerAuth()
   @Patch(':id/sections/reorder')
+  @RequireFeature(FeatureFlag.AUTHOR_VISUAL_BOARDS)
   @ApiOperation({ summary: 'Reordenar secciones' })
   reorderSections(
     @Param('id') id: string,
@@ -143,6 +150,7 @@ export class VisualBoardsController {
 
   @ApiBearerAuth()
   @Post(':id/sections/:sectionId/items')
+  @RequireFeature(FeatureFlag.AUTHOR_VISUAL_BOARDS)
   @ApiOperation({ summary: 'Agregar imagen a seccion' })
   addItem(
     @Param('id') id: string,
@@ -155,6 +163,7 @@ export class VisualBoardsController {
 
   @ApiBearerAuth()
   @Patch(':id/sections/:sectionId/items/:itemId')
+  @RequireFeature(FeatureFlag.AUTHOR_VISUAL_BOARDS)
   @ApiOperation({ summary: 'Editar imagen de seccion' })
   updateItem(
     @Param('id') id: string,
@@ -174,6 +183,7 @@ export class VisualBoardsController {
 
   @ApiBearerAuth()
   @Delete(':id/sections/:sectionId/items/:itemId')
+  @RequireFeature(FeatureFlag.AUTHOR_VISUAL_BOARDS)
   @HttpCode(204)
   @ApiOperation({ summary: 'Eliminar imagen de seccion' })
   async removeItem(
@@ -187,6 +197,7 @@ export class VisualBoardsController {
 
   @ApiBearerAuth()
   @Patch(':id/sections/:sectionId/items/reorder')
+  @RequireFeature(FeatureFlag.AUTHOR_VISUAL_BOARDS)
   @ApiOperation({ summary: 'Reordenar imagenes de una seccion' })
   reorderItems(
     @Param('id') id: string,

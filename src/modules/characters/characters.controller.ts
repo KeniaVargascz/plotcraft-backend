@@ -25,7 +25,6 @@ import { CharacterRelationshipService } from './services/character-relationship.
 import { CharacterNovelLinkService } from './services/character-novel-link.service';
 
 @ApiTags('characters')
-@RequireFeature(FeatureFlag.EXPLORE_CHARACTERS_CATALOG)
 @Controller('characters')
 export class CharactersController {
   constructor(
@@ -37,6 +36,7 @@ export class CharactersController {
 
   @Public()
   @Get()
+  @RequireFeature(FeatureFlag.EXPLORE_CHARACTERS_CATALOG)
   @ApiOperation({ summary: 'Catalogo publico de personajes' })
   async listPublic(
     @Query() query: CharacterQueryDto,
@@ -49,6 +49,7 @@ export class CharactersController {
 
   @ApiBearerAuth()
   @Get('me')
+  @RequireFeature(FeatureFlag.AUTHOR_CHARACTERS)
   @ApiOperation({ summary: 'Mis personajes' })
   listMine(@CurrentUser() user: JwtPayload, @Query() query: CharacterQueryDto) {
     return this.charactersService.listMine(user.sub, query);
@@ -56,6 +57,7 @@ export class CharactersController {
 
   @Public()
   @Get('user/:username')
+  @RequireFeature(FeatureFlag.EXPLORE_CHARACTERS_CATALOG)
   @ApiOperation({ summary: 'Personajes publicos de un autor' })
   async listByUser(
     @Param('username') username: string,
@@ -73,6 +75,7 @@ export class CharactersController {
 
   @Public()
   @Get('world/:worldSlug')
+  @RequireFeature(FeatureFlag.EXPLORE_CHARACTERS_CATALOG)
   @ApiOperation({ summary: 'Personajes publicos por mundo' })
   async listByWorld(
     @Param('worldSlug') worldSlug: string,
@@ -107,6 +110,7 @@ export class CharactersController {
 
   @Public()
   @Get(':authorUsername/:slug/relationships')
+  @RequireFeature(FeatureFlag.AUTHOR_CHARACTERS_RELATIONSHIPS)
   @ApiOperation({ summary: 'Relaciones de un personaje' })
   async listRelationships(
     @Param('authorUsername') authorUsername: string,
@@ -126,6 +130,7 @@ export class CharactersController {
 
   @Public()
   @Get(':authorUsername/:slug/novels')
+  @RequireFeature(FeatureFlag.EXPLORE_CHARACTERS_CATALOG)
   @ApiOperation({ summary: 'Novelas vinculadas a un personaje' })
   async listNovels(
     @Param('authorUsername') authorUsername: string,
@@ -145,6 +150,7 @@ export class CharactersController {
 
   @ApiBearerAuth()
   @Post()
+  @RequireFeature(FeatureFlag.AUTHOR_CHARACTERS)
   @ApiOperation({ summary: 'Crear personaje' })
   create(@CurrentUser() user: JwtPayload, @Body() dto: CreateCharacterDto) {
     return this.charactersService.create(user.sub, dto);
@@ -152,6 +158,7 @@ export class CharactersController {
 
   @ApiBearerAuth()
   @Patch(':authorUsername/:slug')
+  @RequireFeature(FeatureFlag.AUTHOR_CHARACTERS)
   @ApiOperation({ summary: 'Editar personaje propio' })
   update(
     @CurrentUser() user: JwtPayload,
@@ -164,6 +171,7 @@ export class CharactersController {
 
   @ApiBearerAuth()
   @Delete(':authorUsername/:slug')
+  @RequireFeature(FeatureFlag.AUTHOR_CHARACTERS)
   @ApiOperation({ summary: 'Eliminar personaje propio' })
   remove(
     @CurrentUser() user: JwtPayload,
@@ -175,6 +183,7 @@ export class CharactersController {
 
   @ApiBearerAuth()
   @Post(':authorUsername/:slug/relationships')
+  @RequireFeature(FeatureFlag.AUTHOR_CHARACTERS_RELATIONSHIPS)
   @ApiOperation({ summary: 'Crear relacion entre personajes propios' })
   createRelationship(
     @CurrentUser() user: JwtPayload,
@@ -192,6 +201,7 @@ export class CharactersController {
 
   @ApiBearerAuth()
   @Delete(':authorUsername/:slug/relationships/:relationshipId')
+  @RequireFeature(FeatureFlag.AUTHOR_CHARACTERS_RELATIONSHIPS)
   @ApiOperation({ summary: 'Eliminar relacion de personaje propio' })
   removeRelationship(
     @CurrentUser() user: JwtPayload,
@@ -209,6 +219,7 @@ export class CharactersController {
 
   @ApiBearerAuth()
   @Post(':authorUsername/:slug/novels/:novelSlug')
+  @RequireFeature(FeatureFlag.AUTHOR_CHARACTERS)
   @ApiOperation({ summary: 'Vincular personaje a novela propia' })
   linkNovel(
     @CurrentUser() user: JwtPayload,
@@ -226,6 +237,7 @@ export class CharactersController {
 
   @ApiBearerAuth()
   @Delete(':authorUsername/:slug/novels/:novelSlug')
+  @RequireFeature(FeatureFlag.AUTHOR_CHARACTERS)
   @ApiOperation({ summary: 'Desvincular personaje de novela propia' })
   unlinkNovel(
     @CurrentUser() user: JwtPayload,

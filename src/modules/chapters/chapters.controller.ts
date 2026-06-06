@@ -23,7 +23,6 @@ import { ChaptersService } from './chapters.service';
 import { ChapterCommentsService } from './chapter-comments.service';
 
 @ApiTags('chapters')
-@RequireFeature(FeatureFlag.EXPLORE_NOVELS_CATALOG)
 @Controller('novels/:slug/chapters')
 export class ChaptersController {
   constructor(
@@ -33,6 +32,7 @@ export class ChaptersController {
 
   @Public()
   @Get()
+  @RequireFeature(FeatureFlag.EXPLORE_NOVELS_CATALOG)
   @ApiOperation({ summary: 'Capitulos publicados de una novela' })
   listPublishedChapters(
     @Param('slug') novelSlug: string,
@@ -43,6 +43,7 @@ export class ChaptersController {
 
   @ApiBearerAuth()
   @Post()
+  @RequireFeature(FeatureFlag.AUTHOR_NOVELS_CHAPTERS)
   @ApiOperation({ summary: 'Crear capitulo en novela propia' })
   createChapter(
     @Param('slug') novelSlug: string,
@@ -54,6 +55,7 @@ export class ChaptersController {
 
   @ApiBearerAuth()
   @Get('drafts')
+  @RequireFeature(FeatureFlag.AUTHOR_NOVELS_CHAPTERS)
   @ApiOperation({ summary: 'Capitulos de borrador del autor' })
   listDraftChapters(
     @Param('slug') novelSlug: string,
@@ -65,6 +67,7 @@ export class ChaptersController {
 
   @ApiBearerAuth()
   @Get(':chapterSlug/edit')
+  @RequireFeature(FeatureFlag.AUTHOR_NOVELS_CHAPTERS)
   @ApiOperation({ summary: 'Detalle de capitulo propio para editor' })
   getOwnedChapter(
     @Param('slug') novelSlug: string,
@@ -90,6 +93,7 @@ export class ChaptersController {
 
   @ApiBearerAuth()
   @Patch('reorder')
+  @RequireFeature(FeatureFlag.AUTHOR_NOVELS_CHAPTERS)
   @ApiOperation({ summary: 'Reordenar capitulos propios' })
   reorderChapters(
     @Param('slug') novelSlug: string,
@@ -101,6 +105,7 @@ export class ChaptersController {
 
   @ApiBearerAuth()
   @Patch(':chapterSlug')
+  @RequireFeature(FeatureFlag.AUTHOR_NOVELS_CHAPTERS)
   @ApiOperation({ summary: 'Actualizar capitulo propio' })
   updateChapter(
     @Param('slug') novelSlug: string,
@@ -118,6 +123,7 @@ export class ChaptersController {
 
   @ApiBearerAuth()
   @Patch(':chapterSlug/autosave')
+  @RequireFeature(FeatureFlag.AUTHOR_NOVELS_CHAPTERS)
   @ApiOperation({ summary: 'Autosave de capitulo' })
   autosaveChapter(
     @Param('slug') novelSlug: string,
@@ -135,6 +141,7 @@ export class ChaptersController {
 
   @ApiBearerAuth()
   @Delete(':chapterSlug')
+  @RequireFeature(FeatureFlag.AUTHOR_NOVELS_CHAPTERS)
   @ApiOperation({ summary: 'Eliminar capitulo propio' })
   deleteChapter(
     @Param('slug') novelSlug: string,
@@ -146,6 +153,7 @@ export class ChaptersController {
 
   @ApiBearerAuth()
   @Post(':chapterSlug/publish')
+  @RequireFeature(FeatureFlag.AUTHOR_NOVELS_CHAPTERS)
   @ApiOperation({ summary: 'Publicar capitulo' })
   publishChapter(
     @Param('slug') novelSlug: string,
@@ -161,6 +169,7 @@ export class ChaptersController {
 
   @ApiBearerAuth()
   @Post(':chapterSlug/unpublish')
+  @RequireFeature(FeatureFlag.AUTHOR_NOVELS_CHAPTERS)
   @ApiOperation({ summary: 'Despublicar capitulo' })
   unpublishChapter(
     @Param('slug') novelSlug: string,
@@ -176,6 +185,7 @@ export class ChaptersController {
 
   @ApiBearerAuth()
   @Post(':chapterSlug/schedule')
+  @RequireFeature(FeatureFlag.AUTHOR_NOVELS_SCHEDULING)
   @ApiOperation({ summary: 'Programar publicacion de capitulo' })
   scheduleChapter(
     @Param('slug') novelSlug: string,

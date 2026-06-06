@@ -24,7 +24,6 @@ import { ReorderEntriesDto } from './dto/reorder-entries.dto';
 import { UpdateEntryDto } from './dto/update-entry.dto';
 
 @ApiTags('worldbuilding-entries')
-@RequireFeature(FeatureFlag.AUTHOR_WORLDS_WORLDBUILDING)
 @Controller('worlds/:slug/wb')
 export class EntriesController {
   constructor(
@@ -80,6 +79,7 @@ export class EntriesController {
 
   @ApiBearerAuth()
   @Post('entries')
+  @RequireFeature(FeatureFlag.AUTHOR_WORLDS_WORLDBUILDING)
   @ApiOperation({ summary: 'Crear entrada' })
   create(
     @CurrentUser() user: JwtPayload,
@@ -91,6 +91,7 @@ export class EntriesController {
 
   @ApiBearerAuth()
   @Patch('entries/:entrySlug')
+  @RequireFeature(FeatureFlag.AUTHOR_WORLDS_WORLDBUILDING)
   @ApiOperation({ summary: 'Actualizar entrada' })
   update(
     @CurrentUser() user: JwtPayload,
@@ -103,6 +104,7 @@ export class EntriesController {
 
   @ApiBearerAuth()
   @Delete('entries/:entrySlug')
+  @RequireFeature(FeatureFlag.AUTHOR_WORLDS_WORLDBUILDING)
   @ApiOperation({ summary: 'Eliminar entrada' })
   remove(
     @CurrentUser() user: JwtPayload,
@@ -114,6 +116,7 @@ export class EntriesController {
 
   @ApiBearerAuth()
   @Patch('categories/:catSlug/entries/reorder')
+  @RequireFeature(FeatureFlag.AUTHOR_WORLDS_WORLDBUILDING)
   @ApiOperation({ summary: 'Reordenar entradas dentro de una categoria' })
   reorder(
     @CurrentUser() user: JwtPayload,
@@ -131,6 +134,7 @@ export class EntriesController {
 
   @ApiBearerAuth()
   @Post('entries/:entrySlug/links')
+  @RequireFeature(FeatureFlag.AUTHOR_WORLDS_WORLDBUILDING)
   @ApiOperation({ summary: 'Crear vinculo entre entradas' })
   createLink(
     @CurrentUser() user: JwtPayload,
@@ -143,6 +147,7 @@ export class EntriesController {
 
   @ApiBearerAuth()
   @Delete('entries/:entrySlug/links/:linkId')
+  @RequireFeature(FeatureFlag.AUTHOR_WORLDS_WORLDBUILDING)
   @ApiOperation({ summary: 'Eliminar vinculo' })
   deleteLink(
     @CurrentUser() user: JwtPayload,

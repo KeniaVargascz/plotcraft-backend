@@ -23,7 +23,6 @@ import { UpdateViewportDto } from './dto/update-viewport.dto';
 import { MapsService } from './maps.service';
 
 @ApiTags('maps')
-@RequireFeature(FeatureFlag.AUTHOR_WORLDS)
 @Controller('worlds/:slug/map')
 export class MapsController {
   constructor(
@@ -40,6 +39,7 @@ export class MapsController {
 
   @ApiBearerAuth()
   @Patch()
+  @RequireFeature(FeatureFlag.AUTHOR_WORLDS_MAPS)
   @ApiOperation({ summary: 'Actualizar configuracion del mapa' })
   updateMap(
     @CurrentUser() user: JwtPayload,
@@ -52,6 +52,7 @@ export class MapsController {
 
   @ApiBearerAuth()
   @Patch('viewport')
+  @RequireFeature(FeatureFlag.AUTHOR_WORLDS_MAPS)
   @ApiOperation({ summary: 'Actualizar viewport del mapa' })
   updateViewport(
     @CurrentUser() user: JwtPayload,
@@ -63,6 +64,7 @@ export class MapsController {
 
   @ApiBearerAuth()
   @Post('markers')
+  @RequireFeature(FeatureFlag.AUTHOR_WORLDS_MAPS)
   @ApiOperation({ summary: 'Crear marcador en el mapa' })
   createMarker(
     @CurrentUser() user: JwtPayload,
@@ -74,6 +76,7 @@ export class MapsController {
 
   @ApiBearerAuth()
   @Patch('markers/:markerId')
+  @RequireFeature(FeatureFlag.AUTHOR_WORLDS_MAPS)
   @ApiOperation({ summary: 'Editar marcador del mapa' })
   updateMarker(
     @CurrentUser() user: JwtPayload,
@@ -86,6 +89,7 @@ export class MapsController {
 
   @ApiBearerAuth()
   @Delete('markers/:markerId')
+  @RequireFeature(FeatureFlag.AUTHOR_WORLDS_MAPS)
   @ApiOperation({ summary: 'Eliminar marcador del mapa' })
   deleteMarker(
     @CurrentUser() user: JwtPayload,
@@ -97,6 +101,7 @@ export class MapsController {
 
   @ApiBearerAuth()
   @Post('regions')
+  @RequireFeature(FeatureFlag.AUTHOR_WORLDS_MAPS)
   @ApiOperation({ summary: 'Crear region en el mapa' })
   createRegion(
     @CurrentUser() user: JwtPayload,
@@ -108,6 +113,7 @@ export class MapsController {
 
   @ApiBearerAuth()
   @Patch('regions/:regionId')
+  @RequireFeature(FeatureFlag.AUTHOR_WORLDS_MAPS)
   @ApiOperation({ summary: 'Editar region del mapa' })
   updateRegion(
     @CurrentUser() user: JwtPayload,
@@ -120,6 +126,7 @@ export class MapsController {
 
   @ApiBearerAuth()
   @Delete('regions/:regionId')
+  @RequireFeature(FeatureFlag.AUTHOR_WORLDS_MAPS)
   @ApiOperation({ summary: 'Eliminar region del mapa' })
   deleteRegion(
     @CurrentUser() user: JwtPayload,

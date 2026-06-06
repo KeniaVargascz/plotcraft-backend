@@ -25,7 +25,6 @@ import { UpdateSeriesStatusDto } from './dto/update-series-status.dto';
 import { SeriesService } from './series.service';
 
 @ApiTags('series')
-@RequireFeature(FeatureFlag.EXPLORE_SERIES_CATALOG)
 @Controller('series')
 export class SeriesController {
   constructor(
@@ -35,6 +34,7 @@ export class SeriesController {
 
   @Public()
   @Get()
+  @RequireFeature(FeatureFlag.EXPLORE_SERIES_CATALOG)
   @ApiOperation({ summary: 'Listado publico de series' })
   async list(
     @Query() query: SeriesQueryDto,
@@ -75,6 +75,7 @@ export class SeriesController {
 
   @ApiBearerAuth()
   @Post()
+  @RequireFeature(FeatureFlag.AUTHOR_SERIES)
   @ApiOperation({ summary: 'Crear serie' })
   create(@CurrentUser() user: JwtPayload, @Body() dto: CreateSeriesDto) {
     return this.seriesService.createSeries(user.sub, dto);
@@ -82,6 +83,7 @@ export class SeriesController {
 
   @ApiBearerAuth()
   @Patch(':slug')
+  @RequireFeature(FeatureFlag.AUTHOR_SERIES)
   @ApiOperation({ summary: 'Editar serie propia' })
   update(
     @Param('slug') slug: string,
@@ -93,6 +95,7 @@ export class SeriesController {
 
   @ApiBearerAuth()
   @Delete(':slug')
+  @RequireFeature(FeatureFlag.AUTHOR_SERIES)
   @ApiOperation({ summary: 'Eliminar serie propia' })
   delete(@Param('slug') slug: string, @CurrentUser() user: JwtPayload) {
     return this.seriesService.deleteSeries(slug, user.sub);
@@ -100,6 +103,7 @@ export class SeriesController {
 
   @ApiBearerAuth()
   @Post(':slug/novels')
+  @RequireFeature(FeatureFlag.AUTHOR_SERIES)
   @ApiOperation({ summary: 'Anadir novela a la serie' })
   addNovel(
     @Param('slug') slug: string,
@@ -111,6 +115,7 @@ export class SeriesController {
 
   @ApiBearerAuth()
   @Delete(':slug/novels/:novelId')
+  @RequireFeature(FeatureFlag.AUTHOR_SERIES)
   @ApiOperation({ summary: 'Quitar novela de la serie' })
   removeNovel(
     @Param('slug') slug: string,
@@ -122,6 +127,7 @@ export class SeriesController {
 
   @ApiBearerAuth()
   @Patch(':slug/novels/reorder')
+  @RequireFeature(FeatureFlag.AUTHOR_SERIES)
   @ApiOperation({ summary: 'Reordenar novelas de la serie' })
   reorder(
     @Param('slug') slug: string,
@@ -133,6 +139,7 @@ export class SeriesController {
 
   @ApiBearerAuth()
   @Patch(':slug/status')
+  @RequireFeature(FeatureFlag.AUTHOR_SERIES)
   @ApiOperation({ summary: 'Cambiar estado de la serie' })
   updateStatus(
     @Param('slug') slug: string,

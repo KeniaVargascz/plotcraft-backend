@@ -10,11 +10,17 @@ describe('EmailService', () => {
     send: jest.fn(),
   };
 
+  const mockPrisma = {
+    appSetting: {
+      findUnique: jest.fn().mockResolvedValue(null),
+    },
+  } as any;
+
   let service: EmailService;
 
   beforeEach(() => {
     jest.clearAllMocks();
-    service = new EmailService(mockProvider);
+    service = new EmailService(mockProvider, mockPrisma);
   });
 
   it('sendOtpVerification should call provider.send with correct subject and tags', async () => {

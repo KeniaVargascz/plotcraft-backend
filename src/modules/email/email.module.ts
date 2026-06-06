@@ -6,6 +6,7 @@ import { BrevoProvider } from './providers/brevo.provider';
 import { ConsoleProvider } from './providers/console.provider';
 import { SmtpProvider } from './providers/smtp.provider';
 import { EMAIL_PROVIDER_TOKEN } from './constants/email-tokens';
+import { PrismaModule } from '../../prisma/prisma.module';
 
 const PROVIDER_MAP = {
   resend: ResendProvider,
@@ -17,7 +18,7 @@ const PROVIDER_MAP = {
 type ProviderKey = keyof typeof PROVIDER_MAP;
 
 @Module({
-  imports: [ConfigModule],
+  imports: [ConfigModule, PrismaModule],
   providers: [
     {
       provide: EMAIL_PROVIDER_TOKEN,

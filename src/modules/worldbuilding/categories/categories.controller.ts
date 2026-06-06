@@ -21,7 +21,6 @@ import { ReorderCategoriesDto } from './dto/reorder-categories.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
 
 @ApiTags('worldbuilding-categories')
-@RequireFeature(FeatureFlag.AUTHOR_WORLDS_WORLDBUILDING)
 @Controller()
 export class CategoriesController {
   constructor(private readonly categoriesService: CategoriesService) {}
@@ -50,6 +49,7 @@ export class CategoriesController {
 
   @ApiBearerAuth()
   @Post('worlds/:slug/wb/categories')
+  @RequireFeature(FeatureFlag.AUTHOR_WORLDS_WORLDBUILDING)
   @ApiOperation({ summary: 'Crear categoria en un mundo' })
   create(
     @CurrentUser() user: JwtPayload,
@@ -61,6 +61,7 @@ export class CategoriesController {
 
   @ApiBearerAuth()
   @Post('worlds/:slug/wb/categories/from-template')
+  @RequireFeature(FeatureFlag.AUTHOR_WORLDS_WORLDBUILDING)
   @ApiOperation({ summary: 'Crear categoria desde plantilla' })
   instantiateTemplate(
     @CurrentUser() user: JwtPayload,
@@ -72,6 +73,7 @@ export class CategoriesController {
 
   @ApiBearerAuth()
   @Patch('worlds/:slug/wb/categories/reorder')
+  @RequireFeature(FeatureFlag.AUTHOR_WORLDS_WORLDBUILDING)
   @ApiOperation({ summary: 'Reordenar categorias' })
   reorder(
     @CurrentUser() user: JwtPayload,
@@ -87,6 +89,7 @@ export class CategoriesController {
 
   @ApiBearerAuth()
   @Patch('worlds/:slug/wb/categories/:catSlug')
+  @RequireFeature(FeatureFlag.AUTHOR_WORLDS_WORLDBUILDING)
   @ApiOperation({ summary: 'Actualizar categoria' })
   update(
     @CurrentUser() user: JwtPayload,
@@ -99,6 +102,7 @@ export class CategoriesController {
 
   @ApiBearerAuth()
   @Delete('worlds/:slug/wb/categories/:catSlug')
+  @RequireFeature(FeatureFlag.AUTHOR_WORLDS_WORLDBUILDING)
   @ApiOperation({ summary: 'Eliminar categoria' })
   remove(
     @CurrentUser() user: JwtPayload,

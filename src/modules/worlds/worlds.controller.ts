@@ -24,7 +24,6 @@ import { WorldQueryDto } from './dto/world-query.dto';
 import { WorldsService } from './worlds.service';
 
 @ApiTags('worlds')
-@RequireFeature(FeatureFlag.EXPLORE_WORLDS_CATALOG)
 @Controller('worlds')
 export class WorldsController {
   constructor(
@@ -34,6 +33,7 @@ export class WorldsController {
 
   @Public()
   @Get()
+  @RequireFeature(FeatureFlag.EXPLORE_WORLDS_CATALOG)
   @ApiOperation({ summary: 'Catalogo publico de mundos' })
   async listPublic(
     @Query() query: WorldQueryDto,
@@ -46,6 +46,7 @@ export class WorldsController {
 
   @ApiBearerAuth()
   @Get('me')
+  @RequireFeature(FeatureFlag.AUTHOR_WORLDS)
   @ApiOperation({ summary: 'Mis mundos' })
   listMine(@CurrentUser() user: JwtPayload, @Query() query: WorldQueryDto) {
     return this.worldsService.listMine(user.sub, query);
@@ -53,6 +54,7 @@ export class WorldsController {
 
   @Public()
   @Get('user/:username')
+  @RequireFeature(FeatureFlag.EXPLORE_WORLDS_CATALOG)
   @ApiOperation({ summary: 'Mundos publicos de un autor' })
   async listByUser(
     @Param('username') username: string,
@@ -95,6 +97,7 @@ export class WorldsController {
 
   @ApiBearerAuth()
   @Post()
+  @RequireFeature(FeatureFlag.AUTHOR_WORLDS)
   @ApiOperation({ summary: 'Crear mundo' })
   create(@CurrentUser() user: JwtPayload, @Body() dto: CreateWorldDto) {
     return this.worldsService.create(user.sub, dto);
@@ -102,6 +105,7 @@ export class WorldsController {
 
   @ApiBearerAuth()
   @Patch(':slug')
+  @RequireFeature(FeatureFlag.AUTHOR_WORLDS)
   @ApiOperation({ summary: 'Editar mundo propio' })
   update(
     @CurrentUser() user: JwtPayload,
@@ -113,6 +117,7 @@ export class WorldsController {
 
   @ApiBearerAuth()
   @Delete(':slug')
+  @RequireFeature(FeatureFlag.AUTHOR_WORLDS)
   @ApiOperation({ summary: 'Eliminar mundo propio' })
   remove(@CurrentUser() user: JwtPayload, @Param('slug') slug: string) {
     return this.worldsService.remove(user.sub, slug);
@@ -120,6 +125,7 @@ export class WorldsController {
 
   @ApiBearerAuth()
   @Post(':slug/locations')
+  @RequireFeature(FeatureFlag.AUTHOR_WORLDS)
   @ApiOperation({ summary: 'Crear ubicacion en un mundo propio' })
   createLocation(
     @CurrentUser() user: JwtPayload,
@@ -131,6 +137,7 @@ export class WorldsController {
 
   @ApiBearerAuth()
   @Patch(':slug/locations/:locationId')
+  @RequireFeature(FeatureFlag.AUTHOR_WORLDS)
   @ApiOperation({ summary: 'Editar ubicacion de un mundo propio' })
   updateLocation(
     @CurrentUser() user: JwtPayload,
@@ -143,6 +150,7 @@ export class WorldsController {
 
   @ApiBearerAuth()
   @Delete(':slug/locations/:locationId')
+  @RequireFeature(FeatureFlag.AUTHOR_WORLDS)
   @ApiOperation({ summary: 'Eliminar ubicacion de un mundo propio' })
   removeLocation(
     @CurrentUser() user: JwtPayload,
@@ -154,6 +162,7 @@ export class WorldsController {
 
   @ApiBearerAuth()
   @Post(':slug/novels/:novelSlug')
+  @RequireFeature(FeatureFlag.AUTHOR_WORLDS)
   @ApiOperation({ summary: 'Vincular novela propia a un mundo propio' })
   linkNovel(
     @CurrentUser() user: JwtPayload,
@@ -165,6 +174,7 @@ export class WorldsController {
 
   @ApiBearerAuth()
   @Delete(':slug/novels/:novelSlug')
+  @RequireFeature(FeatureFlag.AUTHOR_WORLDS)
   @ApiOperation({ summary: 'Desvincular novela de un mundo propio' })
   unlinkNovel(
     @CurrentUser() user: JwtPayload,
