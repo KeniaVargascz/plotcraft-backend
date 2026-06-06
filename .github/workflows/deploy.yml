@@ -36,7 +36,7 @@ jobs:
           restore-keys: ${{ runner.os }}-pnpm-
 
       - name: Instalar dependencias
-        run: pnpm install --frozen-lockfile
+        run: pnpm install
 
       - name: Generar cliente Prisma
         run: pnpm prisma generate
