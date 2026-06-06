@@ -30,7 +30,6 @@ import { NovelInteractionsService } from './services/novel-interactions.service'
 import { NovelCharacterLinkService } from './services/novel-character-link.service';
 
 @ApiTags('novels')
-@RequireFeature(FeatureFlag.EXPLORE_NOVELS_CATALOG)
 @Controller('novels')
 export class NovelsController {
   constructor(
@@ -47,6 +46,7 @@ export class NovelsController {
 
   @Public()
   @Get()
+  @RequireFeature(FeatureFlag.EXPLORE_NOVELS_CATALOG)
   @ApiOperation({ summary: 'Catalogo publico de novelas' })
   async listPublicNovels(
     @Query() query: NovelQueryDto,
@@ -68,6 +68,7 @@ export class NovelsController {
 
   @Public()
   @Get('user/:username')
+  @RequireFeature(FeatureFlag.EXPLORE_NOVELS_CATALOG)
   @ApiOperation({ summary: 'Novelas publicas de un autor' })
   async listUserNovels(
     @Param('username') username: string,
@@ -86,6 +87,7 @@ export class NovelsController {
 
   @ApiBearerAuth()
   @Get('me/subscriptions')
+  @RequireFeature(FeatureFlag.READER_SUBSCRIPTIONS)
   @ApiOperation({ summary: 'Listado de mis suscripciones a novelas' })
   listMySubscriptions(
     @CurrentUser() user: JwtPayload,
@@ -102,6 +104,7 @@ export class NovelsController {
 
   @Public()
   @Get(':slug')
+  @RequireFeature(FeatureFlag.EXPLORE_NOVELS_CATALOG)
   @ApiOperation({ summary: 'Detalle de una novela' })
   async getNovelBySlug(
     @Param('slug') slug: string,
@@ -115,6 +118,7 @@ export class NovelsController {
 
   @Public()
   @Get(':slug/characters')
+  @RequireFeature(FeatureFlag.EXPLORE_NOVELS_CATALOG)
   @ApiOperation({ summary: 'Personajes vinculados a una novela' })
   async listNovelCharacters(
     @Param('slug') slug: string,
@@ -133,6 +137,7 @@ export class NovelsController {
 
   @ApiBearerAuth()
   @Post(':slug/characters')
+  @RequireFeature(FeatureFlag.AUTHOR_NOVELS)
   @ApiOperation({
     summary: 'Vincular un personaje (propio o de catálogo) a una novela',
   })
@@ -146,6 +151,7 @@ export class NovelsController {
 
   @ApiBearerAuth()
   @Delete(':slug/characters/:novelCharacterId')
+  @RequireFeature(FeatureFlag.AUTHOR_NOVELS)
   @ApiOperation({ summary: 'Desvincular un personaje de una novela' })
   unlinkNovelCharacter(
     @Param('slug') slug: string,
@@ -161,6 +167,7 @@ export class NovelsController {
 
   @ApiBearerAuth()
   @Get(':slug/timeline')
+  @RequireFeature(FeatureFlag.AUTHOR_TIMELINES)
   @ApiOperation({ summary: 'Timeline vinculado a esta novela (upsert)' })
   getNovelTimeline(
     @Param('slug') slug: string,
@@ -171,6 +178,7 @@ export class NovelsController {
 
   @ApiBearerAuth()
   @Get(':slug/planner')
+  @RequireFeature(FeatureFlag.AUTHOR_PLANNER)
   @ApiOperation({ summary: 'Planner vinculado a esta novela (upsert)' })
   getNovelPlanner(
     @Param('slug') slug: string,
@@ -209,6 +217,7 @@ export class NovelsController {
 
   @ApiBearerAuth()
   @Post(':slug/like')
+  @RequireFeature(FeatureFlag.EXPLORE_NOVELS_CATALOG)
   @ApiOperation({ summary: 'Toggle like sobre una novela' })
   toggleLike(@Param('slug') slug: string, @CurrentUser() user: JwtPayload) {
     return this.novelInteractionsService.toggleLike(slug, user.sub);
@@ -216,6 +225,7 @@ export class NovelsController {
 
   @ApiBearerAuth()
   @Post(':slug/bookmark')
+  @RequireFeature(FeatureFlag.EXPLORE_NOVELS_CATALOG)
   @ApiOperation({ summary: 'Toggle bookmark sobre una novela' })
   toggleBookmark(@Param('slug') slug: string, @CurrentUser() user: JwtPayload) {
     return this.novelInteractionsService.toggleBookmark(slug, user.sub);
@@ -223,6 +233,7 @@ export class NovelsController {
 
   @ApiBearerAuth()
   @Post(':slug/kudos')
+  @RequireFeature(FeatureFlag.EXPLORE_NOVELS_CATALOG)
   @ApiOperation({ summary: 'Dar kudo a una novela' })
   addKudo(@Param('slug') slug: string, @CurrentUser() user: JwtPayload) {
     return this.kudosService.addKudo(slug, user.sub);
@@ -230,6 +241,7 @@ export class NovelsController {
 
   @ApiBearerAuth()
   @Delete(':slug/kudos')
+  @RequireFeature(FeatureFlag.EXPLORE_NOVELS_CATALOG)
   @ApiOperation({ summary: 'Quitar kudo de una novela' })
   removeKudo(@Param('slug') slug: string, @CurrentUser() user: JwtPayload) {
     return this.kudosService.removeKudo(slug, user.sub);
@@ -237,6 +249,7 @@ export class NovelsController {
 
   @ApiBearerAuth()
   @Post(':slug/subscribe')
+  @RequireFeature(FeatureFlag.READER_SUBSCRIPTIONS)
   @ApiOperation({ summary: 'Suscribirse a una novela' })
   subscribe(@Param('slug') slug: string, @CurrentUser() user: JwtPayload) {
     return this.subscriptionsService.subscribe(slug, user.sub);
@@ -244,6 +257,7 @@ export class NovelsController {
 
   @ApiBearerAuth()
   @Delete(':slug/subscribe')
+  @RequireFeature(FeatureFlag.READER_SUBSCRIPTIONS)
   @ApiOperation({ summary: 'Cancelar suscripcion a una novela' })
   unsubscribe(@Param('slug') slug: string, @CurrentUser() user: JwtPayload) {
     return this.subscriptionsService.unsubscribe(slug, user.sub);
@@ -253,6 +267,7 @@ export class NovelsController {
 
   @Public()
   @Get(':slug/comments')
+  @RequireFeature(FeatureFlag.EXPLORE_NOVELS_CATALOG)
   @ApiOperation({ summary: 'List novel comments' })
   listNovelComments(
     @Param('slug') slug: string,
@@ -264,6 +279,7 @@ export class NovelsController {
 
   @ApiBearerAuth()
   @Post(':slug/comments')
+  @RequireFeature(FeatureFlag.EXPLORE_NOVELS_CATALOG)
   @ApiOperation({ summary: 'Comment on a novel' })
   createNovelComment(
     @Param('slug') slug: string,
@@ -275,6 +291,7 @@ export class NovelsController {
 
   @ApiBearerAuth()
   @Delete(':slug/comments/:commentId')
+  @RequireFeature(FeatureFlag.EXPLORE_NOVELS_CATALOG)
   @ApiOperation({ summary: 'Delete a novel comment' })
   deleteNovelComment(
     @Param('slug') slug: string,
