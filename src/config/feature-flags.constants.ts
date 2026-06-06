@@ -9,6 +9,7 @@ export const FeatureFlag = {
   SOCIAL_FEED_COMMENTS: 'social.feed.comments',
   SOCIAL_FOLLOWS: 'social.follows',
   SOCIAL_NOTIFICATIONS: 'social.notifications',
+  SOCIAL_PUBLIC_PROFILE: 'social.public_profile',
 
   // Explore
   EXPLORE_DISCOVERY: 'explore.discovery',

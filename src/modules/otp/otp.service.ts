@@ -115,6 +115,7 @@ export class OtpService {
       data: { usedAt: new Date() },
     });
     await this.cache.del(cacheKey);
+    await this.cache.del(lastAttemptKey);
 
     return { valid: true };
   }

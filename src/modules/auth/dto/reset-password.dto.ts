@@ -14,6 +14,7 @@ export class ResetPasswordDto {
 
   @IsString()
   @Length(6, 6)
+  @Matches(/^\d{6}$/)
   code!: string;
 
   @IsString()

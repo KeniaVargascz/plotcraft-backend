@@ -301,28 +301,51 @@ export class AuthService {
 
     const passwordHash = await bcrypt.hash(dto.password, this.saltRounds);
 
-    const user = await this.prisma.$transaction(async (tx) => {
-      const createdUser = await tx.user.create({
-        data: {
-          email: dto.email,
-          username: dto.username,
-          passwordHash,
-          nickname: dto.nickname,
-          birthdate: dto.birthdate ? new Date(dto.birthdate) : null,
-          status: 'PENDING_VERIFICATION',
-          isActive: false,
-        },
-      });
+    let user: Awaited<ReturnType<typeof this.prisma.user.create>>;
+    try {
+      user = await this.prisma.$transaction(async (tx) => {
+        const createdUser = await tx.user.create({
+          data: {
+            email: dto.email,
+            username: dto.username,
+            passwordHash,
+            nickname: dto.nickname,
+            birthdate: dto.birthdate ? new Date(dto.birthdate) : null,
+            status: 'PENDING_VERIFICATION',
+            isActive: false,
+          },
+        });
 
-      await tx.profile.create({
-        data: {
-          userId: createdUser.id,
-          displayName: dto.nickname,
-        },
-      });
+        await tx.profile.create({
+          data: {
+            userId: createdUser.id,
+            displayName: dto.nickname,
+          },
+        });
 
-      return createdUser;
-    });
+        return createdUser;
+      });
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        const target = (error.meta?.target as string[]) ?? [];
+        if (target.includes('username')) {
+          throw new ConflictException({
+            field: 'username',
+            code: 'USERNAME_TAKEN',
+            message: 'username already taken',
+          });
+        }
+        throw new ConflictException({
+          field: 'email',
+          code: 'EMAIL_TAKEN',
+          message: 'email already taken',
+        });
+      }
+      throw error;
+    }
 
     const plainCode = await this.otpService.create(user.id, 'REGISTER_VERIFY');
 
